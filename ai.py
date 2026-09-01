@@ -17,9 +17,9 @@ import certifi
 BASE_URL = "https://apihub.agnes-ai.com/v1/chat/completions"
 MODEL = "agnes-2.5-flash"
 
-# Key：优先读环境变量（Vercel 后台配置），否则用本地默认（开箱即用）。
-# ⚠️ 推到 GitHub/Vercel 前请把默认值移除、改为环境变量，避免密钥入库。
-API_KEY = os.environ.get("AGNES_API_KEY", "sk-pyxzKTbB6NgisqoyMTgOIlkRvEaUNgEsbO4H8h6R6QOEoEQ5")
+# Key：只从环境变量读取（Vercel 后台配置 / 本地 export），不再内置默认值，
+# 避免密钥随代码入库。未配置时 _call 会抛异常、由上层优雅降级为「暂无解读」。
+API_KEY = os.environ.get("AGNES_API_KEY", "")
 
 
 def _call(system_prompt, user_content, maxtok=500, timeout=60):
