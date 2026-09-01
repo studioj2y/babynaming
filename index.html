@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>星命观测局 · 为小星主推演佳名</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f5fb; --card:#ffffff; --ink:#2a2740; --sub:#7a7693; --line:#e9e6f3;
+    --acc:#6c5ce7; --acc2:#a29bfe; --good:#2bb673; --warn:#e58e26;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:480px;margin:0 auto;padding:22px 16px 60px;}
+  .top{text-align:center;margin-bottom:18px;}
+  .top h1{font-size:22px;margin:0 0 4px;font-weight:600;letter-spacing:1px;}
+  .top p{margin:0;color:var(--sub);font-size:13px;}
+  .steps-dot{display:flex;justify-content:center;gap:6px;margin:14px 0 18px;}
+  .steps-dot i{width:7px;height:7px;border-radius:50%;background:var(--line);display:block;transition:.3s;}
+  .steps-dot i.on{background:var(--acc);width:18px;border-radius:4px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 18px;
+    box-shadow:0 8px 30px rgba(108,92,231,.06);}
+  .card h2{font-size:17px;margin:0 0 4px;font-weight:600;}
+  .card .hint{color:var(--sub);font-size:12.5px;margin:0 0 16px;line-height:1.6;}
+  label.f{display:block;font-size:13px;color:var(--sub);margin:14px 0 6px;}
+  input[type=text],input[type=date],input[type=time]{width:100%;padding:12px 14px;border:1px solid var(--line);
+    border-radius:12px;font-size:15px;background:#fbfaff;color:var(--ink);outline:none;}
+  input:focus{border-color:var(--acc);}
+  .row{display:flex;gap:10px;}
+  .seg{display:flex;gap:8px;flex-wrap:wrap;}
+  .seg button{flex:1;min-width:84px;padding:11px;border:1px solid var(--line);background:#fbfaff;border-radius:12px;
+    font-size:14px;color:var(--ink);cursor:pointer;transition:.15s;}
+  .seg button.sel{background:var(--acc);color:#fff;border-color:var(--acc);}
+  .seg button:disabled{opacity:.35;cursor:not-allowed;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .chip{padding:8px 13px;border:1px solid var(--line);background:#fbfaff;border-radius:20px;font-size:13px;
+    cursor:pointer;transition:.15s;color:var(--ink);}
+  .chip.sel{background:var(--acc);color:#fff;border-color:var(--acc);}
+  .order{display:flex;flex-direction:column;gap:9px;margin-top:6px;}
+  .order .it{display:flex;align-items:center;gap:10px;background:#fbfaff;border:1px solid var(--line);
+    border-radius:12px;padding:11px 12px;cursor:grab;transition:.15s;}
+  .order .it.drag{opacity:.4;}
+  .order .it .no{width:22px;height:22px;border-radius:50%;background:var(--acc2);color:#fff;font-size:12px;
+    display:flex;align-items:center;justify-content:center;}
+  .order .it .nm{flex:1;font-size:14px;}
+  .order .it .mv{display:flex;flex-direction:column;gap:3px;}
+  .order .it .mv button{border:none;background:#efeafc;color:var(--acc);border-radius:6px;width:26px;height:18px;
+    font-size:11px;cursor:pointer;line-height:1;}
+  .order .it .mv button:disabled{opacity:.3;cursor:default;}
+  .nav{display:flex;gap:10px;margin-top:20px;}
+  .btn{flex:1;padding:13px;border-radius:13px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:.15s;}
+  .btn.ghost{background:#f0eef8;color:var(--sub);}
+  .btn.prim{background:var(--acc);color:#fff;}
+  .btn.prim:active{transform:scale(.98);}
+  .opt{display:flex;align-items:center;gap:8px;margin-top:14px;color:var(--sub);font-size:13px;}
+  .ritual{position:fixed;inset:0;background:linear-gradient(160deg,#6c5ce7,#8e7bff);display:none;
+    align-items:center;justify-content:center;flex-direction:column;z-index:50;color:#fff;}
+  .ritual.show{display:flex;}
+  .ritual .orb{width:78px;height:78px;border-radius:50%;border:3px solid rgba(255,255,255,.35);
+    border-top-color:#fff;animation:spin 1s linear infinite;margin-bottom:22px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ritual .msg{font-size:16px;letter-spacing:1px;height:26px;opacity:.95;text-align:center;padding:0 24px;}
+  .ritual .sub{font-size:12px;opacity:.7;margin-top:10px;}
+  .divider{display:flex;align-items:center;gap:10px;margin:22px 0 4px;color:var(--sub);font-size:12px;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
+  .sum{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:16px;
+    font-size:13px;color:var(--sub);line-height:1.7;}
+  .sum b{color:var(--ink);}
+  .name-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:0;margin-bottom:13px;
+    cursor:pointer;transition:.15s;overflow:hidden;box-shadow:0 8px 30px rgba(108,92,231,.06);}
+  .name-card:hover{border-color:var(--acc2);}
+  .name-card .topbar{height:6px;background:linear-gradient(90deg,var(--acc2),var(--acc));}
+  .name-card .body{padding:15px 16px 14px;}
+  .name-card .hd{display:flex;align-items:baseline;justify-content:space-between;}
+  .name-card .nm{font-size:26px;font-weight:700;letter-spacing:3px;}
+  .name-card .py{font-size:13px;color:var(--sub);margin-left:10px;font-weight:400;letter-spacing:1px;}
+  .name-card .sc{font-size:12px;color:#fff;background:linear-gradient(90deg,var(--acc2),var(--acc));
+    padding:4px 11px;border-radius:12px;font-weight:600;white-space:nowrap;}
+  .name-card .tags{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;}
+  .name-card .tags span{font-size:11px;color:var(--good);background:#e8f7f0;padding:2px 8px;border-radius:8px;}
+  .name-card .dims{margin-top:11px;display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;}
+  .name-card .dim{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--sub);}
+  .name-card .dim .dl{width:32px;flex:none;}
+  .name-card .dim .db{flex:1;height:6px;border-radius:4px;background:#f0eef8;overflow:hidden;}
+  .name-card .dim .db i{display:block;height:100%;background:linear-gradient(90deg,var(--acc2),var(--acc));}
+  .name-card .dim .dv{width:24px;text-align:right;color:var(--ink);font-weight:600;flex:none;}
+  .name-card .acts{margin-top:12px;display:flex;gap:8px;}
+  .name-card .acts button{flex:1;border:1px solid var(--acc2);background:#f3f0ff;color:var(--acc);border-radius:10px;
+    padding:7px;font-size:12.5px;cursor:pointer;transition:.15s;}
+  .name-card .acts button:hover{background:#e9e3ff;}
+  .name-card .acts button.save{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .name-card .acts button.save:hover{opacity:.9;}
+  .detail{max-height:0;overflow:hidden;transition:max-height .35s ease;}
+  .name-card.open .detail{max-height:2400px;}
+  .detail .d{padding:12px 2px 2px;border-top:1px dashed var(--line);margin-top:11px;}
+  .detail .d .k{font-size:13px;font-weight:600;color:var(--acc);margin-bottom:3px;}
+  .detail .d .k.approx{color:var(--warn);}
+  .detail .d .t{font-size:13px;color:var(--ink);line-height:1.7;}
+  .detail .ai-box{margin-top:12px;padding:11px 12px;background:linear-gradient(135deg,#f3f0ff,#fbfaff);
+    border:1px solid var(--acc2);border-radius:12px;}
+  .detail .ai-box .k{font-size:13px;font-weight:600;color:var(--acc);margin-bottom:5px;}
+  .detail .ai-box .t{font-size:13px;color:var(--ink);line-height:1.7;}
+  .save{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:20;}
+  .save button{background:var(--ink);color:#fff;border:none;padding:12px 22px;border-radius:24px;font-size:14px;
+    font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:pointer;}
+  .hidden{display:none!important;}
+  .err{color:#e0506a;font-size:12.5px;margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>星命观测局</h1>
+    <p>为即将降临的小星主，推演一个恰好的名号</p>
+  </div>
+  <div class="steps-dot" id="dots"><i class="on"></i><i></i><i></i><i></i></div>
+
+  <!-- STEP 1 -->
+  <section class="card" id="step1">
+    <h2>第一步 · 血脉与字数</h2>
+    <p class="hint">填写父母姓氏，选择随谁姓、名字共几字。系统会据此校验并推演。</p>
+    <label class="f">父亲姓氏</label>
+    <input type="text" id="father" placeholder="如：林" maxlength="2" oninput="refreshLen()" />
+    <label class="f">母亲姓氏</label>
+    <input type="text" id="mother" placeholder="如：苏" maxlength="2" oninput="refreshLen()" />
+    <label class="f">姓氏方式</label>
+    <div class="seg" id="mode">
+      <button data-mode="F" class="sel">随父姓</button>
+      <button data-mode="M">随母姓</button>
+      <button data-mode="B">都要体现</button>
+    </div>
+    <label class="f">名字字数（含姓氏，总数严格按此）</label>
+    <div class="seg" id="nameLen">
+      <button data-len="2">双字名 · 2字</button>
+      <button data-len="3" class="sel">三字名 · 3字</button>
+      <button data-len="4">四字名 · 4字</button>
+    </div>
+    <label class="f">性别倾向</label>
+    <div class="seg" id="gender">
+      <button data-g="M">男孩</button>
+      <button data-g="F">女孩</button>
+      <button data-g="U" class="sel">不限</button>
+    </div>
+    <label class="f">预产 / 出生时间（可选）</label>
+    <div class="row">
+      <input type="date" id="bday" />
+      <input type="time" id="btime" value="12:00" />
+    </div>
+    <div class="opt"><input type="checkbox" id="nobirth" /> 暂不填写生辰，只看字义音律</div>
+    <label class="f">对宝宝期许（自由描述，可选，AI 辅助匹配寓意）</label>
+    <input type="text" id="freeText" placeholder="如：希望豁达开朗、有见识、一生平安" />
+    <div class="err hidden" id="step1Err"></div>
+    <div class="nav">
+      <button class="btn prim" onclick="go(2)">下一步</button>
+    </div>
+
+    <div class="divider">或者，已有心仪的名字？</div>
+    <label class="f">帮我观测我的候选名字（输入后将跳过其它步骤，直接推算）</label>
+    <input type="text" id="candName" placeholder="如：林婉婷 / 苏沐辰" maxlength="8" />
+    <div class="err hidden" id="candErr"></div>
+    <div class="nav">
+      <button class="btn prim" onclick="analyzeOnly()">✨ 直接观测这个名字</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card hidden" id="step2">
+    <h2>第二步 · 看重什么</h2>
+    <p class="hint">拖动调整顺序，把您最在意的维度排到前面（也可点箭头）。我们会据此为名字加权。</p>
+    <div class="order" id="order"></div>
+    <div class="nav">
+      <button class="btn ghost" onclick="go(1)">上一步</button>
+      <button class="btn prim" onclick="go(3)">下一步</button>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="card hidden" id="step3">
+    <h2>第三步 · 寓意倾向</h2>
+    <p class="hint">选几个您喜欢的意境（可多选）。不选则全面考虑。</p>
+    <div class="chips" id="tagChips"></div>
+    <div class="err hidden" id="genErr"></div>
+    <div class="nav">
+      <button class="btn ghost" onclick="go(2)">上一步</button>
+      <button class="btn prim" id="genBtn" onclick="startRitual(false)">开始推算 ✦</button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="hidden">
+    <div class="sum" id="summary"></div>
+    <div id="list"></div>
+    <div class="err hidden" id="errmsg"></div>
+  </section>
+</div>
+
+<!-- RITUAL -->
+<div class="ritual" id="ritual">
+  <div class="orb"></div>
+  <div class="msg" id="ritualMsg">占星老师正在观测星象…</div>
+  <div class="sub">众位老师正为您调和天地人三才</div>
+</div>
+
+<div class="save hidden" id="saveBar"><button onclick="saveImage()">保存完整名单 · 分享</button></div>
+
+<script>
+const ORDER_DEF = [
+  {k:'meaning', n:'字义寓意'},
+  {k:'pronounce', n:'音律朗朗'},
+  {k:'wuxing', n:'五行调和'},
+  {k:'zodiac', n:'生肖相宜'},
+  {k:'stroke', n:'字形匀称'},
+];
+// —— 推算仪式：老师独白 + 老师间趣味互动（预置短句库，随机展示，不耗 AI）——
+const SOLO = [
+  '占星老师正在描摹星盘走向…','八卦老师正在推演先天卦象…','语文老师正在斟酌平仄字句…',
+  '五行老师正在调和金木水火土…','姓名学老师正在比对吉数格局…','音律老师正在试读音韵清浊…',
+  '字形老师正在端详间架结构…','生肖老师正在参详属相喜忌…','数理老师正在核算笔画理数…',
+  '意境老师正在营造画面气韵…'
+];
+const BANTER = [
+  '语文老师灵光一闪，提了个妙字，却被五行老师笑着摇头：“此字属性不合，且慢。”',
+  '五行老师刚布好气场，八卦老师凑过来指了指卦象，两人相视一笑，默契十足。',
+  '占星老师抛出星盘走向，姓名学老师立刻记下吉数，提笔便添一笔。',
+  '音律老师试读两遍，皱眉道“此处略拗”，字形老师点头：“我来调一调结构。”',
+  '生肖老师翻出喜忌表，意境老师会心：“正合我心中那幅画。”',
+  '数理老师算出理数偏低，语文老师宽慰：“数理之外，更有文心。”',
+  '八卦老师一拍案：“此象大吉！”五行老师点头：“与八字正合。”',
+  '语文老师与音律老师为平仄争了几句，最终握手：“此读音最妥。”',
+  '意境老师铺开画卷，生肖老师惊呼：“这分明是祥瑞之兆！”',
+  '五行老师调和完毕，占星老师遥指天际：“时机已到，落笔吧。”',
+  '姓名学老师比对吉数后犹豫，数理老师笑道：“差之毫厘，无妨大局。”',
+  '字形老师端详良久，音律老师轻声念出，竟格外顺口，众人皆喜。',
+  '八卦老师算得一卦，五行老师补上一句：“此卦得土生金，根基愈稳。”',
+  '语文老师想用生僻字显深意，意境老师拦下：“名字是唤一辈子的，还是亲切些好。”',
+  '占星老师与生肖老师对了对时辰，齐声：“此子得天护佑。”',
+  '数理老师、姓名学老师围着吉数推敲半晌，终成一格。',
+  '音律老师哼起小调，字形老师跟着比划，画面感顿生。',
+  '五行老师问生肖老师：“喜用何部？”生肖老师展卷：“草本、宝盖最佳。”',
+  '意境老师与语文老师合拟一句题跋，温润又有筋骨。',
+  '八卦老师捋须：“卦象已圆。”占星老师笑：“星河亦点头。”',
+  '字形老师指出一笔可改，数理老师算后欣然：“此改更妙。”',
+  '语文老师念出全名，五行老师击节：“五行流转，正如其所愿。”',
+  '姓名学老师、数理老师、意境老师三人低语，似乎已定下某种默契。',
+  '占星老师收起星盘，众老师齐聚案前，只待最后一笔点定。'
+];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const RITUAL_MS = 8000, TICK = 600;
+function buildRitualQueue(){
+  const q = shuffle(SOLO).concat(shuffle(BANTER).slice(0,10));
+  return shuffle(q).slice(0,14);
+}
+
+let state = {step:1, gender:'U', mode:'F', nameLen:3, order:[...ORDER_DEF], tags:new Set(), data:null, analyzeName:null};
+
+function surnameLen(){
+  const f=document.getElementById('father').value.trim();
+  const m=document.getElementById('mother').value.trim();
+  if(state.mode==='M') return m.length;
+  if(state.mode==='B') return f.length + m.length;
+  return f.length;
+}
+function refreshLen(){
+  const sl=surnameLen();
+  document.querySelectorAll('#nameLen button').forEach(btn=>{
+    const L=+btn.dataset.len;
+    const ok=(L - sl) >= 1;
+    btn.disabled=!ok;
+    if(!ok && state.nameLen===L){
+      const firstOk=[...document.querySelectorAll('#nameLen button')].find(x=>(+x.dataset.len - sl)>=1);
+      if(firstOk){ state.nameLen=+firstOk.dataset.len;
+        document.querySelectorAll('#nameLen button').forEach(x=>x.classList.remove('sel'));
+        firstOk.classList.add('sel'); }
+    }
+  });
+}
+
+// step nav
+function go(s){
+  if(s===2){
+    const f=document.getElementById('father').value.trim();
+    const m=document.getElementById('mother').value.trim();
+    const err=document.getElementById('step1Err'); err.classList.add('hidden');
+    if(!f||!m){ err.textContent='请先填写父亲姓氏与母亲姓氏'; err.classList.remove('hidden'); return; }
+    if((state.nameLen - surnameLen()) < 1){
+      err.textContent='当前姓氏长度下无法组成'+state.nameLen+'字名（名字至少需 1 个字），请调整姓氏方式或字数'; err.classList.remove('hidden'); return;
+    }
+  }
+  state.step = s;
+  ['step1','step2','step3','results'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  if(s<=3) document.getElementById('step'+s).classList.remove('hidden');
+  document.querySelectorAll('#dots i').forEach((d,i)=>d.classList.toggle('on', i< s && s<=3 ? true : (s===4 && i<4)));
+  if(s===4) document.getElementById('results').classList.remove('hidden');
+  window.scrollTo(0,0);
+}
+
+// gender / mode / nameLen
+document.querySelectorAll('#gender button').forEach(b=>{
+  b.onclick=()=>{document.querySelectorAll('#gender button').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel'); state.gender=b.dataset.g;};
+});
+document.querySelectorAll('#mode button').forEach(b=>{
+  b.onclick=()=>{document.querySelectorAll('#mode button').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel'); state.mode=b.dataset.mode; refreshLen();};
+});
+document.querySelectorAll('#nameLen button').forEach(b=>{
+  b.onclick=()=>{ if(b.disabled) return;
+    document.querySelectorAll('#nameLen button').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel'); state.nameLen=+b.dataset.len;};
+});
+
+// order list (drag + arrows)
+let dragIdx=null;
+function renderOrder(){
+  const box=document.getElementById('order'); box.innerHTML='';
+  state.order.forEach((it,i)=>{
+    const el=document.createElement('div'); el.className='it'; el.draggable=true;
+    el.innerHTML=`<div class="no">${i+1}</div><div class="nm">${it.n}</div>
+      <div class="mv">
+        <button ${i===0?'disabled':''} onclick="move(${i},-1)">▲</button>
+        <button ${i===state.order.length-1?'disabled':''} onclick="move(${i},1)">▼</button>
+      </div>`;
+    el.addEventListener('dragstart',()=>{dragIdx=i; el.classList.add('drag');});
+    el.addEventListener('dragend',()=>{el.classList.remove('drag'); dragIdx=null;});
+    el.addEventListener('dragover',e=>e.preventDefault());
+    el.addEventListener('drop',e=>{e.preventDefault();
+      if(dragIdx===null||dragIdx===i) return;
+      const [m]=state.order.splice(dragIdx,1); state.order.splice(i,0,m); dragIdx=null; renderOrder();});
+    box.appendChild(el);
+  });
+}
+function move(i,d){const j=i+d; if(j<0||j>=state.order.length)return;
+  [state.order[i],state.order[j]]=[state.order[j],state.order[i]]; renderOrder();}
+renderOrder(); refreshLen();
+
+// tags
+fetch('/api/tags').then(r=>r.json()).then(d=>{
+  const box=document.getElementById('tagChips');
+  d.tags.forEach(t=>{
+    const c=document.createElement('div'); c.className='chip'; c.textContent=t;
+    c.onclick=()=>{c.classList.toggle('sel'); if(c.classList.contains('sel'))state.tags.add(t);else state.tags.delete(t);};
+    box.appendChild(c);
+  });
+}).catch(()=>{
+  document.getElementById('tagChips').innerHTML =
+    '<span style="color:#e58e26;font-size:13px">⚠️ 寓意词库加载失败：请确认通过服务地址（如 http://127.0.0.1:8002/）打开本页，而非静态文件预览。</span>';
+});
+
+// weights from order
+function weightsFromOrder(){
+  const rw=[0.28,0.20,0.16,0.12,0.08];
+  const w={homophone:0.08,gender:0.08};
+  state.order.forEach((it,i)=>w[it.k]=rw[i]);
+  const s=Object.values(w).reduce((a,b)=>a+b,0);
+  for(const k in w) w[k]=+(w[k]/s).toFixed(3);
+  return w;
+}
+
+// —— 直接观测候选名字（能力 B）——
+function analyzeOnly(){
+  const n=document.getElementById('candName').value.trim();
+  const err=document.getElementById('candErr'); err.classList.add('hidden');
+  if(!n){ err.textContent='请先输入要观测的名字'; err.classList.remove('hidden'); return; }
+  state.analyzeName=n;
+  startRitual(true);
+}
+
+// ritual
+let ritualTimer=null, ritualCheck=null;
+function startRitual(analyzeMode){
+  const genBtn=document.getElementById('genBtn'); if(genBtn) genBtn.disabled=true;
+  const payload = analyzeMode
+    ? {name: state.analyzeName, gender:'U', birth:null}
+    : (()=>{
+        const father=document.getElementById('father').value.trim();
+        const mother=document.getElementById('mother').value.trim();
+        if(!father||!mother){alert('请先填写父母姓氏');go(1);return null;}
+        const nobirth=document.getElementById('nobirth').checked;
+        const bday=document.getElementById('bday').value;
+        let birth=null;
+        if(!nobirth && bday){
+          const [y,m,d]=bday.split('-').map(Number);
+          const [hh]=document.getElementById('btime').value.split(':').map(Number);
+          birth={year:y,month:m,day:d,hour:hh||12};
+        }
+        return {father, mother, mode:state.mode, name_len:state.nameLen,
+          gender:state.gender, tags:[...state.tags], avoid:'',
+          free_text:document.getElementById('freeText').value.trim(), birth, weights:weightsFromOrder()};
+      })();
+  if(!payload){ if(genBtn) genBtn.disabled=false; return; }
+
+  const endpoint = analyzeMode ? '/api/analyze' : '/api/generate';
+  const ritual=document.getElementById('ritual');
+  document.getElementById('genErr').classList.add('hidden');
+  ritual.classList.add('show');
+  const queue=buildRitualQueue();
+  let qi=0; document.getElementById('ritualMsg').textContent=queue[0];
+  const t0=Date.now();
+  ritualTimer=setInterval(()=>{
+    qi++;
+    document.getElementById('ritualMsg').textContent = qi<queue.length ? queue[qi] : '众位老师正将推演合于一处…';
+  }, TICK);
+  state.data=null;
+  fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r=>r.json()).then(data=>{
+      if(data.meta && data.meta.error){
+        clearInterval(ritualTimer); ritual.classList.remove('show');
+        if(genBtn) genBtn.disabled=false;
+        if(analyzeMode){ const e=document.getElementById('candErr'); e.textContent='⚠️ '+data.meta.error; e.classList.remove('hidden'); }
+        else { const e=document.getElementById('genErr'); e.textContent='⚠️ '+data.meta.error; e.classList.remove('hidden'); }
+        return;
+      }
+      state.data=data;
+  }).catch(e=>{
+    clearInterval(ritualTimer); ritual.classList.remove('show');
+    if(genBtn) genBtn.disabled=false;
+    const msg = analyzeMode ? '⚠️ 观测失败：无法连接取名服务。请确认通过服务地址打开本页。'
+                            : '⚠️ 推算失败：无法连接取名服务。请确认通过服务地址打开本页，而非静态文件预览。';
+    const errEl=analyzeMode?document.getElementById('candErr'):document.getElementById('genErr');
+    errEl.textContent=msg; errEl.classList.remove('hidden');
+  });
+  // 动画至少播满 RITUAL_MS，且数据已就位，才亮结果
+  ritualCheck=setInterval(()=>{
+    if(state.data && (Date.now()-t0)>=RITUAL_MS){
+      clearInterval(ritualTimer); clearInterval(ritualCheck);
+      ritual.classList.remove('show');
+      if(genBtn) genBtn.disabled=false;
+      renderResults(state.data);
+      go(4);
+    }
+  }, 200);
+}
+
+// —— 能力1：逐张 AI 详解 ——
+function callAiReview(i){
+  const o=state.data.names[i];
+  if(o.ai_review!==undefined) return;
+  o.ai_review=null; // loading
+  const box=document.getElementById('aiBox'+i);
+  if(box) box.innerHTML='<div class="k">✦ AI 详解</div><div class="t" style="opacity:.6">老师正在润色解读…</div>';
+  fetch('/api/ai_review',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:o.name, gender:o.req_gender,
+      zodiac:state.data.meta.zodiac, need:state.data.meta.need, dims:o.dims})})
+    .then(r=>r.json()).then(d=>{
+      o.ai_review = d.review || '';
+      renderReviewInto(i);
+    }).catch(()=>{ o.ai_review=''; renderReviewInto(i); });
+}
+function renderReviewInto(i){
+  const box=document.getElementById('aiBox'+i); if(!box) return;
+  const o=state.data.names[i];
+  if(o.ai_review){
+    box.innerHTML='<div class="k">✦ AI 详解</div><div class="t">'+o.ai_review+'</div>';
+  } else {
+    box.innerHTML='<div class="k">✦ AI 详解</div><div class="t" style="opacity:.7">AI 解读暂不可用（未配置密钥或网络受限），本地解读已在上文呈现，安心参考。</div>';
+  }
+}
+
+function renderResults(data){
+  const meta=data.meta||{};
+  if(meta.error){
+    const em=document.getElementById('errmsg'); em.textContent='⚠️ '+meta.error; em.classList.remove('hidden');
+    document.getElementById('list').innerHTML=''; return;
+  }
+  const sum=document.getElementById('summary');
+  const modeTxt={F:'随父姓',M:'随母姓',B:'父母双姓'}[state.mode];
+  let s='';
+  if(meta.analyzed){
+    s+=`<b>观测名字：</b>${meta.surname||''}（直接分析，跳过生成步骤）　<b>性别：</b>`+({M:'男孩',F:'女孩',U:'不限'}[state.gender]);
+  } else {
+    s+=`<b>姓氏：</b>${meta.surname||''}（${modeTxt}）　<b>字数：</b>${meta.name_len||''}字　<b>性别：</b>`+({M:'男孩',F:'女孩',U:'不限'}[state.gender]);
+  }
+  if(meta.has_birth){
+    s+=`　<b>生肖：</b>${meta.zodiac||'—'}　<b>宜补五行：</b>${meta.need?meta.need.join('/'):'均衡'}`;
+  } else {
+    s+=`　<i>未提供生辰，五行仅作常规搭配参考</i>`;
+  }
+  s+=`<br>共参考 ${meta.pool_size||0} 个字，分析如下：`;
+  sum.innerHTML=s;
+
+  const list=document.getElementById('list'); list.innerHTML='';
+  data.names.forEach((o,idx)=>{
+    const tags=(o.tags||[]).map(t=>`<span>${t}</span>`).join('');
+    const d=o.dims;
+    const DIM_LABELS={'wuxing':'五行','zodiac':'生肖','pronounce':'音律','homophone':'谐音','meaning':'字义','stroke':'字形','gender':'气韵'};
+    const dimsHtml=Object.entries(d).map(([k,v])=>`<div class="dim"><span class="dl">${DIM_LABELS[k]||k}</span><span class="db"><i style="width:${v}%"></i></span><span class="dv">${v}</span></div>`).join('');
+    const exp=o.explain.map(e=>`<div class="d"><div class="k ${e.approx?'approx':''}">${e.label}${e.approx?' · 近似':''}</div><div class="t">${e.text}</div></div>`).join('');
+    const card=document.createElement('div'); card.className='name-card'; card.id='card'+idx;
+    card.innerHTML=`<div class="topbar"></div><div class="body">
+      <div class="hd"><div><span class="nm">${o.name}</span><span class="py">${o.py_str}</span></div><span class="sc">综合 ${o.total}</span></div>
+      <div class="tags">${tags}</div>
+      <div class="dims">${dimsHtml}</div>
+      <div class="acts">
+        <button onclick="event.stopPropagation();callAiReview(${idx})">✦ AI 详解</button>
+        <button class="save" onclick="event.stopPropagation();saveCard(${idx})">📸 存此名</button>
+      </div>
+      <div class="detail">${exp}<div class="ai-box" id="aiBox${idx}"></div></div>
+    </div>`;
+    card.onclick=()=>card.classList.toggle('open');
+    list.appendChild(card);
+  });
+  document.getElementById('saveBar').classList.remove('hidden');
+}
+
+function saveCard(idx){
+  const card=document.getElementById('card'+idx);
+  if(!card) return;
+  const wasOpen=card.classList.contains('open');
+  card.classList.add('open');
+  html2canvas(card,{backgroundColor:'#ffffff',scale:3,logging:false}).then(canvas=>{
+    if(!wasOpen) card.classList.remove('open');
+    const a=document.createElement('a');
+    a.download='星名_'+(state.data.names[idx]?state.data.names[idx].name:'')+'.png';
+    a.href=canvas.toDataURL('image/png'); a.click();
+  }).catch(()=>{ if(!wasOpen) card.classList.remove('open'); alert('保存失败，请直接截屏分享～'); });
+}
+function saveImage(){
+  const node=document.getElementById('results');
+  html2canvas(node,{backgroundColor:'#f6f5fb',scale:2,logging:false}).then(canvas=>{
+    const a=document.createElement('a');
+    a.download='宝宝名字候选_'+(state.data.names&&state.data.names[0]?state.data.names[0].surname:'')+'.png';
+    a.href=canvas.toDataURL('image/png'); a.click();
+  }).catch(()=>alert('保存失败，请直接截屏分享～'));
+}
+</script>
+</body>
+</html>
