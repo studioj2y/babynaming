@@ -94,6 +94,14 @@
   @keyframes msgIn{from{opacity:0;transform:translateY(18px);}to{opacity:.94;transform:translateY(0);}}
   .ritual .msg.show-anim{animation:msgIn .5s cubic-bezier(.22,.61,.36,1) both;}
   .ritual .sub{font-size:12px;opacity:.72;margin-top:15px;text-align:center;padding:0 18px;}
+  /* 触屏拖拽时的高亮态（仅 touch 拖拽使用，与 PC 原生拖拽 .drag 并存不冲突） */
+  .order .it.drag-touch{box-shadow:0 10px 26px rgba(78,52,61,.24);transform:scale(1.03);
+    border-color:var(--acc);background:var(--tint);z-index:5;transition:none;}
+  /* 移动端：推演文字自动换行、关闭横向滚动（PC 宽屏仍保持单行 nowrap） */
+  @media (max-width:680px){
+    .ritual .log{overflow-x:hidden;}
+    .ritual .msg{white-space:normal;overflow-wrap:anywhere;word-break:break-word;}
+  }
   .divider{display:flex;align-items:center;gap:10px;margin:22px 0 4px;color:var(--sub);font-size:12px;}
   .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
   .sum{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:16px;
@@ -376,10 +384,12 @@ document.querySelectorAll('#nameLen button').forEach(b=>{
 
 // order list (drag + arrows)
 let dragIdx=null;
+let touchState=null;
 function renderOrder(){
   const box=document.getElementById('order'); box.innerHTML='';
   state.order.forEach((it,i)=>{
-    const el=document.createElement('div'); el.className='it'; el.draggable=true;
+    const el=document.createElement('div'); el.className='it'; el.draggable=true; el.dataset.idx=i;
+    if(touchState && touchState.dragging && touchState.idx===i) el.classList.add('drag-touch');
     el.innerHTML=`<div class="no">${i+1}</div><div class="nm">${it.n}</div>
       <div class="mv">
         <button ${i===0?'disabled':''} onclick="move(${i},-1)">▲</button>
@@ -391,8 +401,38 @@ function renderOrder(){
     el.addEventListener('drop',e=>{e.preventDefault();
       if(dragIdx===null||dragIdx===i) return;
       const [m]=state.order.splice(dragIdx,1); state.order.splice(i,0,m); dragIdx=null; renderOrder();});
+    // 触屏拖拽：原生 HTML5 DnD 在手机上不触发，此处用 touch 事件补齐（与 PC 鼠标拖拽并存）
+    el.addEventListener('touchstart',onTouchStart,{passive:true});
     box.appendChild(el);
   });
+}
+function onTouchStart(e){
+  if(e.target.closest('button')) return;            // 点箭头按钮不触发拖拽
+  touchState={idx:+this.dataset.idx, startY:e.touches[0].clientY, dragging:false};
+  document.addEventListener('touchmove',onTouchMoveDoc,{passive:false});
+  document.addEventListener('touchend',onTouchEndDoc);
+}
+function onTouchMoveDoc(e){
+  if(!touchState) return;
+  const y=e.touches[0].clientY, dy=y-touchState.startY;
+  if(!touchState.dragging){ if(Math.abs(dy)<8) return; touchState.dragging=true; }
+  e.preventDefault();                              // 拖拽中阻止页面滚动
+  const box=document.getElementById('order');
+  const items=[...box.children];
+  let target=items.filter(it=>{const r=it.getBoundingClientRect();return y>r.top+r.height/2;}).length;
+  target=Math.max(0,Math.min(state.order.length-1,target));
+  if(target!==touchState.idx){
+    const [m]=state.order.splice(touchState.idx,1); state.order.splice(target,0,m);
+    touchState.idx=target; renderOrder();         // 重渲染后 document 监听仍在，拖拽连续
+  }
+}
+function onTouchEndDoc(){
+  if(touchState && touchState.dragging){
+    const el=document.querySelector('.order .it.drag-touch'); if(el) el.classList.remove('drag-touch');
+  }
+  touchState=null;
+  document.removeEventListener('touchmove',onTouchMoveDoc);
+  document.removeEventListener('touchend',onTouchEndDoc);
 }
 function move(i,d){const j=i+d; if(j<0||j>=state.order.length)return;
   [state.order[i],state.order[j]]=[state.order[j],state.order[i]]; renderOrder();}
