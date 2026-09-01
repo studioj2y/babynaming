@@ -9,7 +9,8 @@ app = FastAPI()
 @app.get("/", response_class=HTMLResponse)
 def index():
     with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+        # no-store：强制浏览器每次都重新拉取最新 HTML，避免旧 JS（残留离屏节点等）被缓存
+        return HTMLResponse(f.read(), headers={"Cache-Control": "no-store, max-age=0"})
 
 @app.get("/api/tags")
 def tags():

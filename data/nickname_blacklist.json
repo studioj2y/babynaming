@@ -1,0 +1,365 @@
+{
+  "version": "2026-09-01",
+  "note": "静态昵称/梗黑名单（由人工直接撰写，未调用任何 AI）。生成候选名、或直接观测候选名时，若命中任一条则强烈降权。迭代时手动维护本文件即可。规则 kind：seq(名含该字串) / pinyin(名全拼==该 ascii) / phrase(整名拼音==某成语或俗语拼音，识别「林门一脚≈临门一脚」这类整名谐音梗)。注：叠字(婷婷/晶晶等)属常见好名风格，已明确放行，不在本表。",
+  "rules": [
+    {
+      "match": "丫蛋",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "土味外号"
+    },
+    {
+      "match": "丽华",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "老气"
+    },
+    {
+      "match": "二狗",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "土味外号"
+    },
+    {
+      "match": "卫东",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "时代烙印/老气"
+    },
+    {
+      "match": "卫红",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "时代烙印/老气"
+    },
+    {
+      "match": "发财",
+      "kind": "seq",
+      "penalty": 28,
+      "note": "俗气直白"
+    },
+    {
+      "match": "国庆",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "老气/易被打趣"
+    },
+    {
+      "match": "坤坤",
+      "kind": "seq",
+      "penalty": 32,
+      "note": "网络梗(特定网红)"
+    },
+    {
+      "match": "大山",
+      "kind": "seq",
+      "penalty": 28,
+      "note": "土气外号"
+    },
+    {
+      "match": "富贵",
+      "kind": "seq",
+      "penalty": 28,
+      "note": "俗气直白"
+    },
+    {
+      "match": "尊嘟",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "网络梗(谐音\"真的\")"
+    },
+    {
+      "match": "建国",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "时代烙印/老气"
+    },
+    {
+      "match": "引弟",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "重男轻女梗"
+    },
+    {
+      "match": "念弟",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "重男轻女梗"
+    },
+    {
+      "match": "招娣",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "重男轻女梗"
+    },
+    {
+      "match": "招弟",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "重男轻女梗"
+    },
+    {
+      "match": "招财",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "宠物感外号"
+    },
+    {
+      "match": "援朝",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "时代烙印/老气"
+    },
+    {
+      "match": "旺财",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "宠物感外号"
+    },
+    {
+      "match": "春燕",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "老气"
+    },
+    {
+      "match": "来弟",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "重男轻女梗"
+    },
+    {
+      "match": "来福",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "宠物感外号"
+    },
+    {
+      "match": "根生",
+      "kind": "seq",
+      "penalty": 28,
+      "note": "土气"
+    },
+    {
+      "match": "桂芳",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "老气"
+    },
+    {
+      "match": "淑芬",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "老气"
+    },
+    {
+      "match": "满仓",
+      "kind": "seq",
+      "penalty": 26,
+      "note": "俗气"
+    },
+    {
+      "match": "狗剩",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "土味外号"
+    },
+    {
+      "match": "盼弟",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "重男轻女梗"
+    },
+    {
+      "match": "石头",
+      "kind": "seq",
+      "penalty": 28,
+      "note": "小名感/外号"
+    },
+    {
+      "match": "福满",
+      "kind": "seq",
+      "penalty": 26,
+      "note": "俗气"
+    },
+    {
+      "match": "秀英",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "老气"
+    },
+    {
+      "match": "绝绝",
+      "kind": "seq",
+      "penalty": 32,
+      "note": "网络梗(绝绝子)"
+    },
+    {
+      "match": "美凤",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "老气/谐音联想"
+    },
+    {
+      "match": "翠花",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "土味外号"
+    },
+    {
+      "match": "跃进",
+      "kind": "seq",
+      "penalty": 24,
+      "note": "时代烙印/老气"
+    },
+    {
+      "match": "跟弟",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "重男轻女梗"
+    },
+    {
+      "match": "进宝",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "宠物感外号"
+    },
+    {
+      "match": "金宝",
+      "kind": "seq",
+      "penalty": 28,
+      "note": "俗气直白"
+    },
+    {
+      "match": "钢蛋",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "土味外号"
+    },
+    {
+      "match": "铁柱",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "土味外号"
+    },
+    {
+      "match": "铁牛",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "土味外号"
+    },
+    {
+      "match": "铁锁",
+      "kind": "seq",
+      "penalty": 28,
+      "note": "土味"
+    },
+    {
+      "match": "铜钱",
+      "kind": "seq",
+      "penalty": 28,
+      "note": "俗气/外号"
+    },
+    {
+      "match": "银宝",
+      "kind": "seq",
+      "penalty": 28,
+      "note": "俗气直白"
+    },
+    {
+      "match": "集美",
+      "kind": "seq",
+      "penalty": 30,
+      "note": "网络梗(谐音\"姐妹\")"
+    },
+    {
+      "match": "shangdang",
+      "kind": "pinyin",
+      "penalty": 30,
+      "note": "谐音\"上当\""
+    },
+    {
+      "match": "weixian",
+      "kind": "pinyin",
+      "penalty": 30,
+      "note": "谐音\"危险\""
+    },
+    {
+      "match": "yangwei",
+      "kind": "pinyin",
+      "penalty": 30,
+      "note": "谐音\"阳痿\""
+    },
+
+    {
+      "match": "临门一脚",
+      "kind": "phrase",
+      "py": "linmenyijiao",
+      "penalty": 35,
+      "note": "临门一脚（谐音梗）"
+    },
+    {
+      "match": "肚子疼",
+      "kind": "phrase",
+      "py": "duziteng",
+      "penalty": 35,
+      "note": "肚子疼（谐音梗）"
+    },
+    {
+      "match": "饭桶",
+      "kind": "phrase",
+      "py": "fantong",
+      "penalty": 35,
+      "note": "饭桶（谐音梗）"
+    },
+    {
+      "match": "神经病",
+      "kind": "phrase",
+      "py": "shenjingbing",
+      "penalty": 35,
+      "note": "神经病（谐音梗）"
+    },
+    {
+      "match": "屎真香",
+      "kind": "phrase",
+      "py": "shizhenxiang",
+      "penalty": 35,
+      "note": "屎真香（谐音梗）"
+    },
+    {
+      "match": "公安局",
+      "kind": "phrase",
+      "py": "gonganju",
+      "penalty": 35,
+      "note": "公安局（谐音梗）"
+    },
+    {
+      "match": "犯贱",
+      "kind": "phrase",
+      "py": "fanjian",
+      "penalty": 35,
+      "note": "犯贱（谐音梗）"
+    },
+    {
+      "match": "禽兽",
+      "kind": "phrase",
+      "py": "qinshou",
+      "penalty": 35,
+      "note": "禽兽（谐音梗）"
+    },
+    {
+      "match": "下贱人",
+      "kind": "phrase",
+      "py": "xiajianren",
+      "penalty": 35,
+      "note": "下贱人（谐音梗）"
+    },
+    {
+      "match": "避孕套",
+      "kind": "phrase",
+      "py": "biyuntao",
+      "penalty": 35,
+      "note": "谐音梗（不雅）"
+    }
+  ]
+}

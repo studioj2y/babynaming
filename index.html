@@ -7,106 +7,146 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root{
-    --bg:#f6f5fb; --card:#ffffff; --ink:#2a2740; --sub:#7a7693; --line:#e9e6f3;
-    --acc:#6c5ce7; --acc2:#a29bfe; --good:#2bb673; --warn:#e58e26;
+    /* 低饱和「藕荷玫瑰」体系：暖灰粉底 + 玫瑰灰主色，柔和不刺眼 */
+    --bg:#f7f2f3; --bg2:#fdfafb; --card:#ffffff;
+    --ink:#3c3035; --sub:#94848b; --line:#ebe1e4;
+    --acc:#ab6379; --acc2:#d9b0bc; --tint:#f7eff2; --tint2:#efe2e7;
+    --good:#a56d80; --warn:#a8825c; --danger:#a75f6c;
+    --sh1:0 1px 2px rgba(78,52,61,.045);
+    --sh2:0 10px 28px rgba(78,52,61,.06);
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
-    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
+    color:var(--ink);-webkit-font-smoothing:antialiased;background-color:var(--bg);
+    background-image:radial-gradient(92% 46% at 50% 0%,#fdf7f8 0%,rgba(253,247,248,0) 72%),
+      linear-gradient(180deg,#f8f3f4 0%,#f3edef 100%);
+    background-attachment:fixed;}
   .wrap{max-width:480px;margin:0 auto;padding:22px 16px 60px;}
   .top{text-align:center;margin-bottom:18px;}
-  .top h1{font-size:22px;margin:0 0 4px;font-weight:600;letter-spacing:1px;}
+  .top h1{font-size:22px;margin:0 0 4px;font-weight:600;letter-spacing:2px;}
   .top p{margin:0;color:var(--sub);font-size:13px;}
   .steps-dot{display:flex;justify-content:center;gap:6px;margin:14px 0 18px;}
   .steps-dot i{width:7px;height:7px;border-radius:50%;background:var(--line);display:block;transition:.3s;}
   .steps-dot i.on{background:var(--acc);width:18px;border-radius:4px;}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 18px;
-    box-shadow:0 8px 30px rgba(108,92,231,.06);}
-  .card h2{font-size:17px;margin:0 0 4px;font-weight:600;}
+  .card{background:linear-gradient(180deg,#ffffff 0%,#fffdfe 100%);border:1px solid var(--line);
+    border-radius:18px;padding:20px 18px;box-shadow:var(--sh1),var(--sh2);}
+  .card h2{font-size:17px;margin:0 0 4px;font-weight:600;letter-spacing:.5px;}
   .card .hint{color:var(--sub);font-size:12.5px;margin:0 0 16px;line-height:1.6;}
   label.f{display:block;font-size:13px;color:var(--sub);margin:14px 0 6px;}
   input[type=text],input[type=date],input[type=time]{width:100%;padding:12px 14px;border:1px solid var(--line);
-    border-radius:12px;font-size:15px;background:#fbfaff;color:var(--ink);outline:none;}
-  input:focus{border-color:var(--acc);}
+    border-radius:12px;font-size:15px;background:var(--bg2);color:var(--ink);outline:none;transition:.15s;}
+  input:focus{border-color:var(--acc2);box-shadow:0 0 0 3px rgba(171,99,121,.10);}
   .row{display:flex;gap:10px;}
   .seg{display:flex;gap:8px;flex-wrap:wrap;}
-  .seg button{flex:1;min-width:84px;padding:11px;border:1px solid var(--line);background:#fbfaff;border-radius:12px;
+  .seg button{flex:1;min-width:84px;padding:11px;border:1px solid var(--line);background:var(--bg2);border-radius:12px;
     font-size:14px;color:var(--ink);cursor:pointer;transition:.15s;}
-  .seg button.sel{background:var(--acc);color:#fff;border-color:var(--acc);}
+  .seg button:hover{background:var(--tint);}
+  .seg button.sel{background:linear-gradient(180deg,#b96e84,#a35c73);color:#fff;border-color:#a35c73;
+    box-shadow:0 4px 12px rgba(171,99,121,.20);}
   .seg button:disabled{opacity:.35;cursor:not-allowed;}
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
-  .chip{padding:8px 13px;border:1px solid var(--line);background:#fbfaff;border-radius:20px;font-size:13px;
+  .chip{padding:8px 13px;border:1px solid var(--line);background:var(--bg2);border-radius:20px;font-size:13px;
     cursor:pointer;transition:.15s;color:var(--ink);}
-  .chip.sel{background:var(--acc);color:#fff;border-color:var(--acc);}
+  .chip:hover{background:var(--tint);}
+  .chip.sel{background:linear-gradient(180deg,#b96e84,#a35c73);color:#fff;border-color:#a35c73;
+    box-shadow:0 4px 12px rgba(171,99,121,.18);}
   .order{display:flex;flex-direction:column;gap:9px;margin-top:6px;}
-  .order .it{display:flex;align-items:center;gap:10px;background:#fbfaff;border:1px solid var(--line);
+  .order .it{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--line);
     border-radius:12px;padding:11px 12px;cursor:grab;transition:.15s;}
   .order .it.drag{opacity:.4;}
-  .order .it .no{width:22px;height:22px;border-radius:50%;background:var(--acc2);color:#fff;font-size:12px;
-    display:flex;align-items:center;justify-content:center;}
+  .order .it .no{width:22px;height:22px;border-radius:50%;background:var(--tint2);color:var(--acc);font-size:12px;
+    font-weight:600;display:flex;align-items:center;justify-content:center;}
   .order .it .nm{flex:1;font-size:14px;}
   .order .it .mv{display:flex;flex-direction:column;gap:3px;}
-  .order .it .mv button{border:none;background:#efeafc;color:var(--acc);border-radius:6px;width:26px;height:18px;
+  .order .it .mv button{border:none;background:var(--tint2);color:var(--acc);border-radius:6px;width:26px;height:18px;
     font-size:11px;cursor:pointer;line-height:1;}
   .order .it .mv button:disabled{opacity:.3;cursor:default;}
   .nav{display:flex;gap:10px;margin-top:20px;}
   .btn{flex:1;padding:13px;border-radius:13px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:.15s;}
-  .btn.ghost{background:#f0eef8;color:var(--sub);}
-  .btn.prim{background:var(--acc);color:#fff;}
+  .btn.ghost{background:var(--tint);color:var(--sub);}
+  .btn.ghost:hover{background:var(--tint2);}
+  .btn.prim{background:linear-gradient(180deg,#b96e84,#a35c73);color:#fff;
+    box-shadow:0 6px 18px rgba(171,99,121,.22);}
   .btn.prim:active{transform:scale(.98);}
   .opt{display:flex;align-items:center;gap:8px;margin-top:14px;color:var(--sub);font-size:13px;}
-  .ritual{position:fixed;inset:0;background:linear-gradient(160deg,#6c5ce7,#8e7bff);display:none;
-    align-items:center;justify-content:center;flex-direction:column;z-index:50;color:#fff;}
+  .ritual{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:50;
+    color:#fff;padding:18px;
+    background:radial-gradient(120% 85% at 50% 0%,#a8808f 0%,#7d5666 48%,#523644 100%);}
   .ritual.show{display:flex;}
-  .ritual .orb{width:78px;height:78px;border-radius:50%;border:3px solid rgba(255,255,255,.35);
-    border-top-color:#fff;animation:spin 1s linear infinite;margin-bottom:22px;}
+  .ritual .panel{width:88%;max-width:700px;background:rgba(255,255,255,.09);
+    border:1px solid rgba(255,255,255,.18);border-radius:24px;padding:26px 22px 20px;
+    box-shadow:0 24px 70px rgba(46,30,38,.38);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    display:flex;flex-direction:column;align-items:center;}
+  .ritual .orb{width:62px;height:62px;border-radius:50%;border:3px solid rgba(255,255,255,.32);
+    border-top-color:#fff;animation:spin 1s linear infinite;margin-bottom:15px;
+    box-shadow:0 0 26px rgba(255,255,255,.40);}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .ritual .msg{font-size:16px;letter-spacing:1px;height:26px;opacity:.95;text-align:center;padding:0 24px;}
-  .ritual .sub{font-size:12px;opacity:.7;margin-top:10px;}
+  .ritual .rtitle{font-size:15px;letter-spacing:3px;font-weight:600;opacity:.92;margin-bottom:16px;}
+  .ritual .log{width:100%;max-height:54vh;overflow-y:auto;overflow-x:auto;text-align:left;
+    display:flex;flex-direction:column;gap:9px;padding:2px 4px;}
+  .ritual .log::-webkit-scrollbar{width:5px;}
+  .ritual .log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3);border-radius:3px;}
+  .ritual .msg{font-size:13.5px;line-height:1.6;letter-spacing:.3px;opacity:.94;white-space:nowrap;
+    background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);
+    border-left:3px solid rgba(255,255,255,.55);border-radius:10px;padding:9px 13px;}
+  .ritual .msg.sum{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.42);
+    border-left-color:#e6c898;font-weight:600;color:#fff;}
+  @keyframes msgIn{from{opacity:0;transform:translateY(18px);}to{opacity:.94;transform:translateY(0);}}
+  .ritual .msg.show-anim{animation:msgIn .5s cubic-bezier(.22,.61,.36,1) both;}
+  .ritual .sub{font-size:12px;opacity:.72;margin-top:15px;text-align:center;padding:0 18px;}
   .divider{display:flex;align-items:center;gap:10px;margin:22px 0 4px;color:var(--sub);font-size:12px;}
   .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
   .sum{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:16px;
-    font-size:13px;color:var(--sub);line-height:1.7;}
+    font-size:13px;color:var(--sub);line-height:1.7;box-shadow:var(--sh1);}
   .sum b{color:var(--ink);}
-  .name-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:0;margin-bottom:13px;
-    cursor:pointer;transition:.15s;overflow:hidden;box-shadow:0 8px 30px rgba(108,92,231,.06);}
-  .name-card:hover{border-color:var(--acc2);}
-  .name-card .topbar{height:6px;background:linear-gradient(90deg,var(--acc2),var(--acc));}
+  .name-card{background:linear-gradient(180deg,#ffffff 0%,#fffdfe 100%);border:1px solid var(--line);
+    border-radius:18px;padding:0;margin-bottom:13px;
+    cursor:pointer;transition:.2s;overflow:hidden;box-shadow:var(--sh1),var(--sh2);}
+  .name-card:hover{border-color:var(--acc2);transform:translateY(-1px);
+    box-shadow:0 2px 4px rgba(78,52,61,.05),0 14px 32px rgba(78,52,61,.09);}
+  .name-card .topbar{height:6px;background:linear-gradient(90deg,var(--acc2),var(--acc));opacity:.85;}
   .name-card .body{padding:15px 16px 14px;}
   .name-card .hd{display:flex;align-items:baseline;justify-content:space-between;}
   .name-card .nm{font-size:26px;font-weight:700;letter-spacing:3px;}
   .name-card .py{font-size:13px;color:var(--sub);margin-left:10px;font-weight:400;letter-spacing:1px;}
-  .name-card .sc{font-size:12px;color:#fff;background:linear-gradient(90deg,var(--acc2),var(--acc));
+  .name-card .sc{font-size:12px;color:#fff;background:linear-gradient(135deg,#c1849a,#a35c73);
     padding:4px 11px;border-radius:12px;font-weight:600;white-space:nowrap;}
   .name-card .tags{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;}
-  .name-card .tags span{font-size:11px;color:var(--good);background:#e8f7f0;padding:2px 8px;border-radius:8px;}
+  .name-card .tags span{font-size:11px;color:var(--good);background:var(--tint);border:1px solid var(--line);
+    padding:2px 8px;border-radius:8px;}
   .name-card .dims{margin-top:11px;display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;}
   .name-card .dim{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--sub);}
   .name-card .dim .dl{width:32px;flex:none;}
-  .name-card .dim .db{flex:1;height:6px;border-radius:4px;background:#f0eef8;overflow:hidden;}
+  .name-card .dim .db{flex:1;height:6px;border-radius:4px;background:var(--tint2);overflow:hidden;}
   .name-card .dim .db i{display:block;height:100%;background:linear-gradient(90deg,var(--acc2),var(--acc));}
   .name-card .dim .dv{width:24px;text-align:right;color:var(--ink);font-weight:600;flex:none;}
   .name-card .acts{margin-top:12px;display:flex;gap:8px;}
-  .name-card .acts button{flex:1;border:1px solid var(--acc2);background:#f3f0ff;color:var(--acc);border-radius:10px;
+  .name-card .acts button{flex:1;border:1px solid var(--line);background:var(--tint);color:var(--acc);border-radius:10px;
     padding:7px;font-size:12.5px;cursor:pointer;transition:.15s;}
-  .name-card .acts button:hover{background:#e9e3ff;}
-  .name-card .acts button.save{background:var(--ink);color:#fff;border-color:var(--ink);}
-  .name-card .acts button.save:hover{opacity:.9;}
+  .name-card .acts button:hover{background:var(--tint2);}
+  .name-card .acts button:disabled{opacity:.55;cursor:default;background:var(--tint2);}
+  .name-card .acts button.save{background:linear-gradient(180deg,#bd7589,#a35c73);color:#fff;border-color:#a35c73;
+    font-weight:600;box-shadow:0 4px 12px rgba(171,99,121,.22);}
+  .name-card .acts button.save:hover{filter:brightness(1.05);}
   .detail{max-height:0;overflow:hidden;transition:max-height .35s ease;}
   .name-card.open .detail{max-height:2400px;}
   .detail .d{padding:12px 2px 2px;border-top:1px dashed var(--line);margin-top:11px;}
   .detail .d .k{font-size:13px;font-weight:600;color:var(--acc);margin-bottom:3px;}
   .detail .d .k.approx{color:var(--warn);}
   .detail .d .t{font-size:13px;color:var(--ink);line-height:1.7;}
-  .detail .ai-box{margin-top:12px;padding:11px 12px;background:linear-gradient(135deg,#f3f0ff,#fbfaff);
-    border:1px solid var(--acc2);border-radius:12px;}
-  .detail .ai-box .k{font-size:13px;font-weight:600;color:var(--acc);margin-bottom:5px;}
-  .detail .ai-box .t{font-size:13px;color:var(--ink);line-height:1.7;}
-  .save{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:20;}
-  .save button{background:var(--ink);color:#fff;border:none;padding:12px 22px;border-radius:24px;font-size:14px;
-    font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:pointer;}
+  .name-card .ai-box{margin-top:12px;padding:11px 12px;background:linear-gradient(135deg,var(--tint),#fffcfd);
+    border:1px solid var(--line);border-left:3px solid var(--acc2);border-radius:12px;display:none;}
+  .name-card .ai-box.show{display:block;}
+  .name-card .ai-box .k{font-size:13px;font-weight:600;color:var(--acc);margin-bottom:5px;}
+  .name-card .ai-box .t{font-size:13px;color:var(--ink);line-height:1.7;}
+  /* 每卡片自带的导出底图：默认隐藏，导出时临时移出视口截图，节点始终在卡片子树内，绝不残留到页面底部 */
+  .name-card .export-sheet{display:none;}
   .hidden{display:none!important;}
-  .err{color:#e0506a;font-size:12.5px;margin-top:10px;}
+  .res-top{display:flex;justify-content:flex-start;margin-bottom:10px;}
+  .home-btn{font-size:13px;color:var(--acc);background:var(--card);border:1px solid var(--line);
+    padding:6px 14px;border-radius:20px;cursor:pointer;transition:.15s;box-shadow:var(--sh1);}
+  .home-btn:hover{background:var(--tint);}
+  .err{color:var(--danger);font-size:12.5px;margin-top:10px;}
 </style>
 </head>
 <body>
@@ -133,9 +173,9 @@
     </div>
     <label class="f">名字字数（含姓氏，总数严格按此）</label>
     <div class="seg" id="nameLen">
-      <button data-len="2">双字名 · 2字</button>
-      <button data-len="3" class="sel">三字名 · 3字</button>
-      <button data-len="4">四字名 · 4字</button>
+      <button data-len="2">双字名</button>
+      <button data-len="3" class="sel">三字名</button>
+      <button data-len="4">四字名</button>
     </div>
     <label class="f">性别倾向</label>
     <div class="seg" id="gender">
@@ -149,7 +189,7 @@
       <input type="time" id="btime" value="12:00" />
     </div>
     <div class="opt"><input type="checkbox" id="nobirth" /> 暂不填写生辰，只看字义音律</div>
-    <label class="f">对宝宝期许（自由描述，可选，AI 辅助匹配寓意）</label>
+    <label class="f">对宝宝期许（自由描述，可选，星师据意推演寓意）</label>
     <input type="text" id="freeText" placeholder="如：希望豁达开朗、有见识、一生平安" />
     <div class="err hidden" id="step1Err"></div>
     <div class="nav">
@@ -190,6 +230,9 @@
 
   <!-- RESULTS -->
   <section id="results" class="hidden">
+    <div class="res-top">
+      <button class="home-btn" onclick="goHome()" title="返回首页">← 返回首页</button>
+    </div>
     <div class="sum" id="summary"></div>
     <div id="list"></div>
     <div class="err hidden" id="errmsg"></div>
@@ -198,12 +241,13 @@
 
 <!-- RITUAL -->
 <div class="ritual" id="ritual">
-  <div class="orb"></div>
-  <div class="msg" id="ritualMsg">占星老师正在观测星象…</div>
-  <div class="sub">众位老师正为您调和天地人三才</div>
+  <div class="panel">
+    <div class="orb"></div>
+    <div class="rtitle">星命观测局 · 推演中</div>
+    <div class="log" id="ritualLog"></div>
+    <div class="sub">众位老师正为您调和天地人三才</div>
+  </div>
 </div>
-
-<div class="save hidden" id="saveBar"><button onclick="saveImage()">保存完整名单 · 分享</button></div>
 
 <script>
 const ORDER_DEF = [
@@ -247,10 +291,29 @@ const BANTER = [
   '占星老师收起星盘，众老师齐聚案前，只待最后一笔点定。'
 ];
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-const RITUAL_MS = 8000, TICK = 600;
+const TICK = 1500;         // 每行出现的间隔（放慢：1500ms/句）
+const LAST_DWELL = 1400;   // 最后一行显示后，额外停留时间
+// —— 汇总 / 归纳类文案：作为仪式收尾，置于队列最后，表示进入归纳阶段 ——
+const SUMMARY = [
+  '众位老师颔首：星象已明，字义已定，一份名单正悄然成形。',
+  '推演将歇，佳名呼之欲出——请静候君之一见倾心。',
+  '天地人三才既济，音形义俱谐，只待您亲手点定。'
+];
 function buildRitualQueue(){
-  const q = shuffle(SOLO).concat(shuffle(BANTER).slice(0,10));
-  return shuffle(q).slice(0,14);
+  const main = shuffle(SOLO).slice(0,4).concat(shuffle(BANTER).slice(0,4));
+  const q = shuffle(main).map(t=>({text:t, type:'line'}));
+  shuffle(SUMMARY).slice(0,2).forEach(t=>q.push({text:t, type:'summary'}));
+  return q;
+}
+function addRitualLine(txt, type){
+  const log=document.getElementById('ritualLog');
+  const el=document.createElement('div');
+  el.className='msg'+(type==='summary'?' sum':'');
+  el.textContent=txt;
+  log.appendChild(el);
+  void el.offsetWidth;          // 强制 reflow，重触发入场动效
+  el.classList.add('show-anim');
+  log.scrollTop = log.scrollHeight;  // 自动滚到最新一行
 }
 
 let state = {step:1, gender:'U', mode:'F', nameLen:3, order:[...ORDER_DEF], tags:new Set(), data:null, analyzeName:null};
@@ -345,7 +408,7 @@ fetch('/api/tags').then(r=>r.json()).then(d=>{
   });
 }).catch(()=>{
   document.getElementById('tagChips').innerHTML =
-    '<span style="color:#e58e26;font-size:13px">⚠️ 寓意词库加载失败：请确认通过服务地址（如 http://127.0.0.1:8002/）打开本页，而非静态文件预览。</span>';
+    '<span style="color:#a8825c;font-size:13px">⚠️ 寓意词库加载失败：请确认通过服务地址（如 http://127.0.0.1:8002/）打开本页，而非静态文件预览。</span>';
 });
 
 // weights from order
@@ -368,8 +431,10 @@ function analyzeOnly(){
 }
 
 // ritual
-let ritualTimer=null, ritualCheck=null;
+let ritualTimer=null, ritualCheck=null, ritualRunning=false;
 function startRitual(analyzeMode){
+  if(ritualRunning) return;            // 防止重复触发导致多个计时器叠加、页面反复重渲染
+  ritualRunning=true;
   const genBtn=document.getElementById('genBtn'); if(genBtn) genBtn.disabled=true;
   const payload = analyzeMode
     ? {name: state.analyzeName, gender:'U', birth:null}
@@ -389,47 +454,54 @@ function startRitual(analyzeMode){
           gender:state.gender, tags:[...state.tags], avoid:'',
           free_text:document.getElementById('freeText').value.trim(), birth, weights:weightsFromOrder()};
       })();
-  if(!payload){ if(genBtn) genBtn.disabled=false; return; }
+  if(!payload){ if(genBtn) genBtn.disabled=false; ritualRunning=false; return; }
 
   const endpoint = analyzeMode ? '/api/analyze' : '/api/generate';
   const ritual=document.getElementById('ritual');
+  const fail=(msg, errId)=>{
+    clearInterval(ritualTimer); clearInterval(ritualCheck);
+    ritual.classList.remove('show');
+    if(genBtn) genBtn.disabled=false;
+    ritualRunning=false;
+    const e=document.getElementById(errId); e.textContent=msg; e.classList.remove('hidden');
+  };
   document.getElementById('genErr').classList.add('hidden');
   ritual.classList.add('show');
+  const log=document.getElementById('ritualLog');
+  log.innerHTML='';
   const queue=buildRitualQueue();
-  let qi=0; document.getElementById('ritualMsg').textContent=queue[0];
+  const RITUAL_MS = queue.length * TICK + LAST_DWELL;
+  let qi=0;
+  addRitualLine(queue[0].text, queue[0].type); qi=1;
   const t0=Date.now();
   ritualTimer=setInterval(()=>{
-    qi++;
-    document.getElementById('ritualMsg').textContent = qi<queue.length ? queue[qi] : '众位老师正将推演合于一处…';
+    if(qi>=queue.length){ clearInterval(ritualTimer); return; }
+    addRitualLine(queue[qi].text, queue[qi].type); qi++;
   }, TICK);
   state.data=null;
+  const finish=()=>{
+    clearInterval(ritualTimer); clearInterval(ritualCheck);
+    ritual.classList.remove('show');
+    if(genBtn) genBtn.disabled=false;
+    ritualRunning=false;
+    try { renderResults(state.data); } catch(err){ console.error('renderResults 出错：', err); }
+    go(4);
+  };
   fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(r=>r.json()).then(data=>{
       if(data.meta && data.meta.error){
-        clearInterval(ritualTimer); ritual.classList.remove('show');
-        if(genBtn) genBtn.disabled=false;
-        if(analyzeMode){ const e=document.getElementById('candErr'); e.textContent='⚠️ '+data.meta.error; e.classList.remove('hidden'); }
-        else { const e=document.getElementById('genErr'); e.textContent='⚠️ '+data.meta.error; e.classList.remove('hidden'); }
+        fail('⚠️ '+data.meta.error, analyzeMode?'candErr':'genErr');
         return;
       }
       state.data=data;
   }).catch(e=>{
-    clearInterval(ritualTimer); ritual.classList.remove('show');
-    if(genBtn) genBtn.disabled=false;
-    const msg = analyzeMode ? '⚠️ 观测失败：无法连接取名服务。请确认通过服务地址打开本页。'
-                            : '⚠️ 推算失败：无法连接取名服务。请确认通过服务地址打开本页，而非静态文件预览。';
-    const errEl=analyzeMode?document.getElementById('candErr'):document.getElementById('genErr');
-    errEl.textContent=msg; errEl.classList.remove('hidden');
+    fail(analyzeMode ? '⚠️ 观测失败：无法连接取名服务。请确认通过服务地址打开本页。'
+                     : '⚠️ 推算失败：无法连接取名服务。请确认通过服务地址打开本页，而非静态文件预览。',
+         analyzeMode?'candErr':'genErr');
   });
   // 动画至少播满 RITUAL_MS，且数据已就位，才亮结果
   ritualCheck=setInterval(()=>{
-    if(state.data && (Date.now()-t0)>=RITUAL_MS){
-      clearInterval(ritualTimer); clearInterval(ritualCheck);
-      ritual.classList.remove('show');
-      if(genBtn) genBtn.disabled=false;
-      renderResults(state.data);
-      go(4);
-    }
+    if(state.data && (Date.now()-t0)>=RITUAL_MS) finish();
   }, 200);
 }
 
@@ -439,23 +511,38 @@ function callAiReview(i){
   if(o.ai_review!==undefined) return;
   o.ai_review=null; // loading
   const box=document.getElementById('aiBox'+i);
-  if(box) box.innerHTML='<div class="k">✦ AI 详解</div><div class="t" style="opacity:.6">老师正在润色解读…</div>';
+  const btn=document.getElementById('aiBtn'+i);
+  if(btn){ btn.disabled=true; btn.textContent='星师正在解读…'; }
+  if(box){ box.classList.add('show'); box.innerHTML='<div class="k">✦ 星师详解</div><div class="t" style="opacity:.6">星师正在润色解读…</div>'; }
   fetch('/api/ai_review',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({name:o.name, gender:o.req_gender,
       zodiac:state.data.meta.zodiac, need:state.data.meta.need, dims:o.dims})})
     .then(r=>r.json()).then(d=>{
       o.ai_review = d.review || '';
+      if(btn){ btn.disabled=false; btn.textContent='✦ 星师详解'; }
       renderReviewInto(i);
-    }).catch(()=>{ o.ai_review=''; renderReviewInto(i); });
+    }).catch(()=>{ o.ai_review=''; if(btn){ btn.disabled=false; btn.textContent='✦ 星师详解'; } renderReviewInto(i); });
 }
 function renderReviewInto(i){
   const box=document.getElementById('aiBox'+i); if(!box) return;
   const o=state.data.names[i];
+  box.classList.add('show');
   if(o.ai_review){
-    box.innerHTML='<div class="k">✦ AI 详解</div><div class="t">'+o.ai_review+'</div>';
+    box.innerHTML='<div class="k">✦ 星师详解</div><div class="t">'+o.ai_review+'</div>';
   } else {
-    box.innerHTML='<div class="k">✦ AI 详解</div><div class="t" style="opacity:.7">AI 解读暂不可用（未配置密钥或网络受限），本地解读已在上文呈现，安心参考。</div>';
+    box.innerHTML='<div class="k">✦ 星师详解</div><div class="t" style="opacity:.7">星师解读暂未显化（天机未启或星象未连），本地解读已在上文呈现，安心参考。</div>';
   }
+}
+
+// 返回首页：重置所有步骤状态
+function goHome(){
+  state.step=1; state.data=null; state.analyzeName=null;
+  ['results','step2','step3'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('step1').classList.remove('hidden');
+  document.getElementById('list').innerHTML='';
+  document.getElementById('summary').innerHTML='';
+  document.querySelectorAll('#dots i').forEach((d,i)=>d.classList.toggle('on', i===0));
+  window.scrollTo(0,0);
 }
 
 function renderResults(data){
@@ -484,45 +571,73 @@ function renderResults(data){
   data.names.forEach((o,idx)=>{
     const tags=(o.tags||[]).map(t=>`<span>${t}</span>`).join('');
     const d=o.dims;
-    const DIM_LABELS={'wuxing':'五行','zodiac':'生肖','pronounce':'音律','homophone':'谐音','meaning':'字义','stroke':'字形','gender':'气韵'};
+    const DIM_LABELS={'wuxing':'五行','zodiac':'生肖','pronounce':'音律','homophone':'谐音','meaning':'字义','stroke':'数理','gender':'气韵'};
     const dimsHtml=Object.entries(d).map(([k,v])=>`<div class="dim"><span class="dl">${DIM_LABELS[k]||k}</span><span class="db"><i style="width:${v}%"></i></span><span class="dv">${v}</span></div>`).join('');
     const exp=o.explain.map(e=>`<div class="d"><div class="k ${e.approx?'approx':''}">${e.label}${e.approx?' · 近似':''}</div><div class="t">${e.text}</div></div>`).join('');
+    // 导出底图（自包含、内联样式，html2canvas 可靠渲染；内容与卡片“展开态”一致，含字义详解，节点常驻卡片子树内）
+    const exTags=(o.tags||[]).map(t=>`<span style="font-size:11px;color:#a56d80;background:#f7eff2;border:1px solid #ebe1e4;padding:2px 8px;border-radius:8px;margin:2px 3px 2px 0;display:inline-block;">${t}</span>`).join('');
+    const exDims=Object.entries(o.dims).map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:5px 0;"><div style="width:62px;color:#94848b;">${DIM_LABELS[k]||k}</div><div style="flex:1;height:7px;border-radius:4px;background:#efe2e7;overflow:hidden;"><i style="display:block;height:100%;width:${v}%;background:linear-gradient(90deg,#d9b0bc,#ab6379);"></i></div><div style="width:24px;text-align:right;color:#3c3035;font-weight:600;">${v}</div></div>`).join('');
+    const exDetail=(o.explain||[]).map(e=>`<div style="margin-top:11px;padding-top:11px;border-top:1px dashed #ebe1e4;"><div style="font-size:13px;font-weight:600;color:#ab6379;margin-bottom:3px;">${e.label}${e.approx?' · 近似':''}</div><div style="font-size:13px;color:#3c3035;line-height:1.7;">${e.text}</div></div>`).join('');
+    const sheet=`<div class="export-sheet" id="sheet${idx}"><div style="width:380px;box-sizing:border-box;background:#fff;border-radius:20px;overflow:hidden;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:#3c3035;border:1px solid #ebe1e4;">
+      <div style="height:8px;background:linear-gradient(90deg,#d9b0bc,#ab6379);"></div>
+      <div style="padding:18px 20px 20px;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;">
+          <div><span style="font-size:30px;font-weight:800;letter-spacing:4px;">${o.name}</span><span style="font-size:13px;color:#94848b;margin-left:10px;">${o.py_str}</span></div>
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:baseline;gap:10px;">
+          <div style="font-size:36px;font-weight:800;color:#ab6379;">${o.total}</div>
+          <div style="font-size:12px;color:#94848b;">综合评分</div>
+        </div>
+        <div style="margin-top:8px;">${exTags}</div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f0e6ea;">${exDims}</div>
+        <div style="margin-top:13px;padding-top:12px;border-top:1px solid #ebe1e4;">${exDetail}</div>
+        <div class="ai-wrap"></div>
+        <div style="margin-top:16px;text-align:center;font-size:11px;color:#b3a1a8;letter-spacing:1px;">星命观测局 · 星师推演</div>
+      </div></div></div>`;
     const card=document.createElement('div'); card.className='name-card'; card.id='card'+idx;
     card.innerHTML=`<div class="topbar"></div><div class="body">
       <div class="hd"><div><span class="nm">${o.name}</span><span class="py">${o.py_str}</span></div><span class="sc">综合 ${o.total}</span></div>
       <div class="tags">${tags}</div>
       <div class="dims">${dimsHtml}</div>
       <div class="acts">
-        <button onclick="event.stopPropagation();callAiReview(${idx})">✦ AI 详解</button>
-        <button class="save" onclick="event.stopPropagation();saveCard(${idx})">📸 存此名</button>
+        <button id="aiBtn${idx}" onclick="event.stopPropagation();callAiReview(${idx})">✦ 星师详解</button>
+        <button class="save" onclick="event.stopPropagation();saveCard(${idx})">📸 导出此名图片</button>
       </div>
-      <div class="detail">${exp}<div class="ai-box" id="aiBox${idx}"></div></div>
+      <div class="ai-box" id="aiBox${idx}"></div>
+      <div class="detail">${exp}</div>
+      ${sheet}
     </div>`;
     card.onclick=()=>card.classList.toggle('open');
     list.appendChild(card);
   });
-  document.getElementById('saveBar').classList.remove('hidden');
 }
 
 function saveCard(idx){
+  // 截取该名字卡片内自带的 .export-sheet（节点始终在卡片子树里，绝不会跑到页面底部）
   const card=document.getElementById('card'+idx);
-  if(!card) return;
-  const wasOpen=card.classList.contains('open');
-  card.classList.add('open');
-  html2canvas(card,{backgroundColor:'#ffffff',scale:3,logging:false}).then(canvas=>{
-    if(!wasOpen) card.classList.remove('open');
-    const a=document.createElement('a');
-    a.download='星名_'+(state.data.names[idx]?state.data.names[idx].name:'')+'.png';
-    a.href=canvas.toDataURL('image/png'); a.click();
-  }).catch(()=>{ if(!wasOpen) card.classList.remove('open'); alert('保存失败，请直接截屏分享～'); });
-}
-function saveImage(){
-  const node=document.getElementById('results');
-  html2canvas(node,{backgroundColor:'#f6f5fb',scale:2,logging:false}).then(canvas=>{
-    const a=document.createElement('a');
-    a.download='宝宝名字候选_'+(state.data.names&&state.data.names[0]?state.data.names[0].surname:'')+'.png';
-    a.href=canvas.toDataURL('image/png'); a.click();
-  }).catch(()=>alert('保存失败，请直接截屏分享～'));
+  const sheet=document.getElementById('sheet'+idx);
+  const o=state.data.names[idx];
+  if(!card||!sheet||!o) return;
+  const btn=card.querySelector('.acts button.save');
+  const oldText=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.textContent='生成中…'; }
+  // 已生成的星师详解（若有）填入底图
+  const aiWrap=sheet.querySelector('.ai-wrap');
+  if(aiWrap) aiWrap.innerHTML = o.ai_review
+    ? `<div style="margin-top:12px;padding:10px 12px;background:linear-gradient(135deg,#f7eff2,#fffcfd);border-radius:12px;border:1px solid #ebe1e4;border-left:3px solid #d9b0bc;"><div style="font-size:12.5px;font-weight:700;color:#ab6379;margin-bottom:4px;">✦ 星师详解</div><div style="font-size:12.5px;color:#3c3035;line-height:1.7;">${o.ai_review}</div></div>`
+    : '';
+  // 临时移出视口渲染（仍是卡片子树内的子节点，截图后立刻隐藏，不会出现页面底部残留元素）
+  const prev=sheet.getAttribute('style')||'';
+  sheet.setAttribute('style','position:fixed;left:-9999px;top:0;display:block;width:380px;z-index:-1;');
+  let done=false;
+  const restore=()=>{ if(done) return; done=true; sheet.setAttribute('style',prev); if(btn){ btn.disabled=false; btn.textContent=oldText; } };
+  setTimeout(restore, 12000); // 兜底：html2canvas 卡住也强制复位
+  requestAnimationFrame(()=>{
+    html2canvas(sheet,{backgroundColor:'#ffffff',scale:3,logging:false,useCORS:true})
+      .then(canvas=>{ const a=document.createElement('a'); a.download='星名_'+o.name+'.png'; a.href=canvas.toDataURL('image/png'); a.click(); })
+      .catch(()=>alert('保存失败，请直接截屏分享～'))
+      .finally(restore);
+  });
 }
 </script>
 </body>
