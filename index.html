@@ -50,17 +50,23 @@
   .chip:hover{background:var(--tint);}
   .chip.sel{background:linear-gradient(180deg,#b96e84,#a35c73);color:#fff;border-color:#a35c73;
     box-shadow:0 4px 12px rgba(171,99,121,.18);}
-  .order{display:flex;flex-direction:column;gap:9px;margin-top:6px;}
+  .order{display:flex;flex-direction:column;gap:10px;margin-top:6px;}
   .order .it{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--line);
-    border-radius:12px;padding:11px 12px;cursor:grab;transition:.15s;}
+    border-radius:13px;padding:12px 12px;cursor:grab;transition:box-shadow .15s, border-color .15s;will-change:transform;}
   .order .it.drag{opacity:.4;}
-  .order .it .no{width:22px;height:22px;border-radius:50%;background:var(--tint2);color:var(--acc);font-size:12px;
-    font-weight:600;display:flex;align-items:center;justify-content:center;}
-  .order .it .nm{flex:1;font-size:14px;}
-  .order .it .mv{display:flex;flex-direction:column;gap:3px;}
-  .order .it .mv button{border:none;background:var(--tint2);color:var(--acc);border-radius:6px;width:26px;height:18px;
-    font-size:11px;cursor:pointer;line-height:1;}
-  .order .it .mv button:disabled{opacity:.3;cursor:default;}
+  .order .it .grip{color:var(--sub);opacity:.5;font-size:18px;line-height:1;cursor:grab;user-select:none;
+    flex:0 0 auto;width:14px;text-align:center;letter-spacing:-3px;}
+  .order .it .no{width:24px;height:24px;border-radius:50%;background:var(--tint2);color:var(--acc);font-size:12px;
+    font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .order .it .nm{flex:1;font-size:15px;font-weight:500;}
+  .order .it .mv{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;}
+  .order .it .mv button{width:42px;height:34px;border:none;border-radius:11px;
+    background:linear-gradient(180deg,#b96e84,#a35c73);color:#fff;font-size:15px;font-weight:700;
+    cursor:pointer;line-height:1;box-shadow:0 4px 11px rgba(171,99,121,.30);
+    transition:transform .12s, box-shadow .12s, opacity .12s;
+    display:flex;align-items:center;justify-content:center;}
+  .order .it .mv button:active{transform:scale(.9);box-shadow:0 1px 4px rgba(171,99,121,.34);}
+  .order .it .mv button:disabled{opacity:.3;background:var(--tint2);color:var(--sub);box-shadow:none;cursor:default;transform:none;}
   .nav{display:flex;gap:10px;margin-top:20px;}
   .btn{flex:1;padding:13px;border-radius:13px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:.15s;}
   .btn.ghost{background:var(--tint);color:var(--sub);}
@@ -216,7 +222,7 @@
   <!-- STEP 2 -->
   <section class="card hidden" id="step2">
     <h2>第二步 · 看重什么</h2>
-    <p class="hint">拖动调整顺序，把您最在意的维度排到前面（也可点箭头）。我们会据此为名字加权。</p>
+    <p class="hint">把您最在意的维度排到前面：可直接拖动卡片（左侧有抓手），或点右侧 ↑↓ 箭头微调。我们会据此为名字加权。</p>
     <div class="order" id="order"></div>
     <div class="nav">
       <button class="btn ghost" onclick="go(1)">上一步</button>
@@ -389,11 +395,10 @@ function renderOrder(){
   const box=document.getElementById('order'); box.innerHTML='';
   state.order.forEach((it,i)=>{
     const el=document.createElement('div'); el.className='it'; el.draggable=true; el.dataset.idx=i;
-    if(touchState && touchState.dragging && touchState.idx===i) el.classList.add('drag-touch');
-    el.innerHTML=`<div class="no">${i+1}</div><div class="nm">${it.n}</div>
+    el.innerHTML=`<div class="grip">⋮⋮</div><div class="no">${i+1}</div><div class="nm">${it.n}</div>
       <div class="mv">
-        <button ${i===0?'disabled':''} onclick="move(${i},-1)">▲</button>
-        <button ${i===state.order.length-1?'disabled':''} onclick="move(${i},1)">▼</button>
+        <button ${i===0?'disabled':''} onclick="move(${i},-1)" aria-label="上移">▲</button>
+        <button ${i===state.order.length-1?'disabled':''} onclick="move(${i},1)" aria-label="下移">▼</button>
       </div>`;
     el.addEventListener('dragstart',()=>{dragIdx=i; el.classList.add('drag');});
     el.addEventListener('dragend',()=>{el.classList.remove('drag'); dragIdx=null;});
@@ -411,21 +416,24 @@ function onTouchStart(e){
   if(e.target.closest('button')) return;            // 点箭头按钮不触发拖拽
   const el=this, box=document.getElementById('order');
   const items=[...box.children];
-  const step = box.children[1] ? box.children[1].getBoundingClientRect().top - el.getBoundingClientRect().top : el.offsetHeight+10;
+  // 关键：相邻两项间距 stride 与“抓取的是哪一项”无关；旧写法用 children[1].top-el.top，
+  // 抓非首项时 stride 变成负数/异常值，导致目标计算与落位全错（拖拽成功率低的根因）。
+  const stride = items.length>1
+    ? items[1].getBoundingClientRect().top - items[0].getBoundingClientRect().top
+    : (el.offsetHeight+10);
   touchState={el, box, items,
     firstIdx:+el.dataset.idx, targetIdx:+el.dataset.idx, startY:e.touches[0].clientY,
-    step, baseTops:items.map(it=>it.getBoundingClientRect().top), dragging:false};
-  el.classList.add('drag-touch'); el.style.zIndex=5; el.style.position='relative';
+    stride, baseTops:items.map(it=>it.getBoundingClientRect().top), dragging:false};
   document.addEventListener('touchmove',onTouchMoveDoc,{passive:false});
   document.addEventListener('touchend',onTouchEndDoc);
 }
 function shiftOthers(){
-  const {el,box,firstIdx,step,targetIdx}=touchState;
+  const {el,box,firstIdx,stride,targetIdx}=touchState;
   [...box.children].forEach((it,k)=>{
     if(it===el) return;
     let ty=0;
-    if(targetIdx>firstIdx && k>firstIdx && k<=targetIdx) ty=-step;
-    else if(targetIdx<firstIdx && k>=targetIdx && k<firstIdx) ty=step;
+    if(targetIdx>firstIdx && k>firstIdx && k<=targetIdx) ty=-stride;
+    else if(targetIdx<firstIdx && k>=targetIdx && k<firstIdx) ty=stride;
     it.style.transition='transform .2s cubic-bezier(.22,.61,.36,1)';
     it.style.transform = ty ? `translateY(${ty}px)` : '';
   });
@@ -433,20 +441,26 @@ function shiftOthers(){
 function onTouchMoveDoc(e){
   if(!touchState) return;
   const y=e.touches[0].clientY, dy=y-touchState.startY;
-  if(!touchState.dragging){ if(Math.abs(dy)<8) return; touchState.dragging=true; touchState.el.style.transition='none'; }
+  if(!touchState.dragging){
+    if(Math.abs(dy)<8) return;
+    touchState.dragging=true;
+    touchState.el.style.transition='none';         // 仅在真正拖动后才“拎起”，避免误触滚动时抬起重影
+    touchState.el.classList.add('drag-touch');
+    touchState.el.style.zIndex=5; touchState.el.style.position='relative';
+  }
   e.preventDefault();                              // 拖拽中阻止页面滚动
   touchState.el.style.transform=`translateY(${dy}px) scale(1.03)`;
-  const {el,items,baseTops,step}=touchState;
+  const {el,items,baseTops,stride}=touchState;
   let target=0;
-  items.forEach((it,k)=>{ if(it===el) return; if(y > baseTops[k]+step/2) target++; });
+  items.forEach((it,k)=>{ if(it===el) return; if(y > baseTops[k]+stride/2) target++; });
   target=Math.max(0,Math.min(state.order.length-1,target));
   if(target!==touchState.targetIdx){ touchState.targetIdx=target; shiftOthers(); }
 }
 function onTouchEndDoc(){
   if(touchState){
-    const {el,firstIdx,targetIdx,step}=touchState;
+    const {el,firstIdx,targetIdx,stride}=touchState;
     el.style.transition='transform .22s cubic-bezier(.22,.61,.36,1)';
-    el.style.transform=`translateY(${(targetIdx-firstIdx)*step}px) scale(1.03)`;
+    el.style.transform=`translateY(${(targetIdx-firstIdx)*stride}px) scale(1.03)`;
     setTimeout(()=>{
       const [m]=state.order.splice(firstIdx,1); state.order.splice(targetIdx,0,m);
       el.classList.remove('drag-touch'); el.style.cssText='';
@@ -457,8 +471,28 @@ function onTouchEndDoc(){
   document.removeEventListener('touchmove',onTouchMoveDoc);
   document.removeEventListener('touchend',onTouchEndDoc);
 }
-function move(i,d){const j=i+d; if(j<0||j>=state.order.length)return;
-  [state.order[i],state.order[j]]=[state.order[j],state.order[i]]; renderOrder();}
+// 箭头上/下移：FLIP 滑动过渡（被移动项与交换项反向滑入，0.26s 缓动），比瞬间跳变更顺滑
+function move(i,d){
+  const j=i+d; if(j<0||j>=state.order.length) return;
+  const box=document.getElementById('order');
+  const items=[...box.children];
+  const fromTop=items[i].getBoundingClientRect().top;
+  const toTop=items[j].getBoundingClientRect().top;
+  const dy=toTop-fromTop;                          // 被移动项需平移的距离（i→j）
+  [state.order[i],state.order[j]]=[state.order[j],state.order[i]];
+  renderOrder();
+  const items2=[...box.children];
+  const movedEl=items2[j];                         // 现在显示原 items[i] 的内容（落到 j）
+  const otherEl=items2[i];                         // 现在显示原 items[j] 的内容（落到 i）
+  movedEl.style.transition='none'; otherEl.style.transition='none';
+  movedEl.style.transform=`translateY(${-dy}px)`;  // 先瞬移回原位置
+  otherEl.style.transform=`translateY(${dy}px)`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const t='transform .26s cubic-bezier(.22,.61,.36,1)';
+    movedEl.style.transition=t; otherEl.style.transition=t;
+    movedEl.style.transform=''; otherEl.style.transform='';
+  }));
+}
 renderOrder(); refreshLen();
 
 // tags
