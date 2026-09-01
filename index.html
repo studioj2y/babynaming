@@ -95,8 +95,8 @@
   .ritual .msg.show-anim{animation:msgIn .5s cubic-bezier(.22,.61,.36,1) both;}
   .ritual .sub{font-size:12px;opacity:.72;margin-top:15px;text-align:center;padding:0 18px;}
   /* 触屏拖拽时的高亮态（仅 touch 拖拽使用，与 PC 原生拖拽 .drag 并存不冲突） */
-  .order .it.drag-touch{box-shadow:0 10px 26px rgba(78,52,61,.24);transform:scale(1.03);
-    border-color:var(--acc);background:var(--tint);z-index:5;transition:none;}
+  .order .it.drag-touch{box-shadow:0 16px 34px rgba(78,52,61,.30);border-color:var(--acc);
+    background:var(--tint);z-index:5;cursor:grabbing;}
   /* 移动端：推演文字自动换行、关闭横向滚动（PC 宽屏仍保持单行 nowrap） */
   @media (max-width:680px){
     .ritual .log{overflow-x:hidden;}
@@ -406,29 +406,52 @@ function renderOrder(){
     box.appendChild(el);
   });
 }
+// 触屏拖拽：被拖项悬浮跟随手指，其余项平滑让位（FLIP 式滑动），松手落位（替代原生 DnD 的生硬切换）
 function onTouchStart(e){
   if(e.target.closest('button')) return;            // 点箭头按钮不触发拖拽
-  touchState={idx:+this.dataset.idx, startY:e.touches[0].clientY, dragging:false};
+  const el=this, box=document.getElementById('order');
+  const items=[...box.children];
+  const step = box.children[1] ? box.children[1].getBoundingClientRect().top - el.getBoundingClientRect().top : el.offsetHeight+10;
+  touchState={el, box, items,
+    firstIdx:+el.dataset.idx, targetIdx:+el.dataset.idx, startY:e.touches[0].clientY,
+    step, baseTops:items.map(it=>it.getBoundingClientRect().top), dragging:false};
+  el.classList.add('drag-touch'); el.style.zIndex=5; el.style.position='relative';
   document.addEventListener('touchmove',onTouchMoveDoc,{passive:false});
   document.addEventListener('touchend',onTouchEndDoc);
+}
+function shiftOthers(){
+  const {el,box,firstIdx,step,targetIdx}=touchState;
+  [...box.children].forEach((it,k)=>{
+    if(it===el) return;
+    let ty=0;
+    if(targetIdx>firstIdx && k>firstIdx && k<=targetIdx) ty=-step;
+    else if(targetIdx<firstIdx && k>=targetIdx && k<firstIdx) ty=step;
+    it.style.transition='transform .2s cubic-bezier(.22,.61,.36,1)';
+    it.style.transform = ty ? `translateY(${ty}px)` : '';
+  });
 }
 function onTouchMoveDoc(e){
   if(!touchState) return;
   const y=e.touches[0].clientY, dy=y-touchState.startY;
-  if(!touchState.dragging){ if(Math.abs(dy)<8) return; touchState.dragging=true; }
+  if(!touchState.dragging){ if(Math.abs(dy)<8) return; touchState.dragging=true; touchState.el.style.transition='none'; }
   e.preventDefault();                              // 拖拽中阻止页面滚动
-  const box=document.getElementById('order');
-  const items=[...box.children];
-  let target=items.filter(it=>{const r=it.getBoundingClientRect();return y>r.top+r.height/2;}).length;
+  touchState.el.style.transform=`translateY(${dy}px) scale(1.03)`;
+  const {el,items,baseTops,step}=touchState;
+  let target=0;
+  items.forEach((it,k)=>{ if(it===el) return; if(y > baseTops[k]+step/2) target++; });
   target=Math.max(0,Math.min(state.order.length-1,target));
-  if(target!==touchState.idx){
-    const [m]=state.order.splice(touchState.idx,1); state.order.splice(target,0,m);
-    touchState.idx=target; renderOrder();         // 重渲染后 document 监听仍在，拖拽连续
-  }
+  if(target!==touchState.targetIdx){ touchState.targetIdx=target; shiftOthers(); }
 }
 function onTouchEndDoc(){
-  if(touchState && touchState.dragging){
-    const el=document.querySelector('.order .it.drag-touch'); if(el) el.classList.remove('drag-touch');
+  if(touchState){
+    const {el,firstIdx,targetIdx,step}=touchState;
+    el.style.transition='transform .22s cubic-bezier(.22,.61,.36,1)';
+    el.style.transform=`translateY(${(targetIdx-firstIdx)*step}px) scale(1.03)`;
+    setTimeout(()=>{
+      const [m]=state.order.splice(firstIdx,1); state.order.splice(targetIdx,0,m);
+      el.classList.remove('drag-touch'); el.style.cssText='';
+      renderOrder();
+    }, 220);
   }
   touchState=null;
   document.removeEventListener('touchmove',onTouchMoveDoc);
