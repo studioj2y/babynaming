@@ -308,7 +308,19 @@ const BANTER = [
   '典故老师引一句古语，意境老师抚掌：“正合这般气象。”',
   '典故老师翻检典籍，术数老师笑道：“有出处便更见分量。”',
   '字源老师点出本字来由，意境老师会心：“意与源俱，更见深长。”',
-  '典故老师与语文老师共赏一联，占星老师笑指星河：“天意亦在此中。”'
+  '典故老师与语文老师共赏一联，占星老师笑指星河：“天意亦在此中。”',
+  '字源老师辨一字古音，音律老师颔首：“声义相生，甚妙。”',
+  '字源老师与生肖老师同观喜用，笑指：“此部正合属相所宜。”',
+  '字源老师考得本义，术数老师拊掌：“有根有脉，格局更稳。”',
+  '字源老师与八卦老师参详，八卦老师笑：“卦象与此字本义暗合。”',
+  '八卦老师指爻位，字形老师移一笔结构，竟成佳构。',
+  '八卦老师与数理老师参详奇偶，齐道：“天数已定，无庸改易。”',
+  '音律老师试读属相喜用之字，生肖老师喜道：“此音最配本年。”',
+  '音律老师循声入典故，典故老师击节：“正合古调遗韵。”',
+  '字形老师端详属相喜用部首，生肖老师抚掌：“形神俱佳。”',
+  '字形老师与典故老师同赏碑帖，叹其笔意古雅天然。',
+  '占星老师指星躔方位，字源老师会意：“星象与此字本义，遥相呼应。”',
+  '占星老师察岁星所照，音律老师应声：“天时正宜此清音。”'
 ];
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 const TICK = 1500;         // 每行出现的间隔（放慢：1500ms/句）
@@ -517,7 +529,7 @@ fetch('/api/tags').then(r=>r.json()).then(d=>{
 // weights from order
 function weightsFromOrder(){
   const rw=[0.28,0.20,0.16,0.12,0.08];
-  const w={homophone:0.08,gender:0.08};
+  const w={gender:0.08};
   state.order.forEach((it,i)=>w[it.k]=rw[i]);
   const s=Object.values(w).reduce((a,b)=>a+b,0);
   for(const k in w) w[k]=+(w[k]/s).toFixed(3);
@@ -674,7 +686,7 @@ function renderResults(data){
   data.names.forEach((o,idx)=>{
     const tags=(o.tags||[]).map(t=>`<span>${t}</span>`).join('');
     const d=o.dims;
-    const DIM_LABELS={'wuxing':'五行','zodiac':'生肖','pronounce':'音律','homophone':'谐音','meaning':'字义','stroke':'数理','gender':'气韵'};
+    const DIM_LABELS={'wuxing':'五行','zodiac':'生肖','pronounce':'音律','meaning':'字义','stroke':'数理','gender':'气韵'};
     const dimsHtml=Object.entries(d).map(([k,v])=>`<div class="dim"><span class="dl">${DIM_LABELS[k]||k}</span><span class="db"><i style="width:${v}%"></i></span><span class="dv">${v}</span></div>`).join('');
     const exp=o.explain.map(e=>`<div class="d"><div class="k ${e.approx?'approx':''}">${e.label}${e.approx?' · 近似':''}</div><div class="t">${e.text}</div></div>`).join('');
     // 导出底图（自包含、内联样式，html2canvas 可靠渲染；内容与卡片“展开态”一致，含字义详解，节点常驻卡片子树内）

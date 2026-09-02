@@ -34,7 +34,7 @@ DIRTY_CHARS = set('傻滚操屁屎尿疯贱婊')
 HIGH_FREQ = set('伟芳娜秀英华建国婷浩鑫梓涵轩宇睿欣怡晨子凡一')
 
 DEFAULT_WEIGHTS = {
- 'wuxing':0.20,'zodiac':0.12,'pronounce':0.18,'homophone':0.15,'meaning':0.15,'stroke':0.10,'gender':0.10
+ 'wuxing':0.20,'zodiac':0.12,'pronounce':0.33,'meaning':0.15,'stroke':0.10,'gender':0.10
 }
 
 _CHARS = None
@@ -297,9 +297,7 @@ def explain(o, meta, mode):
                     'text': "属相之宜留待添上生辰后再细参，此名意象本就周正安稳。"})
 
     out.append({'key': 'pronounce', 'label': '音律朗朗',
-                'text': "全名声调起伏有致，念来朗朗上口、清亮悦耳，令人过耳不忘。"})
-    out.append({'key': 'homophone', 'label': '读音清正',
-                'text': "细细推敲，全名并无不良谐音，落落大方，叫得响亮得体。"})
+                'text': "全名声调起伏有致，念来朗朗上口、清亮悦耳，细细推敲更无不良谐音，落落大方、叫得响亮得体，令人过耳不忘。"})
 
     mean_parts = [f"「{c}」{m}" for c, m in zip(given, o['given_mean']) if m]
     if mean_parts:
@@ -330,7 +328,7 @@ def explain(o, meta, mode):
     else:
         out.append({'key': 'dup', 'label': '重名（近似）', 'approx': True,
                     'text': "用字相对独特，重名概率较低，不易与他人撞名。（此为本地近似估算，真实重名率需接入户籍数据）"})
-    if o.get('dims', {}).get('homophone', 100) <= 20:
+    if o.get('homophone_score', 100) <= 20:
         out.append({'key': 'net', 'label': '撞梗（本地）', 'approx': True,
                     'text': "检出潜在不良谐音，建议再斟酌；网络撞梗/负面人物检测需联网检索，待后续接入。"})
     return out
@@ -360,11 +358,11 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
     all_strokes = s_strokes + [gi['stroke'] for gi in given_info]
     grids, grid_score = five_grids(all_strokes)
 
+    hph = score_homophone(full_py)            # 谐音（不良读音）并入「音律」，由音律老师统管
     dims = {
         'wuxing': score_wuxing(wx_list, need, birth is not None, s_wx),
         'zodiac': score_zodiac(radicals, zodiac),
-        'pronounce': score_pronounce(tones, initials),
-        'homophone': score_homophone(full_py),
+        'pronounce': round(0.55*score_pronounce(tones, initials) + 0.45*hph),
         'meaning': min(100, round(sum(score_meaning(gi['t'], chosen_tags) for gi in given_it) / len(given_it)) + echo_bonus),
         'stroke': grid_score,
         'gender': score_gender(g_gender, gender),
@@ -382,6 +380,7 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
         'given_chars': given_chars, 'given_wx': wx_list, 'given_mean': g_mean,
         'given_stroke': g_stroke, 'tags': sorted(set(g_tags)), 'grids': grids,
         'req_gender': gender, 'dims': dims, 'total': round(total, 1),
+        'homophone_score': hph,
         'nickname_penalty': np_pen, 'nickname_hits': np_hits,
     }
     o['explain'] = explain(o, {'has_birth': birth is not None, 'need': need, 'zodiac': zodiac}, mode)
