@@ -1,4 +1,4 @@
-import os, json, unicodedata
+import os, json, unicodedata, random
 from itertools import permutations
 from lunar_python import Solar
 import ai
@@ -300,66 +300,197 @@ def five_grids(strokes):
     score = round(sum(_grid_num(v) for v in grids.values()) / len(grids))
     return grids, score
 
-def explain(o, meta, mode):
-    out = []
-    given = o['given_chars']
-    wx_list = o['given_wx']
+# ---------- 差异化细项文案（多套模板池 + 跨候选去重随机） ----------
+DIM_ORDER = ['wuxing', 'zodiac', 'pronounce', 'meaning', 'stroke', 'gender', 'dup', 'net', 'nick']
+DIM_LABEL = {'wuxing': '五行调和', 'zodiac': '生肖相宜', 'pronounce': '音律朗朗',
+             'meaning': '字义寄意', 'stroke': '数理格局', 'gender': '气韵契合',
+             'dup': '重名（近似）', 'net': '撞梗（本地）', 'nick': '昵称/梗（本地）'}
+DIM_APPROX = {'dup': True, 'net': True, 'nick': True}
+
+def _gd_word(o):
+    g = o.get('req_gender')
+    return '男孩' if g == 'M' else ('女孩' if g == 'F' else '孩子')
+
+def _pingze(tones):
+    m = {1: '平', 2: '平', 3: '仄', 4: '仄', 0: '·'}
+    return ''.join(m.get(t, '·') for t in (tones or []))
+
+# —— 各细项模板池（分支 → 多套表达）——
+WX_TPLS = {
+ 'all': [
+  "「{given}」各字五行皆补命中所缺之{need_str}，五行相生，根基稳厚，一生多得帮扶。",
+  "此名五行齐补所缺之{need_str}，干支相扶，气脉贯通，自小根基便厚。",
+  "名中诸字皆应命局所缺之{need_str}，五行流转得宜，主后天助益绵长。",
+  "「{given}」五行全数补入{need_str}，命局得济，如苗得雨，长势可期。",
+ ],
+ 'some': [
+  "其中「{fill}」恰补所缺之{need_str}，与八字相扶；余字悄然调和，气运平顺。",
+  "「{fill}」补命中之缺（{need_str}），其余刚柔相济，整体不失平衡。",
+  "名中「{fill}」应所缺之{need_str}，余字辅之，五行虽有偏亦能自圆。",
+  "以「{fill}」补{need_str}之不足，旁字调和其间，气运不至于偏枯。",
+ ],
+ 'none': [
+  "此名五行以{wx}搭配，中和温润，不偏不倚，自有从容之象。",
+  "名之五行属{wx}，彼此制衡得法，主性情中正、处世稳健。",
+  "五行{wx}相配，不亢不卑，气场平和，少有大起大落。",
+  "「{given}」五行作{wx}之局，清浊相济，平顺无虞。",
+ ],
+ 'nobirth': [
+  "「{given}」五行属{wx}，刚柔相映（未提供生辰，仅作常规搭配参考）。",
+  "此名五行归{wx}，搭配有致（未填生辰，暂不以八字衡其补益）。",
+  "名中五行属{wx}，相生相成（生辰空缺，仅观常理之调和）。",
+  "五行{wx}并济，意象周正（未提供生辰，补益之说从略）。",
+ ],
+}
+ZX_WITH = [
+ "生肖{zodiac}与名字部首气韵相合，寓意得天地庇佑，安然顺遂。",
+ "名之形音暗合{zodiac}之喜，主得祖荫护持，行止自在无忧。",
+ "与{zodiac}相宜，用字避其忌、就其喜，祥瑞自蕴其中。",
+ "生肖{zodiac}见此名如鱼得水，喜用得济，气运更为圆融。",
+]
+ZX_WITHOUT = [
+ "属相之宜留待添上生辰后再细参，此名意象本就周正安稳。",
+ "未填生辰，生肖喜忌暂不参评；名之格局已自稳当。",
+ "生肖相宜一项待生辰补入方验，眼前此名意象无碍。",
+ "属相之合须俟生辰，今且观其字意，已见端凝安稳之象。",
+]
+PR_TPLS = [
+ "全名{pz_desc}（{pz}），念来起伏有致、清亮悦耳，{clear}。",
+ "声调{pz}错落，唇齿间朗朗成调，{clear}，落落大方。",
+ "「{given}」读若{pz}，平仄相协，越念越觉妥帖，{clear}。",
+ "声口{pz_desc}，不拗不滞，{clear}，令人过耳能记。",
+]
+MN_HAS = [
+ "{mean_txt}。意境相映，寄意深远，足见长辈拳拳之心。{extra}",
+ "字义上，{mean_txt}；组在一处，情味悠长，长辈期许尽付笔端。{extra}",
+ "{mean_txt}——各字自成一境，连读更见温厚，是长辈用心之选。{extra}",
+ "观其字义：{mean_txt}。意脉相通，含蓄而有分量。{extra}",
+]
+MN_NONE = [
+ "用字雅正，寄意自见；长辈之情，尽在其中。",
+ "选字端庄，意涵自明，不必赘言已见期许。",
+]
+ST_TPLS = [
+ "依姓名学五格推算，此名总格为 {zg}，天/人/地/外诸格谐和相济，主一生顺遂安稳。",
+ "五格剖象，总格 {zg}，三才配置得宜，主根基牢固、行事少阻。{gd}习书亦流畅美观。",
+ "总格 {zg}，数理上属安稳之格，主性情沉稳、晚景平宁；笔意舒展，写得顺手。",
+ "姓名学五格以总格 {zg} 为要，诸格相生，主平步稳进；{gd}用之，形声俱宜。",
+]
+GD_TPLS = [
+ "字形气韵契合{gd}，温润而有筋骨，愈叫愈觉妥帖。",
+ "整体气韵偏宜{gd}，柔刚得中，呼之有余韵。",
+ "字里行间见{gd}之风，不媚不僵，自有清雅。",
+ "气韵与{gd}相得，疏密合度，念来心声相印。",
+]
+DUP_COMMON = [
+ "「{hit}」属较常见用字，重名概率略高；若求独特可换更冷僻雅字。（本地近似估算，真实重名率需接入户籍数据）",
+ "用字「{hit}」多见，撞名可能稍大；偏好特别可酌换生僻字。（本地近似，非户籍统计）",
+ "「{hit}」是高频字，同辈重名风险偏高；想更出挑建议替换。（本地近似估算）",
+ "名含常见字「{hit}」，重名概率不低；若看重独特感可另择他字。（本地近似，非户籍统计）",
+]
+DUP_UNIQUE = [
+ "用字相对独特，重名概率较低，不易与他人撞名。（本地近似估算，真实重名率需接入户籍数据）",
+ "所选用字少见，重名风险小，叫得出便记得住。（本地近似，非户籍统计）",
+ "名中字较冷门，街头巷尾撞名机会不大；求绝对独则可再挑更生僻者。（本地近似估算）",
+ "用字偏雅僻，重名几率低，落笔不易与同窗混淆。（本地近似，非户籍统计）",
+]
+NET_TPLS = [
+ "检出潜在不良谐音，建议再斟酌；网络撞梗/负面人物检测需联网检索，待后续接入。",
+ "读音上疑有近音歧义，宜复核；联网查梗能力后续补上。",
+]
+NICK_TPLS = [
+ "本地规则提示：此名易联想「{hit}」等昵称或网络梗，是否采用您可斟酌。（静态黑名单，可手动维护）",
+ "谐音黑名单提示：或易被叫成「{hit}」一类昵称，取舍在您。（规则可维护）",
+]
+
+POOL_SIZE = {'wuxing': 4, 'zodiac': 4, 'pronounce': 4, 'meaning': 4,
+             'stroke': 4, 'gender': 4, 'dup': 4, 'net': 2, 'nick': 2}
+
+def _ex_wuxing(o, meta, mode, idx):
+    wx = o['given_wx']; need = meta.get('need') or []
+    fill = [w for w in wx if w in need]
+    fill_c = ''.join(c for c, w in zip(o['given_chars'], wx) if w in need)
     if meta.get('has_birth'):
-        need = meta['need']
-        fill = [w for w in wx_list if w in need]
-        if len(fill) == len(wx_list):
-            txt = f"「{o['given']}」各字五行皆补命中所缺之{'/'.join(need)}，五行相生，根基稳厚，一生多得帮扶。"
-        elif fill:
-            txt = f"其中「{''.join(c for c,w in zip(given,wx_list) if w in need)}」恰补所缺之{'/'.join(need)}，与八字相扶；余字悄然调和，气运平顺。"
-        else:
-            txt = f"此名五行以{'/'.join(wx_list)}搭配，中和温润，不偏不倚，自有从容之象。"
+        br = 'all' if len(fill) == len(wx) else ('some' if fill else 'none')
     else:
-        txt = f"「{o['given']}」五行属{'/'.join(wx_list)}，刚柔相映（未提供生辰，仅作常规搭配参考）。"
-    out.append({'key': 'wuxing', 'label': '五行调和', 'text': txt})
+        br = 'nobirth'
+    return WX_TPLS[br][idx % len(WX_TPLS[br])].format(
+        given=o['given'], fill=fill_c, need_str='/'.join(need), wx='/'.join(wx))
 
-    if meta.get('zodiac'):
-        z = meta['zodiac']
-        out.append({'key': 'zodiac', 'label': '生肖相宜',
-                    'text': f"生肖{z}与名字部首气韵相合，寓意得天地庇佑，安然顺遂、自在无忧。"})
-    else:
-        out.append({'key': 'zodiac', 'label': '生肖相宜',
-                    'text': "属相之宜留待添上生辰后再细参，此名意象本就周正安稳。"})
+def _ex_zodiac(o, meta, mode, idx):
+    if meta.get('has_birth'):
+        return ZX_WITH[idx % len(ZX_WITH)].format(zodiac=meta.get('zodiac') or '?')
+    return ZX_WITHOUT[idx % len(ZX_WITHOUT)].format(given=o['given'])
 
-    out.append({'key': 'pronounce', 'label': '音律朗朗',
-                'text': "全名声调起伏有致，念来朗朗上口、清亮悦耳，细细推敲更无不良谐音，落落大方、叫得响亮得体，令人过耳不忘。"})
+def _ex_pronounce(o, meta, mode, idx):
+    pz = _pingze(o.get('tones', []))
+    varies = len(set(t for t in o.get('tones', []) if t)) > 1
+    pz_desc = '平仄交错' if varies else '声调平和'
+    clear = '细究并无不良谐音' if o.get('homophone_score', 100) > 20 else '读音已附谐音提示'
+    return PR_TPLS[idx % len(PR_TPLS)].format(given=o['given'], pz=pz, pz_desc=pz_desc, clear=clear)
 
-    mean_parts = [f"「{c}」{m}" for c, m in zip(given, o['given_mean']) if m]
-    if mean_parts:
-        mean_txt = '；'.join(mean_parts)
+def _ex_meaning(o, meta, mode, idx):
+    parts = [(c, m) for c, m in zip(o['given_chars'], o['given_mean']) if m]
+    if parts:
+        mean_txt = '；'.join(f"「{c}」{m}" for c, m in parts)
         extra = "父母二姓皆镌于此名之中，血脉亲情一目了然。" if mode == 'B' else ""
-        out.append({'key': 'meaning', 'label': '字义寄意',
-                    'text': f"{mean_txt}。意境相映，寄意深远，足见长辈拳拳之心。{extra}"})
-    else:
-        out.append({'key': 'meaning', 'label': '字义寄意',
-                    'text': "用字雅正，寄意自见；长辈之情，尽在其中。"})
+        return MN_HAS[idx % len(MN_HAS)].format(mean_txt=mean_txt, extra=extra)
+    return MN_NONE[idx % len(MN_NONE)].format()
 
-    gr = o.get('grids', {})
-    zg = gr.get('总格')
-    gd = '男孩' if o['req_gender'] == 'M' else ('女孩' if o['req_gender'] == 'F' else '孩子')
-    out.append({'key': 'stroke', 'label': '数理格局',
-                'text': f"依姓名学五格推算，此名总格为 {zg}，天/人/地/外诸格谐和相济，主一生顺遂安稳；"
-                        f"笔意舒展，{gd}习书亦流畅美观，写得顺手、念来妥帖。"})
+def _ex_stroke(o, meta, mode, idx):
+    zg = o.get('grids', {}).get('总格', '?')
+    return ST_TPLS[idx % len(ST_TPLS)].format(zg=zg, gd=_gd_word(o))
 
-    gd = '男孩' if o['req_gender'] == 'M' else ('女孩' if o['req_gender'] == 'F' else '孩子')
-    out.append({'key': 'gender', 'label': '气韵契合',
-                'text': f"字形气韵契合{gd}，温润而有筋骨，愈叫愈觉妥帖。"})
+def _ex_gender(o, meta, mode, idx):
+    return GD_TPLS[idx % len(GD_TPLS)].format(gd=_gd_word(o))
 
-    # —— 能力2/3 本地近似（不耗 AI，明确标注）——
-    hit_freq = [c for c in given if c in HIGH_FREQ]
-    if hit_freq:
-        out.append({'key': 'dup', 'label': '重名（近似）', 'approx': True,
-                    'text': f"「{''.join(hit_freq)}」属较常见用字，重名概率略高；若求独特可换更冷僻雅字。（此为本地近似估算，真实重名率需接入户籍数据）"})
-    else:
-        out.append({'key': 'dup', 'label': '重名（近似）', 'approx': True,
-                    'text': "用字相对独特，重名概率较低，不易与他人撞名。（此为本地近似估算，真实重名率需接入户籍数据）"})
-    if o.get('homophone_score', 100) <= 20:
-        out.append({'key': 'net', 'label': '撞梗（本地）', 'approx': True,
-                    'text': "检出潜在不良谐音，建议再斟酌；网络撞梗/负面人物检测需联网检索，待后续接入。"})
+def _ex_dup(o, meta, mode, idx):
+    hit = ''.join(c for c in o['given_chars'] if c in HIGH_FREQ)
+    if hit:
+        return DUP_COMMON[idx % len(DUP_COMMON)].format(hit=hit)
+    return DUP_UNIQUE[idx % len(DUP_UNIQUE)].format()
+
+def _ex_net(o, meta, mode, idx):
+    return NET_TPLS[idx % len(NET_TPLS)].format()
+
+def _ex_nick(o, meta, mode, idx):
+    hit = (o.get('nickname_hits') or [''])[0]
+    return NICK_TPLS[idx % len(NICK_TPLS)].format(hit=hit)
+
+DIM_FUNCS = {'wuxing': _ex_wuxing, 'zodiac': _ex_zodiac, 'pronounce': _ex_pronounce,
+             'meaning': _ex_meaning, 'stroke': _ex_stroke, 'gender': _ex_gender,
+             'dup': _ex_dup, 'net': _ex_net, 'nick': _ex_nick}
+
+def _key_included(k, o, meta):
+    if k == 'net':
+        return o.get('homophone_score', 100) <= 20
+    if k == 'nick':
+        return bool(o.get('nickname_hits'))
+    return True
+
+def _assign_explain_variants(names, meta, mode):
+    """对每个细项，将模板下标在包含该项的候选间洗牌轮转，压低跨候选重复率。"""
+    inc = {k: [] for k in DIM_FUNCS}
+    for i, o in enumerate(names):
+        for k in DIM_FUNCS:
+            if _key_included(k, o, meta):
+                inc[k].append(i)
+    assigned = [dict() for _ in names]
+    for k, idxs in inc.items():
+        pool = list(range(POOL_SIZE[k]))
+        random.shuffle(pool)
+        for j, ci in enumerate(idxs):
+            assigned[ci][k] = pool[j % len(pool)]
+    return assigned
+
+def render_explain(o, meta, mode, vidx):
+    out = []
+    for k in DIM_ORDER:
+        if k not in vidx:
+            continue
+        out.append({'key': k, 'label': DIM_LABEL[k],
+                    'text': DIM_FUNCS[k](o, meta, mode, vidx[k]),
+                    'approx': DIM_APPROX.get(k, False)})
     return out
 
 def _build_name(surname, given_chars, given_info, given_it, gender, birth, need, zodiac,
@@ -413,14 +544,11 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
         'given_chars': given_chars, 'given_wx': wx_list, 'given_mean': g_mean,
         'given_stroke': g_stroke, 'tags': sorted(set(g_tags)), 'grids': grids,
         'req_gender': gender, 'dims': dims, 'total': round(total, 1),
+        'tones': tones,
         'homophone_score': hph,
         'nickname_penalty': np_pen, 'nickname_hits': np_hits,
     }
-    o['explain'] = explain(o, {'has_birth': birth is not None, 'need': need, 'zodiac': zodiac}, mode)
     o['dup_info'] = ('unique' if not any(c in HIGH_FREQ for c in given_chars) else 'common')
-    if np_hits:
-        o['explain'].append({'key': 'nick', 'label': '昵称/梗（本地）', 'approx': True,
-            'text': f"本地规则提示：此名易联想「{np_hits[0]}」等昵称或网络梗，是否采用您可斟酌。（静态黑名单，可手动维护）"})
     return o
 
 def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12, weights=None):
@@ -506,6 +634,9 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
             'name_len': name_len}
     out = _curate_diverse(names, topn)
     if out:
+        assigned = _assign_explain_variants(out, meta, mode)
+        for i, o in enumerate(out):
+            o['explain'] = render_explain(o, meta, mode, assigned[i])
         out[0]['rank_reason'] = build_rank_reason(out[0], out)
     return out, meta
 
@@ -580,6 +711,8 @@ def analyze_given_name(name, gender, birth, weights=None):
     meta = {'has_birth': has_birth, 'need': need, 'zodiac': zodiac,
             'pool_size': len(given), 'surname': raw, 'mode': None,
             'name_len': len(given), 'analyzed': True}
+    o['explain'] = render_explain(o, meta, None,
+        {k: random.randrange(POOL_SIZE[k]) for k in DIM_FUNCS if _key_included(k, o, meta)})
     return [o], meta
 
 # ---------- 能力5：自由期许 → 标签映射（AI 优先，失败回退关键词） ----------
