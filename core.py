@@ -78,13 +78,14 @@ def nickname_penalty(given_chars, given_py, full_py=None):
     """返回 (扣分, 命中说明列表)。规则：
     - seq：名(不含姓)含该字串；
     - pinyin：名全拼(不含姓) == 该 ascii；
-    - phrase：整名拼音(姓+名, 去声调) == 某成语/俗语拼音，用于识别「林门一脚≈临门一脚」这类谐音梗。
+    - phrase：名拼音(姓+名 或 仅名，去声调) == 某俗语拼音，识别「林门一脚≈临门一脚」「费彦≈肺炎」这类谐音梗。
     叠字不在此列。"""
     rules = nickname_blacklist()
     if not rules:
         return 0, []
     s = ''.join(given_chars)
     fp = full_py if full_py is not None else given_py
+    gp = given_py
     pen, hits = 0, []
     for r in rules:
         kind = r.get('kind', 'seq')
@@ -96,7 +97,8 @@ def nickname_penalty(given_chars, given_py, full_py=None):
             if m and to_ascii(m) == given_py:
                 pen += r.get('penalty', 30); hits.append(r.get('note', m))
         elif kind == 'phrase':
-            if m and r.get('py', '') and to_ascii(r['py']) == fp:
+            rp = to_ascii(r.get('py', ''))
+            if rp and (rp == fp or rp == gp):
                 pen += r.get('penalty', 35); hits.append(r.get('note', m))
     return pen, hits
 
@@ -161,52 +163,55 @@ def score_wuxing(wx_list, need, has_birth, s_wx=None):
     if not has_birth:
         # 未提供生辰时，看全名五行「相生相克」是否调和（真实玄学逻辑，逐名不同）
         if len(seq) < 2:
-            return 80
-        s = 100
+            return 70
+        s = 66
         for a, b in zip(seq, seq[1:]):
             if SHENG.get(a) == b:
-                s += 0
+                s += 4
             elif KE.get(a) == b:
-                s -= 14
+                s -= 16
             elif a == b:
-                s -= 4
+                s -= 6
             else:
-                s -= 3
-        return max(55, min(100, s))
+                s -= 2
+        return max(46, min(100, s))
     fill = sum(1 for w in wx_list if w in need)
-    return {len(wx_list): 100, len(wx_list)-1: 72, 0: 44}.get(fill, 50)
+    return {len(wx_list): 96, len(wx_list)-1: 70, 0: 42}.get(fill, 52)
 
 def score_zodiac(radicals, zodiac):
     pref = ZODIAC_PREF.get(zodiac)
     if not pref:
-        return 80
-    bonus = 0
+        return 68
+    s = 56
     for r in radicals:
         if r in pref['xi']:
-            bonus += 12
+            s += 14
         if r in pref['ji']:
-            bonus -= 18
-    return max(0, min(100, 70 + bonus))
+            s -= 20
+    return max(36, min(96, s))
 
-def score_pronounce(tones, initials):
+def score_pronounce(tones, initials, finals):
     n = len(tones)
-    s = 72
+    s = 60
     real = [t for t in tones if t != 0]
     if real and all(t == real[0] for t in real):
-        s -= 14
+        s -= 18
     else:
-        s += (len(set(real)) - 1) * 7
+        s += (len(set(real)) - 1) * 5
     def ping(x):
         return x in (1, 2)
     alt = 0
     for i in range(1, n):
         if tones[i-1] and tones[i] and ping(tones[i-1]) != ping(tones[i]):
             alt += 1
-    s += alt * 5
-    for i in range(1, n):
+    s += alt * 6
+    for i in range(1, n):  # 双声（同声母）
         if initials[i-1] and initials[i] and initials[i-1] == initials[i]:
             s -= 16
-    return max(55, min(98, s))
+    for i in range(1, n):  # 叠韵（同韵母）
+        if finals[i-1] and finals[i] and finals[i-1] == finals[i]:
+            s -= 12
+    return max(42, min(96, s))
 
 def score_homophone(full_py):
     for neg in NEG_HOMO:
@@ -216,13 +221,36 @@ def score_homophone(full_py):
 
 TAG_MEANING = {'智慧':90,'才华':88,'健康':86,'安宁':89,'光明':87,'品德':88,'勇敢':85,
                 '温婉':87,'灵秀':86,'仁愛':88,'喜悦':84,'自由':85,'俊逸':86,'坚韧':85}
-def score_meaning(tags, chosen):
-    vals = [TAG_MEANING.get(t, 82) for t in (tags or [])]
+def score_coherence(given_it):
+    """两字组合语义协调度：奖励互补、惩罚雷同/性别气韵冲突。返回 -12~+8 的调整量（叠加进字义维度）。"""
+    if len(given_it) < 2:
+        return 0
+    t0, t1 = given_it[0].get('t', []), given_it[1].get('t', [])
+    p0, p1 = (t0[0] if t0 else ''), (t1[0] if t1 else '')
+    g0, g1 = given_it[0].get('g', 'U'), given_it[1].get('g', 'U')
+    adj = 0
+    if p0 and p1:
+        if p0 == p1:
+            adj -= 8          # 主标签雷同（如 瑶+琪 皆俊逸）→ 意境重复
+        else:
+            adj += 4          # 主标签互补 → 意境更丰富
+    if g0 not in ('U', '') and g1 not in ('U', '') and g0 != g1:
+        adj -= 6             # 性别气韵冲突（男字+女字混搭）
+    return max(-12, min(8, adj))
+
+def score_meaning(given_it, chosen):
+    vals = []
+    for gi in (given_it or []):
+        ts = gi.get('t', [])
+        v = round(sum(TAG_MEANING.get(t, 80) for t in ts) / len(ts)) if ts else 78
+        vals.append(v)
     base = round(sum(vals) / len(vals)) if vals else 80
-    if not chosen:
-        return base
-    hit = 1 if (set(tags) & set(chosen)) else 0
-    return min(100, base + 8 * hit)
+    if chosen:
+        union = set().union(*[gi.get('t', []) for gi in given_it]) if given_it else set()
+        hit = 1 if (union & set(chosen)) else 0
+        base += 10 * hit
+    coh = score_coherence(given_it)
+    return max(45, min(97, base + coh))
 
 def score_stroke(total):
     if total <= 26:
@@ -340,6 +368,7 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
     radicals = [gi['radical'] for gi in given_info]
     tones = s_tones + [gi['tone'] for gi in given_info]
     initials = s_ini + [gi['initial'] for gi in given_info]
+    given_finals = [gi.get('final', '') for gi in given_info]
     full_py = to_ascii(s_py + ''.join(gi['py'].split(',')[0] for gi in given_info))
     g_tags = []
     for gi in given_it:
@@ -355,6 +384,8 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
     ch = chars() if surname else None
     s_strokes = [ch.get(c, {}).get('stroke', 0) for c in surname] if ch else []
     s_wx = [ch.get(c, {}).get('wx', '土') for c in surname] if ch else []
+    s_finals = [ch.get(c, {}).get('final', '') for c in surname] if ch else []
+    finals = s_finals + given_finals
     all_strokes = s_strokes + [gi['stroke'] for gi in given_info]
     grids, grid_score = five_grids(all_strokes)
 
@@ -362,8 +393,8 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
     dims = {
         'wuxing': score_wuxing(wx_list, need, birth is not None, s_wx),
         'zodiac': score_zodiac(radicals, zodiac),
-        'pronounce': round(0.55*score_pronounce(tones, initials) + 0.45*hph),
-        'meaning': min(100, round(sum(score_meaning(gi['t'], chosen_tags) for gi in given_it) / len(given_it)) + echo_bonus),
+        'pronounce': round(0.55*score_pronounce(tones, initials, finals) + 0.45*hph),
+        'meaning': max(45, min(97, score_meaning(given_it, chosen_tags) + echo_bonus)),
         'stroke': grid_score,
         'gender': score_gender(g_gender, gender),
     }
@@ -471,7 +502,10 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
     meta = {'has_birth': has_birth, 'need': need, 'zodiac': zodiac,
             'pool_size': len(pool), 'surname': surname, 'mode': mode,
             'name_len': name_len}
-    return _curate_diverse(names, topn), meta
+    out = _curate_diverse(names, topn)
+    if out:
+        out[0]['rank_reason'] = build_rank_reason(out[0], out)
+    return out, meta
 
 def _curate_diverse(names, out_n):
     """精选：保留差异明显者，筛掉过于接近的（同字重排 / 同音 / 三字仅差一字 / 二字共用一字）。"""
@@ -494,6 +528,29 @@ def _curate_diverse(names, out_n):
         if len(kept) >= out_n:
             break
     return kept
+
+DIM_LABELS_CN = {'wuxing':'五行','zodiac':'生肖','pronounce':'音律','meaning':'字义','stroke':'数理','gender':'气韵'}
+def build_rank_reason(top, names):
+    """基于候选群像，数据驱动地说明榜首为何排第一（优势维度 + 唯一可优化点）。"""
+    if not names:
+        return ''
+    keys = ['wuxing','zodiac','pronounce','meaning','stroke','gender']
+    n = len(names)
+    avgs = {k: round(sum(o['dims'][k] for o in names) / n, 1) for k in keys}
+    td = top['dims']
+    diff_sorted = sorted(keys, key=lambda k: td[k] - avgs[k], reverse=True)
+    strong = [k for k in diff_sorted if td[k] - avgs[k] >= 3][:2]
+    weak = [k for k in sorted(keys, key=lambda k: td[k] - avgs[k]) if td[k] - avgs[k] <= -3][:1]
+    head = f"综合分 {top['total']} 居首（共 {n} 个候选）。"
+    if strong:
+        s = "、".join(f"{DIM_LABELS_CN[k]}突出（{td[k]}，高于候选均值 {avgs[k]}）" for k in strong)
+        tail = ""
+        if weak:
+            k = weak[0]
+            tail = f"；唯一可优化项是{DIM_LABELS_CN[k]}（{td[k]}，低于均值 {avgs[k]}）"
+        return head + "优势在于：" + s + tail + "。"
+    return head + "各维度均处中上水平，是综合表现最均衡的一个。" + (
+        f"；{DIM_LABELS_CN[weak[0]]}（{td[weak[0]]}）略低于候选均值 {avgs[weak[0]]}。" if weak else "")
 
 # ---------- 候选名字分析（能力 B：帮我观测我的候选名字） ----------
 def analyze_given_name(name, gender, birth, weights=None):

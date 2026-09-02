@@ -360,6 +360,83 @@
       "py": "biyuntao",
       "penalty": 35,
       "note": "谐音梗（不雅）"
+    },
+    {
+      "match": "猪一群",
+      "kind": "phrase",
+      "py": "zhuyiqun",
+      "penalty": 35,
+      "note": "谐音梗（朱逸群≈猪一群）"
+    },
+    {
+      "match": "来月经",
+      "kind": "phrase",
+      "py": "laiyuejin",
+      "penalty": 35,
+      "note": "谐音梗（赖月金≈来月经）"
+    },
+    {
+      "match": "卫生巾",
+      "kind": "phrase",
+      "py": "weishengjin",
+      "penalty": 35,
+      "note": "谐音梗（魏生津≈卫生巾）"
+    },
+    {
+      "match": "肚脐眼",
+      "kind": "phrase",
+      "py": "duqiyan",
+      "penalty": 35,
+      "note": "谐音梗（杜琦燕≈肚脐眼）"
+    },
+    {
+      "match": "膀胱",
+      "kind": "phrase",
+      "py": "pangguang",
+      "penalty": 35,
+      "note": "谐音梗（庞光≈膀胱）"
+    },
+    {
+      "match": "下流",
+      "kind": "phrase",
+      "py": "xialiu",
+      "penalty": 35,
+      "note": "谐音梗（夏柳≈下流）"
+    },
+    {
+      "match": "无人要",
+      "kind": "phrase",
+      "py": "wurenyao",
+      "penalty": 35,
+      "note": "谐音梗（吴仁耀≈无人要）"
+    },
+    {
+      "match": "肺炎",
+      "kind": "phrase",
+      "py": "feiyan",
+      "penalty": 35,
+      "note": "谐音梗（费彦≈肺炎）"
+    },
+    {
+      "match": "裸体",
+      "kind": "phrase",
+      "py": "luoti",
+      "penalty": 35,
+      "note": "谐音梗（罗体≈裸体）"
+    },
+    {
+      "match": "饭桶",
+      "kind": "phrase",
+      "py": "fantong",
+      "penalty": 35,
+      "note": "谐音梗（范统≈饭桶）"
+    },
+    {
+      "match": "禽兽",
+      "kind": "phrase",
+      "py": "qinshou",
+      "penalty": 35,
+      "note": "谐音梗（秦寿≈禽兽）"
     }
   ]
 }
