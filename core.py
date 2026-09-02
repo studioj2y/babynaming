@@ -179,9 +179,10 @@ def score_wuxing(wx_list, need, has_birth, s_wx=None):
     return {len(wx_list): 96, len(wx_list)-1: 70, 0: 42}.get(fill, 52)
 
 def score_zodiac(radicals, zodiac):
+    """未提供生辰（zodiac 为 None）时返回 None：该维度不评分、不参与总分加权。"""
     pref = ZODIAC_PREF.get(zodiac)
     if not pref:
-        return 68
+        return None
     s = 56
     for r in radicals:
         if r in pref['xi']:
@@ -398,7 +399,8 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
         'stroke': grid_score,
         'gender': score_gender(g_gender, gender),
     }
-    total = sum(dims[k] * weights[k] for k in weights) + echo_bonus * 0.05
+    active = {k: w for k, w in weights.items() if dims.get(k) is not None}
+    total = sum(dims[k] * active[k] for k in active) / sum(active.values()) + echo_bonus * 0.05
     # —— 静态昵称/梗黑名单降权（不耗 AI）——
     given_py = to_ascii(''.join(gi['py'].split(',')[0] for gi in given_info))
     np_pen, np_hits = nickname_penalty(given_chars, given_py, full_py)
@@ -534,7 +536,7 @@ def build_rank_reason(top, names):
     """基于候选群像，数据驱动地说明榜首为何排第一（优势维度 + 唯一可优化点）。"""
     if not names:
         return ''
-    keys = ['wuxing','zodiac','pronounce','meaning','stroke','gender']
+    keys = [k for k in ['wuxing','zodiac','pronounce','meaning','stroke','gender'] if top['dims'].get(k) is not None]
     n = len(names)
     avgs = {k: round(sum(o['dims'][k] for o in names) / n, 1) for k in keys}
     td = top['dims']

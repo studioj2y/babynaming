@@ -335,8 +335,13 @@ const SUMMARY = [
   '推演将歇，佳名呼之欲出——请静候君之一见倾心。',
   '天地人三才既济，音形义俱谐，只待您亲手点定。'
 ];
-function buildRitualQueue(){
-  const main = shuffle(SOLO).slice(0,4).concat(shuffle(BANTER).slice(0,4));
+function buildRitualQueue(hasBirth){
+  let solo = SOLO, banter = BANTER;
+  if(!hasBirth){                       // 未提供生辰：生肖老师不参加表演
+    solo = solo.filter(t=>!t.includes('生肖老师'));
+    banter = banter.filter(t=>!t.includes('生肖老师'));
+  }
+  const main = shuffle(solo).slice(0,4).concat(shuffle(banter).slice(0,4));
   const q = shuffle(main).map(t=>({text:t, type:'line'}));
   shuffle(SUMMARY).slice(0,2).forEach(t=>q.push({text:t, type:'summary'}));
   return q;
@@ -386,6 +391,12 @@ function go(s){
     if((state.nameLen - surnameLen()) < 1){
       err.textContent='当前姓氏长度下无法组成'+state.nameLen+'字名（名字至少需 1 个字），请调整姓氏方式或字数'; err.classList.remove('hidden'); return;
     }
+    // 未提供生辰时，生肖维度无分可算，从「看重什么」移除，避免用户为无效维度加权
+    const nobirth=document.getElementById('nobirth').checked;
+    const bday=document.getElementById('bday').value;
+    const hasBirth = !nobirth && !!bday;
+    state.order = ORDER_DEF.filter(it => it.k!=='zodiac' || hasBirth);
+    renderOrder();
   }
   state.step = s;
   ['step1','step2','step3','results'].forEach(id=>document.getElementById(id).classList.add('hidden'));
@@ -588,7 +599,7 @@ function startRitual(analyzeMode){
   ritual.classList.add('show');
   const log=document.getElementById('ritualLog');
   log.innerHTML='';
-  const queue=buildRitualQueue();
+  const queue=buildRitualQueue(!!(payload&&payload.birth));
   const RITUAL_MS = queue.length * TICK + LAST_DWELL;
   let qi=0;
   addRitualLine(queue[0].text, queue[0].type); qi=1;
@@ -691,11 +702,11 @@ function renderResults(data){
     const tags=(o.tags||[]).map(t=>`<span>${t}</span>`).join('');
     const d=o.dims;
     const DIM_LABELS={'wuxing':'五行','zodiac':'生肖','pronounce':'音律','meaning':'字义','stroke':'数理','gender':'气韵'};
-    const dimsHtml=Object.entries(d).map(([k,v])=>`<div class="dim"><span class="dl">${DIM_LABELS[k]||k}</span><span class="db"><i style="width:${v}%"></i></span><span class="dv">${v}</span></div>`).join('');
+    const dimsHtml=Object.entries(d).map(([k,v])=>`<div class="dim"><span class="dl">${DIM_LABELS[k]||k}</span><span class="db"><i style="width:${v||0}%"></i></span><span class="dv">${v==null?'—':v}</span></div>`).join('');
     const exp=o.explain.map(e=>`<div class="d"><div class="k ${e.approx?'approx':''}">${e.label}${e.approx?' · 近似':''}</div><div class="t">${e.text}</div></div>`).join('');
     // 导出底图（自包含、内联样式，html2canvas 可靠渲染；内容与卡片“展开态”一致，含字义详解，节点常驻卡片子树内）
     const exTags=(o.tags||[]).map(t=>`<span style="font-size:11px;color:#a56d80;background:#f7eff2;border:1px solid #ebe1e4;padding:2px 8px;border-radius:8px;margin:2px 3px 2px 0;display:inline-block;">${t}</span>`).join('');
-    const exDims=Object.entries(o.dims).map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:5px 0;"><div style="width:62px;color:#94848b;">${DIM_LABELS[k]||k}</div><div style="flex:1;height:7px;border-radius:4px;background:#efe2e7;overflow:hidden;"><i style="display:block;height:100%;width:${v}%;background:linear-gradient(90deg,#d9b0bc,#ab6379);"></i></div><div style="width:24px;text-align:right;color:#3c3035;font-weight:600;">${v}</div></div>`).join('');
+    const exDims=Object.entries(o.dims).map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:5px 0;"><div style="width:62px;color:#94848b;">${DIM_LABELS[k]||k}</div><div style="flex:1;height:7px;border-radius:4px;background:#efe2e7;overflow:hidden;"><i style="display:block;height:100%;width:${v||0}%;background:linear-gradient(90deg,#d9b0bc,#ab6379);"></i></div><div style="width:24px;text-align:right;color:#3c3035;font-weight:600;">${v==null?'—':v}</div></div>`).join('');
     const exDetail=(o.explain||[]).map(e=>`<div style="margin-top:11px;padding-top:11px;border-top:1px dashed #ebe1e4;"><div style="font-size:13px;font-weight:600;color:#ab6379;margin-bottom:3px;">${e.label}${e.approx?' · 近似':''}</div><div style="font-size:13px;color:#3c3035;line-height:1.7;">${e.text}</div></div>`).join('');
     const sheet=`<div class="export-sheet" id="sheet${idx}"><div style="width:380px;box-sizing:border-box;background:#fff;border-radius:20px;overflow:hidden;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:#3c3035;border:1px solid #ebe1e4;">
       <div style="height:8px;background:linear-gradient(90deg,#d9b0bc,#ab6379);"></div>

@@ -59,7 +59,7 @@ def ai_review(name, gender, zodiac, need, dims):
     """返回一段约 120 字、积极美好的中文整体解读；失败返回 None。"""
     gd = {'M': '男孩', 'F': '女孩', 'U': '宝宝'}.get(gender, '宝宝')
     need_s = '/'.join(need) if need else '均衡'
-    dim_s = '、'.join(f"{k}{v}" for k, v in (dims or {}).items())
+    dim_s = '、'.join(f"{k}{v}" for k, v in (dims or {}).items() if v is not None)
     system = (
         "你是「星命观测局」的命名解读师，气质温润、有文化韵味。\n"
         "请用温暖、积极、鼓励的中文，为家长刚为宝宝择定的名字做一段整体解读。"
