@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 import os
 from core import generate, analyze_birth, analyze_given_name, map_free_text_to_tags, ai_review_for_name, TAGS_VOCAB
 
@@ -73,3 +73,19 @@ async def ai_review(req: Request):
     if not text:
         return JSONResponse({"review": None})
     return JSONResponse({"review": text})
+
+# ---------- 本地开发静态兜底（仅本地生效，Vercel 不部署 app.py） ----------
+# Vercel 生产环境由「根静态文件 + api/*.py 函数」处理；此路由仅用于本地 `uvicorn app:app`
+# 同时托管 /v2/ 场景前端与 /characters/ 立绘，方便本地调试 2.0，不影响 v1 的 / 与 /api/*。
+@app.get("/{full_path:path}")
+def serve_static(full_path: str):
+    if full_path.startswith("api/"):
+        return JSONResponse({"error": "not found"}, status_code=404)
+    fp = os.path.join(HERE, full_path)
+    abs_fp = os.path.abspath(fp)
+    if os.path.isfile(fp) and os.path.commonpath([HERE, abs_fp]) == HERE:
+        return FileResponse(abs_fp)
+    idx = os.path.join(HERE, full_path, "index.html")
+    if os.path.isfile(idx):
+        return FileResponse(idx)
+    return JSONResponse({"error": "not found"}, status_code=404)
