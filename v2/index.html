@@ -5,14 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>星命观测局 · 2.0</title>
 <style>
+  @property --accent{syntax:'<color>';inherits:true;initial-value:#8a6fb0}
+  @property --accent2{syntax:'<color>';inherits:true;initial-value:#6a4f97}
+  @property --glow{syntax:'<color>';inherits:true;initial-value:rgba(150,110,210,.22)}
   :root{
     --bg:#f5f3fa; --bg2:#e6def2;
     --ink:#2b2735; --ink-soft:#6b6380;
     --panel:rgba(255,255,255,.80); --panel-line:rgba(60,40,90,.12);
     --accent:#8a6fb0; --accent2:#6a4f97; --glow:rgba(150,110,210,.22);
+    --theme-t:.5s;
+    --sat:100%;                       /* 颜色饱和度：随流程递进（#6 需求） */
     --aura:rgba(255,255,255,.95); --aura-soft:rgba(244,240,252,.60);
     --radius:18px;
+    --actor-bottom:46%; --actor-h:42vh; --actor-max:360px;   /* 立绘位置/尺寸，按场景经 JS 调整 */
     --ease:cubic-bezier(.22,.61,.36,1);
+    transition:--accent var(--theme-t) var(--ease),--accent2 var(--theme-t) var(--ease),--glow var(--theme-t) var(--ease);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;margin:0}
@@ -33,53 +40,63 @@
   @keyframes drift{to{transform:translateY(-12px)}}
 
   #leaves{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-  .leaf{position:absolute;top:-24px;width:12px;height:14px;
-    background:linear-gradient(160deg,#cdbbe8,#9a86c4);
+  .leaf{position:absolute;top:-24px;width:14px;height:16px;
+    background:linear-gradient(160deg,var(--accent),var(--accent2));
     border-radius:0 80% 0 80%/0 80% 0 80%;
-    animation:fall linear forwards;filter:drop-shadow(0 0 4px rgba(150,120,200,.4))}
+    animation:fall linear forwards;filter:drop-shadow(0 0 4px var(--glow)) drop-shadow(0 1px 1px rgba(60,40,90,.2))}
   @keyframes fall{
     0%{transform:translateY(-24px) translateX(0) rotate(0deg);opacity:0}
-    8%{opacity:.85}
-    88%{opacity:.8}
+    8%{opacity:.42}                /* #5 需求：透明度减半，弱化显眼程度 */
+    88%{opacity:.40}
     100%{transform:translateY(106vh) translateX(var(--drift,30px)) rotate(420deg);opacity:0}
   }
 
   #app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;
-    max-width:520px;margin:0 auto;padding:env(safe-area-inset-top) 18px env(safe-area-inset-bottom);}
+    max-width:520px;margin:0 auto;padding:env(safe-area-inset-top) 18px env(safe-area-inset-bottom);
+    filter:saturate(var(--sat));transition:filter .7s var(--ease);}  /* #6 饱和度变化作用在布局 */
 
-  /* 立绘层 */
-  #actorWrap{position:absolute;left:0;right:0;bottom:32%;display:flex;justify-content:center;align-items:flex-end;gap:6px;padding:0 8px;
+  /* 立绘层（#4：上移以避免与气泡重叠） */
+  #actorWrap{position:absolute;left:0;right:0;bottom:var(--actor-bottom);display:flex;justify-content:center;align-items:flex-end;gap:6px;padding:0 8px;
     pointer-events:none;z-index:1;}
-  .actor{height:54vh;max-height:440px;width:auto;object-fit:contain;
+  .actor{height:var(--actor-h);max-height:var(--actor-max);width:auto;object-fit:contain;
     filter:blur(10px) drop-shadow(0 0 18px var(--aura)) drop-shadow(0 0 42px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.16));
     opacity:0;transform:translateY(18px) scale(.98);
     transition:opacity .38s var(--ease),transform .42s var(--ease),filter .42s var(--ease);}
   .actor.show{opacity:1;transform:none;
     filter:drop-shadow(0 0 18px var(--aura)) drop-shadow(0 0 42px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.16));}
-  .actor.pair{height:40vh;max-height:320px}
+  .actor.pair{height:34vh;max-height:300px}
 
   /* 顶部品牌条 */
   #top{display:flex;align-items:center;gap:8px;padding:14px 4px 6px;z-index:3;color:var(--ink-soft);font-size:13px;letter-spacing:.18em}
-  #top b{color:var(--accent);font-weight:600;letter-spacing:.22em}
+  #top b{color:var(--accent);font-weight:600;letter-spacing:.22em;cursor:pointer;transition:opacity .2s}
+  #top b:hover{opacity:.7}
   #step{margin-left:auto;font-size:12px;opacity:.7;letter-spacing:.05em}
 
   /* 场景舞台 */
   #stage{flex:1;display:flex;flex-direction:column;justify-content:flex-end;z-index:2;
-    padding-bottom:8px;min-height:0;}
-  #scene{transition:opacity .32s var(--ease),transform .32s var(--ease);}
+    padding-bottom:8px;min-height:0;position:relative;}
+  #scene{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;
+    overflow-y:auto;                /* #2 需求：内容超高时可滚动，避免「揭晓」按钮被裁出可视区 */
+    transition:opacity .32s var(--ease),transform .32s var(--ease);}
   #scene.out{opacity:0;transform:translateX(-26px)}
   #scene.in{opacity:0;transform:translateX(26px)}
+  .scene--fixed{position:absolute;inset:0}
+  .scene--fixed .bLayer{position:absolute;left:0;right:0;bottom:30%}
+  .scene--fixed .cLayer{position:absolute;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom))}
+  /* 汇总表：内容压到下方，避开上方抬高的星师立绘 */
+  .scene--summary{justify-content:flex-end;padding-bottom:8px}
 
   /* 对话气泡（漫画风） */
   .bubble{background:var(--panel);border:1.5px solid var(--panel-line);border-radius:var(--radius);
     padding:16px 18px 18px;backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(70,50,100,.20);
     font-size:16px;line-height:1.6;color:var(--ink);position:relative;}
-  .bubble::before{content:"";position:absolute;left:30px;bottom:-13px;width:0;height:0;
-    border:13px solid transparent;border-top-color:var(--panel-line);border-bottom:0}
-  .bubble::after{content:"";position:absolute;left:33px;bottom:-9px;width:0;height:0;
-    border:10px solid transparent;border-top-color:var(--panel);border-bottom:0}
+  .bubble::before{content:"";position:absolute;top:-7px;left:50%;width:13px;height:13px;margin-left:-6.5px;
+    background:var(--panel);border-left:1.5px solid var(--panel-line);border-top:1.5px solid var(--panel-line);
+    transform:rotate(45deg);border-top-left-radius:4px}
   .bubble .who{display:block;font-size:12px;letter-spacing:.16em;color:var(--accent);margin-bottom:8px;font-weight:600}
   .bubble p{margin:0}
+  .bubble p .tw-cursor{display:inline-block;width:2px;height:1em;background:var(--accent);margin-left:2px;vertical-align:text-bottom;animation:blink .6s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
 
   /* 输入控件 */
   .ask{margin-top:14px;display:flex;flex-direction:column;gap:10px}
@@ -87,6 +104,8 @@
   .field input{width:100%;background:rgba(255,255,255,.65);border:1px solid var(--panel-line);
     border-radius:12px;padding:12px 14px;color:var(--ink);font-size:16px;outline:none;transition:border-color .2s}
   .field input:focus{border-color:var(--accent)}
+  .fields-row{display:flex;gap:12px}
+  .fields-row .field{flex:1;min-width:0}
   .seg{display:flex;gap:8px;flex-wrap:wrap}
   .seg button{flex:1;min-width:84px;background:rgba(255,255,255,.60);border:1px solid var(--panel-line);
     color:var(--ink-soft);border-radius:12px;padding:12px 8px;font-size:15px;cursor:pointer;
@@ -101,6 +120,10 @@
   .btn:active{transform:scale(.98)}
   .btn:disabled{opacity:.4;filter:grayscale(.4);cursor:not-allowed;box-shadow:none}
   .btn.ghost{background:rgba(255,255,255,.55);border:1px solid var(--panel-line);box-shadow:0 4px 14px rgba(70,50,100,.10);color:var(--ink-soft)}
+  /* 主题色渐变过渡 */
+  .btn,.seg button,.bubble,.field input,#top b,.orbit,.brand .logo{
+    transition:background-color var(--theme-t) var(--ease),border-color var(--theme-t) var(--ease),
+      color var(--theme-t) var(--ease),box-shadow var(--theme-t) var(--ease),transform .15s,opacity .2s,filter .2s}
 
   /* 汇总过目表 */
   .summary{background:var(--panel);border:1px solid var(--panel-line);border-radius:var(--radius);
@@ -122,21 +145,34 @@
   @keyframes logoIn{from{opacity:0;letter-spacing:.9em;filter:blur(6px)}to{opacity:1}}
   @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:.9;transform:none}}
 
-  /* 占算 */
-  #ritual{margin:auto 0;text-align:center}
-  #ritual .line{font-size:17px;line-height:1.7;color:var(--ink);min-height:3.4em;
-    transition:opacity .4s var(--ease)}
+  /* 占算：立绘在上、文字在下；旋转大圆沉到最下、不再与立绘/文字重叠（#3 需求） */
+  #ritual{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    min-height:100%;gap:12px;text-align:center;padding-bottom:54px;overflow:hidden}
+  .ritualStage{position:relative;z-index:1;width:100%;flex:1;min-height:0;
+    display:flex;align-items:center;justify-content:center;padding-top:4px}
+  .ritualActors{position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:center;gap:10px;height:100%}
+  .ritualActor{height:100%;max-height:44vh;max-width:48%;width:auto;object-fit:contain;opacity:0;
+    transform:translateY(16px) scale(.98);
+    transition:opacity .4s var(--ease),transform .45s var(--ease),filter .4s var(--ease);
+    filter:drop-shadow(0 0 20px var(--aura)) drop-shadow(0 0 46px var(--aura-soft)) drop-shadow(0 8px 16px rgba(70,50,100,.18))}
+  .ritualActor.show{opacity:1;transform:none}
+  .ritualActor.pair{max-height:36vh}
+  #ritual .line{position:relative;z-index:1;font-size:17px;line-height:1.7;color:var(--ink);
+    min-height:3.2em;max-width:30em;padding:0 6px;transition:opacity .4s var(--ease)}
   #ritual .line.fade{opacity:0}
-  .orbit{width:120px;height:120px;margin:0 auto 22px;border-radius:50%;
-    border:1px solid var(--panel-line);position:relative;
+  /* 旋转光环：放到 #ritual 底部、降低不透明度、降低 z-index；不再压在立绘/文字上 */
+  .orbit{position:absolute;left:0;right:0;bottom:-50px;margin:0 auto;
+    width:230px;height:230px;border-radius:50%;
+    border:1px solid var(--panel-line);
     background:conic-gradient(from 0deg,transparent,var(--glow),transparent);
-    animation:spin 6s linear infinite;box-shadow:0 0 40px var(--glow)}
-  .orbit::after{content:"";position:absolute;inset:34px;border-radius:50%;
-    background:radial-gradient(circle,var(--accent),transparent 70%);opacity:.7}
+    animation:spin 14s linear infinite;box-shadow:0 0 50px var(--glow);
+    opacity:.35;z-index:0;pointer-events:none}
+  .orbit::after{content:"";position:absolute;inset:54px;border-radius:50%;
+    background:radial-gradient(circle,var(--accent),transparent 70%);opacity:.4}
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  /* 静待揭晓 */
-  #wait{margin:auto 0;text-align:center}
+  /* 静待揭晓（#2：内容包进 #waitWrap，margin:auto 居中且超高可滚动，保证「揭晓」按钮永远可达） */
+  #waitWrap{width:100%;margin:auto;padding:12px 0;text-align:center}
   #wait .crow{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:18px 0 10px}
   #wait .crow img{width:38px;height:54px;object-fit:cover;object-position:top;border-radius:8px;
     opacity:.9;border:1px solid var(--panel-line);filter:drop-shadow(0 0 7px var(--aura-soft)) drop-shadow(0 4px 8px rgba(70,50,100,.18))}
@@ -153,7 +189,7 @@
   /* 结果木牌 */
   #result{position:absolute;top:0;bottom:0;left:0;right:0;z-index:5;overflow-y:auto;
     max-width:440px;margin:0 auto;padding:8px 12px 20px;
-    background:linear-gradient(180deg,rgba(245,243,250,.6),rgba(238,234,248,.95));
+    background:linear-gradient(180deg,#f7f5fb,#ece8f6);   /* 不透明，遮住底层残留对话框 */
     opacity:0;transform:translateY(20px);transition:opacity .5s var(--ease),transform .5s var(--ease);
     pointer-events:none;}
   #result.show{opacity:1;transform:none;pointer-events:auto}
@@ -174,18 +210,18 @@
   .explain.show{display:block}
   .explain .ei{margin:5px 0;padding-left:12px;border-left:2px solid rgba(255,220,170,.35)}
   .explain .ei b{color:#ffdca6;font-weight:600;margin-right:6px}
-  .toggle{margin-top:10px;font-size:12px;color:#ffdca6;cursor:pointer;background:none;border:none;padding:0;letter-spacing:.05em}
+  .toggle{display:block;width:100%;text-align:center;margin:10px auto 0;font-size:12px;color:#ffdca6;cursor:pointer;background:none;border:none;padding:6px 12px;letter-spacing:.05em;
+    text-shadow:0 0 8px rgba(255,220,170,.9),0 0 18px rgba(255,180,100,.6);transition:text-shadow .25s}
+  .toggle:hover{text-shadow:0 0 14px rgba(255,220,170,1),0 0 28px rgba(255,180,100,.9)}
   #resultFoot{text-align:center;margin-top:6px}
-  @media (prefers-reduced-motion:reduce){
-    *{animation-duration:.001s!important;transition-duration:.12s!important}
-  }
+  /* 动效全程开启（用户偏好观赏落叶与转场效果） */
 </style>
 </head>
 <body>
 <div id="stars"></div>
 <div id="leaves"></div>
 <div id="app">
-  <div id="top"><b>星命观测局</b><span id="step"></span></div>
+  <div id="top"><b title="回到首页">星命观测局</b><span id="step"></span></div>
   <div id="actorWrap"></div>
   <div id="stage"><div id="scene"></div></div>
 </div>
@@ -195,7 +231,8 @@
 <script>
 "use strict";
 const CHAR = {
-  assistant:{name:"观测小助理", file:"/characters/char-assistant-1.png"},
+  assistant:{name:"观测小助理", file:"/characters/char-assistant-1.png",
+             alts:["/characters/char-assistant-2.png","/characters/char-assistant-3.png"]},
   ziyuan:{name:"字源老师", file:"/characters/char-ziyuan-1.png"},
   yuwen:{name:"语文老师", file:"/characters/char-yuwen-1.png"},
   zhanxing:{name:"占星老师", file:"/characters/char-zhanxing-1.png"},
@@ -207,20 +244,57 @@ const CHAR = {
   wuxing:{name:"五行老师", file:"/characters/char-wuxing-1.png"},
   yinlv:{name:"音律老师", file:"/characters/char-yinlv-1.png"},
   xingtai:{name:"形义老师", file:"/characters/char-xingtai-1.png"},
+  diangu:{name:"典故老师", file:"/characters/char-diangu-1.png"},
 };
+/* #3 需求：表演文案按现长度约一半重写，各师专注本主题 */
 const RITUAL = [
-  {keys:["bagua"], line:"八卦老师起卦：先天既演，请诸位同参。"},
-  {keys:["ziyuan","yuwen"], line:"字源、语文二位老师同观：形声已定，平仄相调，读来自成其韵。"},
-  {keys:["ziyuan"], line:"字源老师：姓氏所承，血脉可溯，本义既明，骨架乃立。"},
-  {keys:["yuwen"], line:"语文老师：音律朗朗，轻重得宜，呼之清、应之远。"},
-  {keys:["zhanxing"], line:"占星老师：命盘映照，刚柔可度，阴阳各有归处。"},
-  {keys:["wuxing","shuli"], line:"五行、数理二位老师合参：五行相生相济，五格数理各得其位。"},
-  {keys:["shengxiao"], line:"生肖老师：生肖相宜，无冲无克，幼得护、长得益。"},
-  {keys:["yinlv","xingtai"], line:"音律、形义二位老师同审：声形相生，观之悦目、闻之悦耳。"},
-  {keys:["yijing"], line:"意境老师：气象氤氲，期许在望，字里行间已有远意。"},
-  {keys:["xingshi"], line:"星师：诸师既毕，落笔在即，静候佳名降于小星主。"},
+  {keys:["bagua"], lines:[
+    "八卦老师：先天八卦既成，卦象清正，主行事有凭。",
+    "八卦老师：一卦既成，刚柔各得其所，自有章法。"]},
+  {keys:["wuxing"], lines:[
+    "五行老师：五行相济，缺补过抑，根基厚实。",
+    "五行老师：五行流转，平衡为贵，后天助益绵长。"]},
+  {keys:["shuli"], lines:[
+    "数理老师：五格诸数各安其位，数理安稳，一生少颠簸。",
+    "数理老师：三才配置得宜，吉数暗藏，主早慧晚丰。"]},
+  {keys:["shengxiao"], lines:[
+    "生肖老师：部首就其所喜、避其所忌，幼得护、长得益。",
+    "生肖老师：名与生肖相合，气运圆融，行止无忧。"]},
+  {keys:["yijing"], lines:[
+    "意境老师：气象氤氲，字里已有远意，如未点完的画。",
+    "意境老师：意在言外，好名不必说破，留白皆是祝愿。"]},
+  {keys:["diangu"], lines:[
+    "典故老师：典出有处，字字有本，名添一层厚重。",
+    "典故老师：名若有典，便不是无根之木，多一重深意。"]},
+  {keys:["ziyuan"], lines:[
+    "字源老师：姓氏所承，父姓既立，本义清明，骨架便稳。",
+    "字源老师：一字之始在形在义，探得本源，根基扎实。"]},
+  {keys:["yuwen"], lines:[
+    "语文老师：平仄相调，读来自成其韵，称呼最是顺口。",
+    "语文老师：声韵相协，呼之清、应之远，念来不拗不滞。"]},
+  {keys:["zhanxing"], lines:[
+    "占星老师：命盘既开，刚柔可度，落笔自有分寸。",
+    "占星老师：星盘映照，强弱自见，此名与命局相扶。"]},
+  {keys:["yinlv","xingtai"], lines:[
+    "音律、形义合参：声形相生，观之悦目、闻之悦耳。",
+    "音律、形义合参：字形如画，读音成调，名字便活。"]},
+  {keys:["ziyuan","yuwen"], lines:[
+    "字源、语文合参：形声相和，义韵相生，念来妥帖。",
+    "字源、语文合参：骨架立前、平仄调后，名字自成格局。"]},
+  {keys:["wuxing","shuli"], lines:[
+    "五行、数理合参：内调五行、外合数理，根基乃固。",
+    "五行、数理合参：五行相济、五格各安，方成大器。"]},
+];
+const STAR_LINES = [
+  "星师：形声义数象皆已各安其位，只待小星主点定。",
+  "星师：五行音律数理意境参详既尽，格局已成，静候揭晓。",
+  "星师：诸师所献已汇于一处，名之筋骨俱足，只待一念之择。",
 ];
 const DIMS = [["wuxing","五行"],["zodiac","生肖"],["pronounce","音律"],["meaning","字义"],["stroke","数理"],["gender","气韵"]];
+
+/* 颜色饱和度随场次递进（#6）：首屏 20%→进入 40%→逐次加深→汇总 100% */
+const SAT = {brand:20, s01:40, s02:52, s03a:60, s03b:60, s04:66, s05:73, s06:80, s07:86, s08:93,
+             b1:66, b2:86, s_summary:100, s09:100, s10:100};
 
 const SCENES = {
   brand:{kind:"brand", next:"s01"},
@@ -238,8 +312,8 @@ const SCENES = {
       "也好，请写下那名字，我请语文老师为您细细观测。"] , next:"b1"},
   s04:{kind:"ask", actor:"ziyuan", step:"第一观测层 · 血脉", lines:[
       "姓氏不仅是名字的开端，也影响整体音律、字形与节奏。"],
-      ask:{widget:"two", fields:[{field:"father",label:"父姓",ph:"如 李伟"},{field:"mother",label:"母姓（可空）",ph:"如 王芳"}],
-      require:["father"]}, next:"s05"},
+      ask:{widget:"two", fields:[{field:"father",label:"父姓",ph:"如 李"},{field:"mother",label:"母姓",ph:"如 王"}],
+      require:["father","mother"]}, next:"s05"},
   s05:{kind:"ask", actor:"ziyuan", step:"第一观测层 · 血脉", lines:[
       "小星主名随何方？"],
       ask:{widget:"seg", field:"mode", def:"F", options:[{v:"F",label:"随父"},{v:"M",label:"随母"},{v:"B",label:"复姓双承"}]}, next:"s06"},
@@ -291,11 +365,23 @@ function showActors(keys){
 }
 function showActor(key){ showActors(key?[key]:[]); }
 function rnd(a){ return a[Math.floor(Math.random()*a.length)]; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function typeText(el, text, speed, onDone){
+  el.textContent = "";
+  let i = 0;
+  const cur = document.createElement("span"); cur.className = "tw-cursor"; el.appendChild(cur);
+  const t = setInterval(()=>{
+    if(i < text.length){ cur.insertAdjacentText("beforebegin", text[i]); i++; }
+    else { clearInterval(t); if(cur.parentNode) cur.remove(); if(onDone) onDone(); }
+  }, speed || 35);
+}
 
 function go(id){
   const sc = SCENES[id];
   state.scene = id;
   if(!sc) return;
+  /* #6 饱和度按场次递进 */
+  if(SAT[id] !== undefined) document.documentElement.style.setProperty("--sat", SAT[id]+"%");
   if(sc.kind==="ritual"){ enterRitual(); return; }
   if(id==="s10" && !state.result){
     renderWait(true);
@@ -304,6 +390,25 @@ function go(id){
   }
   renderScene(sc);
 }
+
+/* 从汇总表点"改"后再确认，应回到汇总而非继续走原流程 */
+function proceed(sc){
+  if(state.editReturn){ const t=state.editReturn; state.editReturn=null; go(t); }
+  else go(sc.next);
+}
+/* 点击左上"星命观测局"回到首页，重置整段流程 */
+function goHome(){
+  clearTimeout(state._rt);
+  state.editReturn=null;
+  ["father","mother","mode","name_len","gender","name","result"].forEach(k=>delete state[k]);
+  state.branch="A";
+  apiPromise = Promise.resolve();
+  $("#actorWrap").style.display="";
+  showActors([]);
+  $("#step").textContent="";
+  go("brand");
+}
+$("#top").querySelector("b").onclick = goHome;
 
 function transitionTo(html, after){
   sceneEl.classList.add("out");
@@ -317,6 +422,12 @@ function transitionTo(html, after){
 function renderScene(sc){
   if(sc.actor!==undefined) showActor(sc.actor);
   $("#step").textContent = sc.step || "";
+  sceneEl.classList.toggle("scene--fixed", sc.kind==="talk"||sc.kind==="ask"||sc.kind==="branch");
+  sceneEl.classList.toggle("scene--summary", sc.kind==="summary");
+  /* 立绘位置/尺寸：汇总表时星师抬到上方并缩小，其余场景用默认（#1/#2） */
+  const _rd = document.documentElement.style;
+  if(sc.kind==="summary"){ _rd.setProperty("--actor-bottom","60%"); _rd.setProperty("--actor-h","30vh"); _rd.setProperty("--actor-max","250px"); }
+  else if(sc.kind!=="ritual"){ _rd.setProperty("--actor-bottom","46%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
   if(sc.kind==="brand") return renderBrand(sc);
   if(sc.kind==="talk") return renderTalk(sc);
   if(sc.kind==="branch") return renderBranch(sc);
@@ -333,18 +444,26 @@ function renderBrand(sc){
 
 function renderTalk(sc){
   const line = rnd(sc.lines);
-  transitionTo('<div class="bubble"><span class="who">'+(sc.actor?CHAR[sc.actor].name:"")+'</span><p>'+line+'</p></div>'+
-    '<button class="btn">继 续</button>', ()=>{
-    sceneEl.querySelector(".btn").onclick = ()=>go(sc.next);
+  transitionTo('<div class="bLayer"><div class="bubble"><span class="who">'+(sc.actor?CHAR[sc.actor].name:"")+'</span><p class="tw-line"></p></div></div>'+
+    '<div class="cLayer"><button class="btn" disabled>继 续</button></div>', ()=>{
+    const p = sceneEl.querySelector(".tw-line");
+    const btn = sceneEl.querySelector(".btn");
+    typeText(p, line, 38, ()=>{ btn.disabled=false; });
+    btn.onclick = ()=>proceed(sc);
   });
 }
 
 function renderBranch(sc){
   const line = rnd(sc.lines);
-  let btns = sc.branch.map((b,i)=>'<button class="btn'+(i>0?' ghost':'')+'" data-i="'+i+'">'+b.label+'</button>').join("");
-  transitionTo('<div class="bubble"><span class="who">'+CHAR[sc.actor].name+'</span><p>'+line+'</p></div><div class="ask">'+btns+'</div>', ()=>{
-    sceneEl.querySelectorAll(".btn[data-i]").forEach(btn=>{
-      btn.onclick = ()=>{ const b = sc.branch[+btn.dataset.i]; if(b.set) Object.assign(state,b.set); go(b.next); };
+  let btns = sc.branch.map((b,i)=>'<button class="btn'+(i>0?' ghost':'')+'" data-i="'+i+'" disabled>'+b.label+'</button>').join("");
+  const html='<div class="bLayer"><div class="bubble"><span class="who">'+CHAR[sc.actor].name+'</span><p class="tw-line"></p></div></div><div class="cLayer">'+btns+'</div>';
+  transitionTo(html, ()=>{
+    const p = sceneEl.querySelector(".tw-line");
+    typeText(p, line, 38, ()=>{
+      sceneEl.querySelectorAll(".btn[data-i]").forEach(btn=>{
+        btn.disabled=false;
+        btn.onclick = ()=>{ const b = sc.branch[+btn.dataset.i]; if(b.set) Object.assign(state,b.set); go(b.next); };
+      });
     });
   });
 }
@@ -358,29 +477,31 @@ function renderAsk(sc){
     inner = '<div class="seg">'+a.options.map(o=>'<button data-v="'+o.v+'">'+o.label+'</button>').join("")+'</div>';
     if(a.theme) inner += '<div class="hint">选择即定主题气韵</div>';
   } else {
-    inner = fields.map(f=>'<div class="field"><label>'+f.label+'</label><input data-f="'+f.field+'" placeholder="'+f.ph+'" value="'+((state[f.field]||"").toString().replace(/"/g,'&quot;'))+'" /></div>').join("");
+    inner = '<div class="fields-row">'+fields.map(f=>'<div class="field"><label>'+f.label+'</label><input data-f="'+f.field+'" placeholder="'+f.ph+'" value="'+((state[f.field]||"").toString().replace(/"/g,'&quot;'))+'" maxlength="4" style="text-align:center" /></div>').join('')+'</div>';
   }
-  transitionTo('<div class="bubble"><span class="who">'+CHAR[sc.actor].name+'</span><p>'+line+'</p></div><div class="ask">'+inner+'<button class="btn" disabled>继 续</button></div>', ()=>{
-    const btn = sceneEl.querySelector(".ask .btn");
+  transitionTo('<div class="bLayer"><div class="bubble"><span class="who">'+CHAR[sc.actor].name+'</span><p class="tw-line"></p></div></div>'+
+    '<div class="cLayer">'+inner+'<button class="btn" disabled>继 续</button></div>', ()=>{
+    const p = sceneEl.querySelector(".tw-line");
+    const btn = sceneEl.querySelector(".cLayer .btn");
     if(a.widget==="seg"){
       let chosen = a.def;
       if(chosen!==undefined){ state[a.field]=chosen; if(a.theme) setTheme(chosen); markSeg(); }
-      else btn.disabled = true;
-      btn.onclick = ()=>go(sc.next);
       sceneEl.querySelectorAll(".seg button").forEach(b=>{
         b.onclick = ()=>{ state[a.field]=b.dataset.v; if(a.theme) setTheme(b.dataset.v); markSeg(); if(btn.disabled) btn.disabled=false; };
       });
       function markSeg(){ sceneEl.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("sel", b.dataset.v==String(state[a.field]))); }
+      btn.onclick = ()=>proceed(sc);
+      typeText(p, line, 35, ()=>{ if(chosen!==undefined) btn.disabled=false; });
     } else {
       const ins = sceneEl.querySelectorAll("input[data-f]");
       ins.forEach(i=>i.oninput=()=>{ btn.disabled = !(a.require||[]).every(f=>{ const el=sceneEl.querySelector('input[data-f="'+f+'"]'); return el && el.value.trim(); }); });
       btn.onclick = ()=>{
         fields.forEach(f=>{ state[f.field]=sceneEl.querySelector('input[data-f="'+f.field+'"]').value.trim(); });
         if(a.require && !a.require.every(f=>state[f])) return;
-        go(sc.next);
+        proceed(sc);
       };
+      typeText(p, line, 35);
     }
-    if(a.widget==="seg" && a.def!==undefined) btn.disabled=false;
   });
 }
 
@@ -403,8 +524,8 @@ function renderSummary(sc){
   });
   html += '</div><button class="btn">确认无误 · 起卦</button>';
   transitionTo(html, ()=>{
-    sceneEl.querySelectorAll(".edit").forEach(b=> b.onclick = ()=>go(b.dataset.go));
-    sceneEl.querySelector(".btn").onclick = ()=>go(sc.next);
+    sceneEl.querySelectorAll(".edit").forEach(b=> b.onclick = ()=>{ state.editReturn="s_summary"; go(b.dataset.go); });
+    sceneEl.querySelector(".btn").onclick = ()=>proceed(sc);
   });
 }
 
@@ -418,44 +539,70 @@ function callAPI(){
     body:JSON.stringify({father:state.father||"", mother:state.mother||"", mode:state.mode||"F",
       name_len:state.name_len||3, gender:state.gender||"U", tags:[], avoid:"", free_text:"", birth:null, weights:null})}).then(r=>r.json());
 }
+
+/* #2 需求：提问阶段出场过的老师（assistant/ziyuan/yuwen/zhanxing/xingshi）放到表演序列后段；
+        提问阶段未出场的老师（bagua/wuxing/shuli/shengxiao/yijing/diangu）优先出场。*/
+const QTEACHERS = new Set(["assistant","ziyuan","yuwen","zhanxing","xingshi"]);
 function enterRitual(){
-  showActors("bagua"); $("#step").textContent="占算";
+  $("#actorWrap").style.display="none";   // 演出时隐藏全局立绘，改由 #ritual 内部自管
+  $("#step").textContent="占算";
   apiPromise = callAPI();
   apiPromise.then(d=>{ state.result=d; }).catch(e=>{ state.result={meta:{error:"推算中断："+e.message}}; });
+  const perfSingles = shuffle(RITUAL.filter(r=>r.keys.length===1 && r.keys[0]!=="xingshi").slice());
+  // 排序：非提问老师（0）排在提问老师（1）之前；组内保持 shuffle 顺序
+  perfSingles.sort((a,b)=> (QTEACHERS.has(a.keys[0])?1:0) - (QTEACHERS.has(b.keys[0])?1:0));
+  const pairs = shuffle(RITUAL.filter(r=>r.keys.length>1).slice());
+  const SEQ = perfSingles.concat(pairs);
   let i=0;
-  sceneEl.innerHTML = '<div id="ritual"><div class="orbit"></div><div class="line"></div>'+
-    '<button class="btn ghost" style="max-width:160px;margin:18px auto 0">跳过演出</button></div>';
+  /* #3 需求：旋转大圆（orbit）沉到 #ritual 底部，不再与立绘/文字重叠；立绘在上、文字在下。 */
+  sceneEl.innerHTML = '<div id="ritual">'+
+    '<div class="orbit"></div>'+
+    '<div class="ritualStage"><div class="ritualActors"></div></div>'+
+    '<div class="line"></div><button class="btn ghost" style="max-width:160px;margin:8px auto 0">跳过演出</button></div>';
+  const stage = sceneEl.querySelector(".ritualActors");
   const lineEl = sceneEl.querySelector(".line");
   const skip = sceneEl.querySelector(".btn");
-  function step(){
-    if(i<RITUAL.length){
-      const r=RITUAL[i]; showActors(r.keys||[r.key]);
-      lineEl.classList.add("fade");
-      setTimeout(()=>{ lineEl.textContent=r.line; lineEl.classList.remove("fade"); }, 260);
-      i++; state._rt=setTimeout(step,1700);
-    } else { showActors("xingshi"); go("s10"); }
+  function setActors(keys){
+    const list=(Array.isArray(keys)?keys:[keys]).filter(Boolean);
+    stage.querySelectorAll(".ritualActor").forEach(a=>a.classList.remove("show"));
+    setTimeout(()=>{
+      if(!list.length){ stage.innerHTML=""; return; }
+      stage.innerHTML = list.map(k=>'<img class="ritualActor'+(list.length>1?' pair':'')+'" src="'+CHAR[k].file+'" alt="'+(CHAR[k].name||"")+'">').join("");
+      requestAnimationFrame(()=>stage.querySelectorAll(".ritualActor").forEach(a=>a.classList.add("show")));
+    }, 220);
   }
-  skip.onclick = ()=>{ clearTimeout(state._rt); showActors("xingshi"); go("s10"); };
+  function step(){
+    if(i<SEQ.length){
+      const r=SEQ[i]; setActors(r.keys||[r.key]);
+      lineEl.classList.add("fade");
+      setTimeout(()=>{ lineEl.textContent=rnd(r.lines); lineEl.classList.remove("fade"); }, 260);
+      i++; state._rt=setTimeout(step,2200);
+    } else {
+      setActors("xingshi");
+      lineEl.classList.add("fade");
+      setTimeout(()=>{ lineEl.textContent=rnd(STAR_LINES); lineEl.classList.remove("fade"); }, 260);
+      state._rt=setTimeout(()=>go("s10"), 2600);
+    }
+  }
+  skip.onclick = ()=>{ clearTimeout(state._rt); setActors("xingshi"); lineEl.textContent=rnd(STAR_LINES); setTimeout(()=>go("s10"), 60); };
   step();
 }
 
-/* ---------- 静待揭晓 ---------- */
+/* ---------- 静待揭晓（#2：内容包进 #waitWrap，按钮永远可达） ---------- */
 function renderWait(loading){
-  showActor("xingshi"); $("#step").textContent="静待揭晓";
-  const all = ["assistant","ziyuan","yuwen","zhanxing","yijing","bagua","xingshi","shengxiao","shuli","wuxing","yinlv","xingtai"];
-  let crowd = '<div class="crow">'+all.slice(0,12).map(k=>'<img src="'+CHAR[k].file+'" alt="" onerror="this.style.display=\'none\'"/>').join("")+'</div>';
+  $("#actorWrap").style.display="none"; $("#step").textContent="静待揭晓";   /* 揭晓阶段不堆叠立绘，按钮居中可达 */
   if(loading){
-    sceneEl.innerHTML = crowd + '<div class="tip">诸师同参，推算中…</div><div class="spinner"></div>';
+    sceneEl.innerHTML = '<div id="waitWrap"><div class="tip">诸师同参，推算中…</div><div class="spinner"></div></div>';
     return;
   }
   if(state.result && state.result.meta && state.result.meta.error){
-    sceneEl.innerHTML = '<div class="bubble"><p>'+state.result.meta.error+'</p></div>'+
-      '<button class="btn" onclick="location.reload()">重新起卦</button>';
+    sceneEl.innerHTML = '<div id="waitWrap"><div class="bubble"><p>'+state.result.meta.error+'</p></div>'+
+      '<button class="btn" onclick="location.reload()">重新起卦</button></div>';
     return;
   }
-  sceneEl.innerHTML = crowd +
+  sceneEl.innerHTML = '<div id="waitWrap">'+
     '<div class="tip">万事俱备，只待小星主点定</div>'+
-    '<button class="btn" id="revealBtn">揭 晓</button>';
+    '<button class="btn" id="revealBtn">揭 晓</button></div>';
   $("#revealBtn").onclick = doReveal;
 }
 
@@ -466,6 +613,8 @@ function doReveal(){
   setTimeout(()=>{ renderResult(); }, 520);
 }
 function renderResult(){
+  sceneEl.innerHTML="";                 /* 清掉背后残留的对话框，避免从结果层透出 */
+  $("#actorWrap").style.display="none";
   showActor(null);
   const data = state.result || {names:[]};
   const names = data.names || [];
@@ -503,6 +652,25 @@ function renderResult(){
     };
   });
 }
+
+/* 落叶（间歇生成 + 随主题色 + 间歇微风；透明度减半以减弱显眼） */
+let wind = 24;
+setInterval(()=>{ wind = Math.max(-100, Math.min(100, wind + (Math.random()*70-35))); }, 4500);
+function spawnLeaf(){
+  const wrap = $("#leaves"); if(!wrap) return;
+  const el = document.createElement("div");
+  el.className = "leaf";
+  el.style.left = (Math.random()*100).toFixed(1)+"%";
+  el.style.setProperty("--drift", (wind + (Math.random()*40-20)).toFixed(0)+"px");
+  const dur = (7+Math.random()*6).toFixed(1);
+  el.style.animationDuration = dur+"s";
+  el.style.width = (9+Math.random()*6).toFixed(0)+"px";
+  el.style.height = (11+Math.random()*6).toFixed(0)+"px";
+  wrap.appendChild(el);
+  setTimeout(()=>el.remove(), dur*1000+300);
+}
+setInterval(spawnLeaf, 2200);
+spawnLeaf();
 
 /* 启动 */
 go("brand");
