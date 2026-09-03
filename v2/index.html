@@ -17,7 +17,7 @@
     --sat:100%;                       /* 颜色饱和度：随流程递进（#6 需求） */
     --aura:rgba(255,255,255,.95); --aura-soft:rgba(244,240,252,.60);
     --radius:18px;
-    --actor-bottom:46%; --actor-h:42vh; --actor-max:360px;   /* 立绘位置/尺寸，按场景经 JS 调整 */
+    --actor-bottom:44%; --actor-h:42vh; --actor-max:360px;   /* 立绘位置/尺寸，按场景经 JS 调整 */
     --ease:cubic-bezier(.22,.61,.36,1);
     transition:--accent var(--theme-t) var(--ease),--accent2 var(--theme-t) var(--ease),--glow var(--theme-t) var(--ease);
   }
@@ -46,8 +46,8 @@
     animation:fall linear forwards;filter:drop-shadow(0 0 4px var(--glow)) drop-shadow(0 1px 1px rgba(60,40,90,.2))}
   @keyframes fall{
     0%{transform:translateY(-24px) translateX(0) rotate(0deg);opacity:0}
-    8%{opacity:.42}                /* #5 需求：透明度减半，弱化显眼程度 */
-    88%{opacity:.40}
+    8%{opacity:.30}                /* 落叶透明度：较上一轮(.42)再增淡一点，弱化显眼程度 */
+    88%{opacity:.28}
     100%{transform:translateY(106vh) translateX(var(--drift,30px)) rotate(420deg);opacity:0}
   }
 
@@ -84,7 +84,7 @@
   .scene--fixed .bLayer{position:absolute;left:0;right:0;bottom:30%}
   .scene--fixed .cLayer{position:absolute;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom))}
   /* 汇总表：内容压到下方，避开上方抬高的星师立绘 */
-  .scene--summary{justify-content:flex-end;padding-bottom:8px}
+  .scene--summary{justify-content:flex-end;padding-bottom:36px}
 
   /* 对话气泡（漫画风） */
   .bubble{background:var(--panel);border:1.5px solid var(--panel-line);border-radius:var(--radius);
@@ -427,7 +427,7 @@ function renderScene(sc){
   /* 立绘位置/尺寸：汇总表时星师抬到上方并缩小，其余场景用默认（#1/#2） */
   const _rd = document.documentElement.style;
   if(sc.kind==="summary"){ _rd.setProperty("--actor-bottom","60%"); _rd.setProperty("--actor-h","30vh"); _rd.setProperty("--actor-max","250px"); }
-  else if(sc.kind!=="ritual"){ _rd.setProperty("--actor-bottom","46%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
+  else if(sc.kind!=="ritual"){ _rd.setProperty("--actor-bottom","44%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
   if(sc.kind==="brand") return renderBrand(sc);
   if(sc.kind==="talk") return renderTalk(sc);
   if(sc.kind==="branch") return renderBranch(sc);
