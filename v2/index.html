@@ -57,8 +57,8 @@
     animation:glowPulse var(--gp,9s) ease-in-out infinite}
   @keyframes glowPulse{0%,100%{opacity:0;transform:scale(.85)}50%{opacity:var(--op,.16);transform:scale(1.12)}}
   /* 星座线：周期重构之间也保持缓慢漂移，不完全静止 */
-  #ambient .aconst{animation:constDrift 24s ease-in-out infinite alternate;transform-origin:50% 50%}
-  @keyframes constDrift{0%{transform:translate(0,0) rotate(0)}100%{transform:translate(10px,-7px) rotate(2deg)}}
+  #ambient .aconst{animation:constDrift 13s ease-in-out infinite alternate;transform-origin:50% 50%}
+  @keyframes constDrift{0%{transform:translate(-22px,14px) rotate(-4deg)}100%{transform:translate(22px,-16px) rotate(4deg)}}
 
   #leaves{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
   .leaf{position:absolute;top:-24px;width:14px;height:16px;
@@ -82,10 +82,18 @@
     pointer-events:none;z-index:1;}
   .actor{height:var(--actor-h);max-height:var(--actor-max);width:auto;object-fit:contain;
     filter:blur(10px) drop-shadow(0 0 18px var(--aura)) drop-shadow(0 0 42px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.16));
-    opacity:0;transform:translateY(18px) scale(.98);
-    transition:opacity .38s var(--ease),transform .42s var(--ease),filter .42s var(--ease);}
-  .actor.show{opacity:1;transform:none;
+    opacity:0;transform:translateY(40px) scale(1.2);}  /* 隐藏态=淡出终态(scale1.2+下移40)，淡入为其镜像 */
+  .actor.show{animation:actorEnter .52s var(--ease) both;
     filter:drop-shadow(0 0 18px var(--aura)) drop-shadow(0 0 42px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.16));}
+  .actor.leave{animation:actorLeave .28s var(--ease) both;
+    filter:blur(10px) drop-shadow(0 0 18px var(--aura)) drop-shadow(0 0 42px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.16));}
+  @keyframes actorEnter{   /* 淡入：与 actorLeave 互为镜像；起点略大于终态，动感更强 */
+    0%{opacity:0;transform:translateY(40px) scale(1.2);filter:blur(10px) drop-shadow(0 0 18px var(--aura)) drop-shadow(0 0 42px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.16))}
+    55%{opacity:1}
+    100%{opacity:1;transform:translateY(0) scale(1);filter:drop-shadow(0 0 18px var(--aura)) drop-shadow(0 0 42px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.16))}}
+  @keyframes actorLeave{
+    0%{opacity:1;transform:translateY(0) scale(1);filter:drop-shadow(0 0 18px var(--aura)) drop-shadow(0 0 42px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.16))}
+    100%{opacity:0;transform:translateY(40px) scale(1.2);filter:blur(10px) drop-shadow(0 0 18px var(--aura)) drop-shadow(0 0 42px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.16))}}
   .actor.pair{height:34vh;max-height:300px}
 
   /* 表演立绘层：与 #actorWrap 同级（在 #stage 滤镜之外），故表演阶段立绘也保持满色、不受饱和度递进影响 */
@@ -177,14 +185,22 @@
   .ritualStage{position:relative;z-index:1;width:100%;flex:1;min-height:0;
     display:flex;align-items:center;justify-content:center;padding-top:4px}
   .ritualActor{height:42vh;width:auto;max-width:95vw;object-fit:contain;opacity:0;  /* 锁定高度，宽度随比例自适应，消除高低差 */
-    transform:translateY(16px) scale(.98);
-    transition:opacity .4s var(--ease),transform .45s var(--ease),filter .4s var(--ease);
+    transform:translateY(34px) scale(1.1);
     filter:drop-shadow(0 0 20px var(--aura)) drop-shadow(0 0 46px var(--aura-soft)) drop-shadow(0 8px 16px rgba(70,50,100,.18))}
-  .ritualActor.show{opacity:1;transform:none}
+  .ritualActor.show{animation:ritualEnter .5s var(--ease) both}
+  .ritualActor.leave{animation:ritualLeave .26s var(--ease) both}
+  @keyframes ritualEnter{
+    0%{opacity:0;transform:translateY(34px) scale(1.1)}
+    55%{opacity:1}
+    100%{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes ritualLeave{
+    0%{opacity:1;transform:translateY(0) scale(1)}
+    100%{opacity:0;transform:translateY(34px) scale(1.1)}}
   .ritualActor.pair{height:42vh;max-width:46%}  /* 单/双统一锁定高度，比例一致 */
-  #ritual .line{position:relative;z-index:1;font-size:17px;line-height:1.7;color:var(--ink);
-    min-height:3.2em;max-width:30em;padding:0 6px;transition:opacity .4s var(--ease)}
-  #ritual .line.fade{opacity:0}
+  #ritual .bubble{position:relative;z-index:2;max-width:30em;margin:0 auto 44px;text-align:left;   /* margin-bottom 把对话泡略抬高，远离底部 */
+    min-height:3.2em;transition:opacity .4s var(--ease)}
+  #ritual .bubble.fade{opacity:0}
+  #ritual .bubble .who{text-align:left}
   /* 旋转光环：放到 #ritual 底部、降低不透明度、降低 z-index；不再压在立绘/文字上 */
   .orbit{position:absolute;left:0;right:0;bottom:-50px;margin:0 auto;
     width:230px;height:230px;border-radius:50%;
@@ -210,11 +226,48 @@
     background:radial-gradient(circle at 50% 60%,rgba(255,247,220,.9),transparent 55%);
     transition:opacity .25s ease}
   #flash.on{opacity:1}
+  #flash.white{background:#fff}   /* 揭晓前光球炸开时的全白屏 */
+
+  /* 揭晓前光球汇聚动效：数枚光球从屏幕外螺旋旋入中心 → 炸开 → 白屏 → 按钮出现 */
+  #orbFx{position:fixed;inset:0;z-index:8;pointer-events:none;display:none;overflow:hidden}
+  #orbFx.go{display:block}
+  #orbFx .orb{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;opacity:0;
+    background:radial-gradient(circle,#fff,var(--glow) 55%,transparent 72%);
+    box-shadow:0 0 22px var(--glow),0 0 48px rgba(255,255,255,.55);
+    transform:rotate(var(--ang,0deg)) translateX(150vw)}
+  #orbFx.go .orb{animation:orbIn 1.35s var(--ease) forwards}
+  @keyframes orbIn{
+    0%{opacity:0;transform:rotate(var(--ang,0deg)) translateX(150vw)}
+    18%{opacity:1}
+    100%{opacity:1;transform:rotate(calc(var(--ang,0deg) + 720deg)) translateX(0)}
+  }
+  #orbFx .orb.boom{animation:orbBoom .5s ease-out forwards}
+  @keyframes orbBoom{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(6)}}
+
+  /* 揭晓按钮按下：光球自按钮中心飞出 → 围成圆环旋转约1秒 → 炸开 */
+  #revealOrbFx{position:fixed;inset:0;z-index:8;pointer-events:none;display:none;overflow:visible}
+  #revealOrbFx.go{display:block}
+  #revealOrbFx .orb{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;opacity:0;
+    background:radial-gradient(circle,#fff,var(--glow) 55%,transparent 72%);
+    box-shadow:0 0 18px var(--glow),0 0 40px rgba(255,255,255,.5);
+    transform:rotate(var(--ang,0deg)) translateX(0)}
+  #revealOrbFx.go .orb{animation:orbReveal 1.3s var(--ease) forwards}
+  @keyframes orbReveal{
+    0%{opacity:0;transform:rotate(calc(var(--ang,0deg) + 0deg)) translateX(0)}
+    12%{opacity:1}
+    30%{transform:rotate(calc(var(--ang,0deg) + 0deg)) translateX(var(--R,110px))}
+    100%{opacity:1;transform:rotate(calc(var(--ang,0deg) + 360deg)) translateX(var(--R,110px))}
+  }
+  #revealOrbFx .orb.boom{animation:orbRevealBoom .5s ease-out forwards}
+  @keyframes orbRevealBoom{
+    0%{opacity:1;transform:rotate(calc(var(--ang,0deg) + 360deg)) translateX(var(--R,110px)) scale(1)}
+    100%{opacity:0;transform:rotate(calc(var(--ang,0deg) + 360deg)) translateX(var(--R,110px)) scale(5)}
+  }
 
   /* 结果木牌 */
   #result{position:absolute;top:0;bottom:0;left:0;right:0;z-index:5;overflow-y:auto;
     max-width:440px;margin:0 auto;padding:8px 12px 20px;
-    background:linear-gradient(180deg,#f7f5fb,#ece8f6);   /* 不透明，遮住底层残留对话框 */
+    background:linear-gradient(180deg, rgba(247,245,251,.82), rgba(236,232,246,.90));   /* 半透明：透出首页星野/氛围背景，结果页背景类首页 */
     opacity:0;transform:translateY(20px);transition:opacity .5s var(--ease),transform .5s var(--ease);
     pointer-events:none;}
   #result.show{opacity:1;transform:none;pointer-events:auto}
@@ -254,6 +307,8 @@
   <div id="ritualWrap"></div>
 </div>
 <div id="flash"></div>
+<div id="orbFx"></div>
+<div id="revealOrbFx"></div>
 <div id="result"></div>
 
 <script>
@@ -330,32 +385,29 @@ const RITUAL = [
     "占星老师：这名字和命局是合拍的，互补得刚刚好。",
     "占星老师：行星相位看下来挺顺，名字的能量跟人很搭。"]},
 ];
-/* 双人合参：v1 式交叉互动台词（非「XX和XX共参」），搭配双人组合立绘使用；占星/音律/数理为外国人口吻，现代 */
+/* 双人合参：v1 式交叉互动台词（非「XX和XX共参」），搭配双人组合立绘使用；占星/音律/数理为外国人口吻，现代。
+   每行拆为 [前半句, 后半句] 两段，渲染时以 <br> 换行（双人协作两句话之间换行）。 */
 const DUOS = [
   {keys:["diangu","shushu"], lines:[
-    "典故老师翻检典籍，术数老师笑道：「有出处，便更见分量。」",
-    "术数老师掐指一算：「落于吉位。」典故老师补：「又恰有来历，双保险。」",
-    "典故老师：「这字有本源。」术数老师笑：「数上也站得住，妙得很。」"]},
+    ["典故老师翻检典籍，寻得本源。", "术数老师笑道：「有出处，便更见分量。」"],
+    ["术数老师掐指一算：「落于吉位。」", "典故老师补：「又恰有来历，双保险。」"],
+    ["典故老师：「这字有本源。」", "术数老师笑：「数上也站得住，妙得很。」"]]},
   {keys:["yinlv","xingtai"], lines:[
-    "音律老师随口哼了个调，形义老师端详字形：「声形相生，这名一下就活了。」",
-    "形义老师指着间架：「笔画舒朗。」音律老师接腔：「读起来也正合拍。」",
-    "音律老师：「听着顺。」形义老师点头：「看着也正，声形两宜。」"]},
+    ["音律老师随口哼了个调，声韵先活。", "形义老师端详字形：「声形相生，这名一下就立住了。」"],
+    ["形义老师指着间架：「笔画舒朗。」", "音律老师接腔：「读起来也正合拍。」"],
+    ["音律老师：「听着顺。」", "形义老师点头：「看着也正，声形两宜。」"]]},
   {keys:["ziyuan","yuwen"], lines:[
-    "字源老师点出本义，语文老师调起平仄：「形立声协，念来便妥帖。」",
-    "语文老师：「节奏一顺就舒服。」字源老师笑：「本义也稳，算双美。」",
-    "字源老师：「源头清明。」语文老师：「那我把它读顺——正合适。」"]},
+    ["字源老师点出本义，骨架先立。", "语文老师调起平仄：「形立声协，念来便妥帖。」"],
+    ["语文老师：「节奏一顺就舒服。」", "字源老师笑：「本义也稳，算双美。」"],
+    ["字源老师：「源头清明。」", "语文老师：「那我把它读顺——正合适。」"]]},
   {keys:["wuxing","shuli"], lines:[
-    "五行老师看气，数理老师算格：「内调五行、外合数理，根基乃固。」",
-    "数理老师：「五格都安。」五行老师接：「五行也济，内外齐了。」",
-    "五行老师：「气要顺。」数理老师：「数也得稳，这下两样都齐。」"]},
+    ["五行老师看气，五行流转得宜。", "数理老师算格：「内调五行、外合数理，根基乃固。」"],
+    ["数理老师：「五格都安。」", "五行老师接：「五行也济，内外齐了。」"],
+    ["五行老师：「气要顺。」", "数理老师：「数也得稳，这下两样都齐。」"]]},
   {keys:["bagua","yijing"], lines:[
-    "八卦老师起卦，意境老师会意：「卦象清正，字里便有了远意。」",
-    "意境老师：「意在言外。」八卦老师：「卦也清，正相称。」",
-    "八卦老师：「刚柔得位。」意境老师：「那留白，也成了祝福。」"]},
-  {keys:["zhanxing","yijing"], lines:[
-    "占星老师看盘：「能量很顺。」意境老师补：「正合意在言外那一味。」",
-    "意境老师：「余韵自生。」占星老师：「星盘也映得出这层意思。」",
-    "占星老师：「名与命局很搭。」意境老师笑：「那画面感也跟着来了。」"]},
+    ["八卦老师起卦，卦象清正。", "意境老师会意：「卦象清正，字里便有了远意。」"],
+    ["意境老师：「意在言外。」", "八卦老师：「卦也清，正相称。」"],
+    ["八卦老师：「刚柔得位。」", "意境老师：「那留白，也成了祝福。」"]]},
 ];
 const STAR_LINES = [
   "星师：形声义数象皆已各安其位，只待小星主点定。",
@@ -422,6 +474,9 @@ function setTheme(g){
   else if(g==="F"){ root.setProperty("--accent","#d4749a"); root.setProperty("--accent2","#a85379"); root.setProperty("--glow","rgba(220,130,175,.28)"); }
   else { root.setProperty("--accent","#8a6fb0"); root.setProperty("--accent2","#6a4f97"); root.setProperty("--glow","rgba(150,110,210,.22)"); }
 }
+/* 立绘过渡时长(ms)：EXIT_MS 须 ≥ .actor 的 transition(.38/.42s)；ENTRANCE 为登场淡入完成时长方用于"门控内容出现" */
+const EXIT_MS = 280;
+const ENTRANCE = 430;
 function showActors(list, opts){
   opts = opts || {};
   const wrap = $("#actorWrap");
@@ -429,7 +484,7 @@ function showActors(list, opts){
   const sig = items.map(i=>i.key+(i.src?"~"+i.src:"")).join("|");
   if(wrap.dataset.sig===sig){ if(opts.onEntered) opts.onEntered(); return; }
   wrap.dataset.sig = sig;
-  wrap.querySelectorAll(".actor").forEach(a=>a.classList.remove("show"));   // 触发退场过渡
+  wrap.querySelectorAll(".actor").forEach(a=>{ a.classList.remove("show"); a.classList.add("leave"); });   // 触发镜像淡出(actorLeave)过渡
   setTimeout(()=>{
     if(!items.length){ wrap.innerHTML=""; if(opts.onEntered) opts.onEntered(); return; }
     wrap.innerHTML = items.map(i=>'<img class="actor'+(items.length>1?' pair':'')+'" src="'+(i.src||CHAR[i.key].file)+'" alt="'+(CHAR[i.key].name||"")+'" data-key="'+i.key+'">').join("");
@@ -478,6 +533,7 @@ function proceed(sc){
 /* 点击左上"星命观测局"回到首页，重置整段流程 */
 function goHome(){
   clearTimeout(state._rt);
+  state._revealing=false;
   state.editReturn=null;
   ["father","mother","mode","name_len","gender","name","result"].forEach(k=>delete state[k]);
   state.branch="A";
@@ -646,44 +702,87 @@ function enterRitual(){
   // 排序：非提问老师（0）排在提问老师（1）之前；组内保持 shuffle 顺序
   perfSingles.sort((a,b)=> (QTEACHERS.has(a.keys[0])?1:0) - (QTEACHERS.has(b.keys[0])?1:0));
   const pairs = shuffle(DUOS.slice());            // 双人合参走 DUOS 交叉互动台词
-  const SEQ = perfSingles.concat(pairs);
+  const SEQ = perfSingles.slice(0,-1).concat(pairs.slice(0,-1));  // 本轮：单人减1、双人减1
   let i=0;
-  /* #3 需求：旋转大圆（orbit）沉到 #ritual 底部，不再与立绘/文字重叠；立绘在上、文字在下。 */
+  /* 旋转大圆（orbit）沉到 #ritual 底部，不再与立绘/文字重叠；立绘在上、文字用对话泡在下。 */
   sceneEl.innerHTML = '<div id="ritual">'+
     '<div class="orbit"></div>'+
     '<div class="ritualStage"></div>'+
-    '<div class="line"></div><button class="btn ghost" style="max-width:160px;margin:8px auto 0">跳过演出</button></div>';
+    '<div class="bubble ritualBubble"><span class="who"></span><p></p></div></div>';
   const stage = $("#ritualWrap");   // 表演立绘渲染到 #stage 之外的滤镜层（满色）
-  const lineEl = sceneEl.querySelector(".line");
-  const skip = sceneEl.querySelector(".btn");
+  const bubble = sceneEl.querySelector(".ritualBubble");
+  const bubbleWho = bubble.querySelector(".who");
+  const bubbleP = bubble.querySelector("p");
+  const lineLen = (line)=> Array.isArray(line) ? line.join("").length : line.length;
+  const dwell = (line)=> Math.min(3740, Math.round((1700 + lineLen(line)*22) * 1.1));  // 每位停留 +10%
+  const STAR_DWELL = 2800;   // 星师总结停留（亦 +10%）
+  state._revealed = false;
   function setActors(keys, onEntered){
     const list=(Array.isArray(keys)?keys:[keys]).filter(Boolean);
-    stage.querySelectorAll(".ritualActor").forEach(a=>a.classList.remove("show"));   // 退场过渡
+    stage.querySelectorAll(".ritualActor").forEach(a=>{ a.classList.remove("show"); a.classList.add("leave"); });   // 退场：镜像淡出(ritualLeave)动画
     setTimeout(()=>{
       if(!list.length){ stage.innerHTML=""; if(onEntered) onEntered(); return; }
       stage.innerHTML = list.map(k=>'<img class="ritualActor'+(list.length>1?' pair':'')+'" src="'+CHAR[k].file+'" alt="'+(CHAR[k].name||"")+'">').join("");
-      requestAnimationFrame(()=>stage.querySelectorAll(".ritualActor").forEach(a=>a.classList.add("show")));
-      setTimeout(()=>{ if(onEntered) onEntered(); }, 30+ENTRANCE);    // 登场完成后再出台词
+      requestAnimationFrame(()=>{ stage.querySelectorAll(".ritualActor").forEach(a=>a.classList.add("show"));
+        setTimeout(()=>{ if(onEntered) onEntered(); }, 80); });   // 立绘一开始入场，文字即随之同频出现（不再等完全入场）；120→80ms 提前
     }, EXIT_MS);
   }
+  function revealLine(who, html){
+    if(state._revealed) return;
+    bubble.classList.add("fade");
+    setTimeout(()=>{ bubbleWho.textContent=who; bubbleP.innerHTML=html; bubble.classList.remove("fade"); }, 200);
+  }
+  function reveal(){   // 星师总结后先播放光球汇聚动效，再原地显示「揭晓」按钮（取代原跳过演出位置）
+    if(state._revealed) return;
+    state._revealed = true; clearTimeout(state._rt);
+    playOrbFx(()=>{
+      const rb = document.createElement("button");
+      rb.className="btn"; rb.style.maxWidth="160px"; rb.style.margin="8px auto 0"; rb.textContent="揭 晓";
+      rb.onclick = ()=>{ clearTimeout(state._rt); doReveal(rb); };
+      sceneEl.querySelector("#ritual").appendChild(rb);
+    });
+  }
+  /* 光球从屏幕外螺旋旋入中心 → 炸开 + 白屏 → 回调显示揭晓按钮 */
+  function playOrbFx(done){
+    const fx = document.getElementById("orbFx");
+    if(!fx){ done(); return; }
+    fx.innerHTML = "";
+    const N = 7;
+    for(let k=0;k<N;k++){
+      const o = document.createElement("div"); o.className="orb";
+      o.style.setProperty("--ang", (k*(360/N))+"deg");
+      o.style.animationDelay = (k*0.05)+"s";
+      fx.appendChild(o);
+    }
+    fx.classList.add("go");
+    const spiral = 1350 + (N-1)*50 + 120;   // 螺旋到中心总时长（含末枚延迟）
+    setTimeout(()=>{                         // 炸开：光球扩散 + 全白屏
+      fx.querySelectorAll(".orb").forEach(o=>o.classList.add("boom"));
+      const flash = $("#flash"); flash.classList.add("on","white");
+    }, spiral);
+    setTimeout(()=>{                         // 白屏退去，移除光球层，回调出按钮
+      const flash = $("#flash"); flash.classList.remove("on","white");
+      fx.classList.remove("go"); fx.innerHTML="";
+      done();
+    }, spiral + 520);
+  }
   function step(){
+    if(state._revealed) return;
     if(i<SEQ.length){
       const r=SEQ[i];
+      const keys=r.keys;
+      const who = keys.length>1 ? (CHAR[keys[0]].name+" · "+CHAR[keys[1]].name) : CHAR[keys[0]].name;
       const line = rnd(r.lines);                       // 每位老师随机交替一句
-      setActors(r.keys||[r.key], ()=>{
-        lineEl.classList.add("fade");
-        setTimeout(()=>{ lineEl.textContent=line; lineEl.classList.remove("fade"); }, 200);
-      });
-      i++; state._rt=setTimeout(step, Math.min(3400, 1700 + line.length*22));  // 按台词长度动态留时
+      setActors(keys, ()=> revealLine(who, Array.isArray(line)?line.join("<br>"):line));
+      i++; state._rt=setTimeout(step, dwell(line));   // 按台词长度动态留时（已 +10%）
     } else {
       setActors("xingshi", ()=>{
-        lineEl.classList.add("fade");
-        setTimeout(()=>{ lineEl.textContent=rnd(STAR_LINES); lineEl.classList.remove("fade"); }, 200);
+        if(state._revealed) return;
+        revealLine(CHAR.xingshi.name, rnd(STAR_LINES));
+        state._rt=setTimeout(reveal, STAR_DWELL);
       });
-      state._rt=setTimeout(()=>go("s10"), 2600);
     }
   }
-  skip.onclick = ()=>{ clearTimeout(state._rt); setActors("xingshi", ()=>{ lineEl.textContent=rnd(STAR_LINES); setTimeout(()=>go("s10"), 60); }); };
   step();
 }
 
@@ -702,19 +801,45 @@ function renderWait(loading){
   sceneEl.innerHTML = '<div id="waitWrap">'+
     '<div class="tip">万事俱备，只待小星主点定</div>'+
     '<button class="btn" id="revealBtn">揭 晓</button></div>';
-  $("#revealBtn").onclick = doReveal;
+  $("#revealBtn").onclick = ()=>doReveal($("#revealBtn"));
 }
 
 /* ---------- 揭晓 + 结果 ---------- */
-function doReveal(){
-  const flash = $("#flash"); flash.classList.add("on");
-  setTimeout(()=>flash.classList.remove("on"), 280);
-  setTimeout(()=>{ renderResult(); }, 520);
+function doReveal(btn){
+  if(state._revealing) return; state._revealing = true;   // 防重复触发（按钮可被连点）
+  const flash = $("#flash");
+  const finish = ()=>{
+    flash.classList.add("on");
+    setTimeout(()=>flash.classList.remove("on"), 280);
+    setTimeout(()=>{ renderResult(); }, 520);
+  };
+  if(btn){ playRevealOrbFx(btn, finish); } else { finish(); }
+}
+/* 揭晓按钮按下：光球从按钮中心飞出 → 围成圆环旋转约1秒 → 炸开；随后白屏进入结果 */
+function playRevealOrbFx(btn, done){
+  const fx = document.getElementById("revealOrbFx");
+  if(!fx || !btn){ if(done) done(); return; }
+  const r = btn.getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  fx.innerHTML = "";
+  const N = 9, R = 120;
+  for(let k=0;k<N;k++){
+    const o = document.createElement("div"); o.className="orb";
+    o.style.left = cx+"px"; o.style.top = cy+"px";
+    o.style.setProperty("--ang", (k*(360/N))+"deg");
+    o.style.setProperty("--R", R+"px");
+    fx.appendChild(o);
+  }
+  fx.classList.add("go");
+  setTimeout(()=>{ fx.querySelectorAll(".orb").forEach(o=>o.classList.add("boom")); }, 1300);   // 飞出(0.39s)+旋转(≈0.91s)后炸开
+  setTimeout(()=>{ fx.classList.remove("go"); fx.innerHTML=""; if(done) done(); }, 1300+500);
 }
 function renderResult(){
   sceneEl.innerHTML="";                 /* 清掉背后残留的对话框，避免从结果层透出 */
   $("#actorWrap").style.display="none";
+  $("#ritualWrap").style.display="none"; $("#ritualWrap").innerHTML="";  /* 清掉上一界面残留的星师立绘，避免结果页背景透出 */
   showActor(null);
+  $("#step").textContent="揭晓";
   const data = state.result || {names:[]};
   const names = data.names || [];
   const wrap = $("#result");
@@ -794,7 +919,7 @@ function gustTick(ts){
   const dt = ts - gustStart;
   if(dt >= 0 && dt < GUST_LEN){
     const t = dt / GUST_LEN;
-    const k = Math.sin(t * Math.PI);                  // 0→1→0 平滑钟形
+    const k = (t < 0.5) ? Math.pow(t/0.5, 2.2) : Math.sin((1 - t) * Math.PI);  // 渐强陡峭(起步猛)、渐弱保持平缓钟形
     const off = gustDir * GUST_PEAK * k;
     const lw = $("#leaves");
     if(lw) lw.style.transform = "translateX("+off.toFixed(1)+"px)";
