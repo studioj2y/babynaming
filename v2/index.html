@@ -17,7 +17,7 @@
     --sat:100%;                       /* 颜色饱和度：随流程递进（#6 需求） */
     --aura:rgba(255,255,255,.95); --aura-soft:rgba(244,240,252,.60);
     --radius:18px;
-    --actor-bottom:44%; --actor-h:42vh; --actor-max:360px;   /* 立绘位置/尺寸，按场景经 JS 调整 */
+    --actor-bottom:38%; --actor-h:42vh; --actor-max:360px;   /* 立绘位置/尺寸，按场景经 JS 调整 */
     --ease:cubic-bezier(.22,.61,.36,1);
     transition:--accent var(--theme-t) var(--ease),--accent2 var(--theme-t) var(--ease),--glow var(--theme-t) var(--ease);
   }
@@ -27,6 +27,7 @@
     font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
     color:var(--ink); background:radial-gradient(120% 80% at 50% -10%,var(--bg2),var(--bg) 60%);
     overflow:hidden;
+    filter:saturate(var(--sat));transition:filter .7s var(--ease);  /* #6 饱和度作用于 body，背景渐变与内容一起递进 */
   }
   /* 星尘背景 */
   #stars{position:fixed;inset:0;pointer-events:none;z-index:0;
@@ -53,7 +54,7 @@
 
   #app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;
     max-width:520px;margin:0 auto;padding:env(safe-area-inset-top) 18px env(safe-area-inset-bottom);
-    filter:saturate(var(--sat));transition:filter .7s var(--ease);}  /* #6 饱和度变化作用在布局 */
+    }  /* #6 饱和度滤镜已从 #app 移至 body，让背景渐变与内容一起递进 */
 
   /* 立绘层（#4：上移以避免与气泡重叠） */
   #actorWrap{position:absolute;left:0;right:0;bottom:var(--actor-bottom);display:flex;justify-content:center;align-items:flex-end;gap:6px;padding:0 8px;
@@ -84,7 +85,7 @@
   .scene--fixed .bLayer{position:absolute;left:0;right:0;bottom:30%}
   .scene--fixed .cLayer{position:absolute;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom))}
   /* 汇总表：内容压到下方，避开上方抬高的星师立绘 */
-  .scene--summary{justify-content:flex-end;padding-bottom:36px}
+  .scene--summary{justify-content:flex-end;padding-bottom:52px}
 
   /* 对话气泡（漫画风） */
   .bubble{background:var(--panel);border:1.5px solid var(--panel-line);border-radius:var(--radius);
@@ -151,12 +152,12 @@
   .ritualStage{position:relative;z-index:1;width:100%;flex:1;min-height:0;
     display:flex;align-items:center;justify-content:center;padding-top:4px}
   .ritualActors{position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:center;gap:10px;height:100%}
-  .ritualActor{height:100%;max-height:44vh;max-width:48%;width:auto;object-fit:contain;opacity:0;
+  .ritualActor{height:auto;max-height:42vh;max-width:70%;width:auto;object-fit:contain;opacity:0;
     transform:translateY(16px) scale(.98);
     transition:opacity .4s var(--ease),transform .45s var(--ease),filter .4s var(--ease);
     filter:drop-shadow(0 0 20px var(--aura)) drop-shadow(0 0 46px var(--aura-soft)) drop-shadow(0 8px 16px rgba(70,50,100,.18))}
   .ritualActor.show{opacity:1;transform:none}
-  .ritualActor.pair{max-height:36vh}
+  .ritualActor.pair{max-height:42vh;max-width:46%}  /* 单/双统一高度上限，比例一致 */
   #ritual .line{position:relative;z-index:1;font-size:17px;line-height:1.7;color:var(--ink);
     min-height:3.2em;max-width:30em;padding:0 6px;transition:opacity .4s var(--ease)}
   #ritual .line.fade{opacity:0}
@@ -232,7 +233,7 @@
 "use strict";
 const CHAR = {
   assistant:{name:"观测小助理", file:"/characters/char-assistant-1.png",
-             alts:["/characters/char-assistant-2.png","/characters/char-assistant-3.png"]},
+             alts:["/characters/char-assistant-2.png","/characters/char-assistant-3.png","/characters/char-assistant-4.png","/characters/char-assistant-5.png"]},
   ziyuan:{name:"字源老师", file:"/characters/char-ziyuan-1.png"},
   yuwen:{name:"语文老师", file:"/characters/char-yuwen-1.png"},
   zhanxing:{name:"占星老师", file:"/characters/char-zhanxing-1.png"},
@@ -245,6 +246,8 @@ const CHAR = {
   yinlv:{name:"音律老师", file:"/characters/char-yinlv-1.png"},
   xingtai:{name:"形义老师", file:"/characters/char-xingtai-1.png"},
   diangu:{name:"典故老师", file:"/characters/char-diangu-1.png"},
+  shushu:{name:"术数老师", file:"/characters/char-shushu-2.png"},
+  xingzi:{name:"字形老师", file:"/characters/char-xingzi-1.png"},
 };
 /* #3 需求：表演文案按现长度约一半重写，各师专注本主题 */
 const RITUAL = [
@@ -266,6 +269,12 @@ const RITUAL = [
   {keys:["diangu"], lines:[
     "典故老师：典出有处，字字有本，名添一层厚重。",
     "典故老师：名若有典，便不是无根之木，多一重深意。"]},
+  {keys:["shushu"], lines:[
+    "术数老师：河洛数理、干支推步皆有定数，名合其序，行止有凭。",
+    "术数老师：一推算便知吉凶向背，此名落于吉位，诸事顺遂。"]},
+  {keys:["xingzi"], lines:[
+    "字形老师：笔画疏密、间架开合，字形如人，端正自生威仪。",
+    "字形老师：一字之形横竖有度，写出来便是一幅小像，先立于纸上。"]},
   {keys:["ziyuan"], lines:[
     "字源老师：姓氏所承，父姓既立，本义清明，骨架便稳。",
     "字源老师：一字之始在形在义，探得本源，根基扎实。"]},
@@ -292,9 +301,9 @@ const STAR_LINES = [
 ];
 const DIMS = [["wuxing","五行"],["zodiac","生肖"],["pronounce","音律"],["meaning","字义"],["stroke","数理"],["gender","气韵"]];
 
-/* 颜色饱和度随场次递进（#6）：首屏 20%→进入 40%→逐次加深→汇总 100% */
-const SAT = {brand:20, s01:40, s02:52, s03a:60, s03b:60, s04:66, s05:73, s06:80, s07:86, s08:93,
-             b1:66, b2:86, s_summary:100, s09:100, s10:100};
+/* 颜色饱和度随场次递进（#6）：首屏 12%→进入 28%→逐次加深→汇总 100%（起点降低，背景渐变也跟随 body 上的 saturate 滤镜同步变化） */
+const SAT = {brand:12, s01:28, s02:36, s03a:44, s03b:44, s04:52, s05:60, s06:70, s07:80, s08:90,
+             b1:52, b2:80, s_summary:100, s09:100, s10:100};
 
 const SCENES = {
   brand:{kind:"brand", next:"s01"},
@@ -334,7 +343,7 @@ const SCENES = {
       "小星主是男孩还是女孩？"],
       ask:{widget:"seg", field:"gender", def:"U", theme:true,
       options:[{v:"M",label:"男孩"},{v:"F",label:"女孩"},{v:"U",label:"不限"}]}, next:"s_summary"},
-  s_summary:{kind:"summary", actor:"xingshi", step:"过目", next:"s09"},
+  s_summary:{kind:"summary", step:"过目", next:"s09"},  /* 汇总表不再显示星师立绘（与表单重叠严重），让表单更清晰 */
   s09:{kind:"ritual"},
   s10:{kind:"wait"},
 };
@@ -426,13 +435,13 @@ function renderScene(sc){
   sceneEl.classList.toggle("scene--summary", sc.kind==="summary");
   /* 立绘位置/尺寸：汇总表时星师抬到上方并缩小，其余场景用默认（#1/#2） */
   const _rd = document.documentElement.style;
-  if(sc.kind==="summary"){ _rd.setProperty("--actor-bottom","60%"); _rd.setProperty("--actor-h","30vh"); _rd.setProperty("--actor-max","250px"); }
-  else if(sc.kind!=="ritual"){ _rd.setProperty("--actor-bottom","44%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
+  if(sc.kind==="summary"){ _rd.setProperty("--actor-bottom","66%"); _rd.setProperty("--actor-h","26vh"); _rd.setProperty("--actor-max","220px"); }
+  else if(sc.kind!=="ritual"){ _rd.setProperty("--actor-bottom","38%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
   if(sc.kind==="brand") return renderBrand(sc);
   if(sc.kind==="talk") return renderTalk(sc);
   if(sc.kind==="branch") return renderBranch(sc);
   if(sc.kind==="ask") return renderAsk(sc);
-  if(sc.kind==="summary") return renderSummary(sc);
+  if(sc.kind==="summary"){ $("#actorWrap").style.display="none"; return renderSummary(sc); }  /* 汇总表界面去掉星师立绘，确保表单清晰 */
   if(sc.kind==="wait") return renderWait(false);
 }
 
