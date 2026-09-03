@@ -22,67 +22,73 @@
       "name": "占星老师",
       "color": "#4a4e69",
       "file": "/characters/char-zhanxing-1.png",
-      "real": false
+      "real": true
     },
     "shengxiao": {
       "name": "生肖老师",
       "color": "#c08552",
       "file": "/characters/char-shengxiao-1.png",
-      "real": false
+      "real": true
     },
     "yijing": {
       "name": "意境老师",
       "color": "#a3b18a",
       "file": "/characters/char-yijing-1.png",
-      "real": false
+      "real": true
     },
     "diangu": {
       "name": "典故老师",
       "color": "#bc8a9c",
       "file": "/characters/char-diangu-1.png",
-      "real": false
+      "real": true
     },
     "shushu": {
       "name": "术数老师",
       "color": "#7d6b91",
-      "file": "/characters/char-shushu-1.png",
-      "real": false
+      "file": "/characters/char-shushu-2.png",
+      "real": true
     },
     "wuxing": {
       "name": "五行老师",
       "color": "#d4a35e",
       "file": "/characters/char-wuxing-1.png",
-      "real": false
+      "real": true
     },
     "yinlv": {
       "name": "音律老师",
       "color": "#6fb1a8",
       "file": "/characters/char-yinlv-1.png",
-      "real": false
+      "real": true
     },
     "xingtai": {
-      "name": "字形老师",
+      "name": "形义老师",
       "color": "#9aa6b2",
       "file": "/characters/char-xingtai-1.png",
-      "real": false
+      "real": true
     },
     "shuli": {
       "name": "数理老师",
       "color": "#7c8aa0",
       "file": "/characters/char-shuli-1.png",
-      "real": false
+      "real": true
     },
     "bagua": {
       "name": "八卦老师",
       "color": "#5b6e8c",
       "file": "/characters/char-bagua-1.png",
-      "real": false
+      "real": true
     },
     "xingshi": {
       "name": "星师",
       "color": "#d4af37",
       "file": "/characters/char-xingshi-1.png",
-      "real": false
+      "real": true
+    },
+    "xingzi": {
+      "name": "字形老师",
+      "color": "#a98fc0",
+      "file": "/characters/char-xingzi-1.png",
+      "real": true
     }
   }
 }

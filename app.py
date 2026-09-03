@@ -6,6 +6,26 @@ from core import generate, analyze_birth, analyze_given_name, map_free_text_to_t
 HERE = os.path.dirname(os.path.abspath(__file__))
 app = FastAPI()
 
+# 仅本地 uvicorn 用的示例兜底：core 计算异常（缺依赖/无网络等）时，
+# 返回一份示例名卡，方便本地 8011 也能走通「揭晓→候选名单」全流程做前端验证。
+# Vercel 生产环境不部署 app.py（由 api/*.py 处理），此兜底完全不影响线上。
+SAMPLE_GENERATE = {"names":[
+  {"name":"星澜","total":92,"dims":{"wuxing":88,"zodiac":90,"pronounce":85,"meaning":86,"stroke":80,"gender":88},
+   "rank_reason":"五行相生、音形俱佳，综合评分最高。",
+   "explain":[{"label":"五行","text":"水木相生，根基安稳。"},{"label":"音律","text":"平仄相协，读来清亮。"}]},
+  {"name":"昭明","total":89,"dims":{"wuxing":85,"zodiac":87,"pronounce":90,"meaning":88,"stroke":82,"gender":86},
+   "rank_reason":"字义光明，意象开阔。",
+   "explain":[{"label":"字义","text":"昭如日月，明德惟馨。"},{"label":"数理","text":"五格诸数安稳。"}]},
+  {"name":"清晏","total":87,"dims":{"wuxing":90,"zodiac":84,"pronounce":83,"meaning":88,"stroke":79,"gender":85},
+   "rank_reason":"五行补水，气韵清和。",
+   "explain":[{"label":"五行","text":"水旺而润，气脉通畅。"},{"label":"意境","text":"海晏河清，太平之象。"}]},
+], "meta":{"source":"local-mock"}}
+SAMPLE_ANALYZE = {"names":[
+  {"name":"示例名","total":84,"dims":{"wuxing":82,"zodiac":80,"pronounce":88,"meaning":85,"stroke":78,"gender":82},
+   "rank_reason":"本地示例数据，仅供前端流程预览。",
+   "explain":[{"label":"音律","text":"读音清亮成调。"},{"label":"字义","text":"字义可取。"}]},
+], "meta":{"source":"local-mock"}}
+
 @app.get("/", response_class=HTMLResponse)
 def index():
     with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
@@ -41,8 +61,12 @@ async def gen(req: Request):
     avoid = [c for c in (body.get("avoid") or "") if c.strip()]
     birth = _birth_from(body)
     weights = body.get("weights")
-    names, meta = generate(father, mother, mode, name_len, gender, birth, tags, avoid, weights=weights)
-    return JSONResponse({"names": names, "meta": meta, "tags_used": sorted(set(tags))})
+    try:
+        names, meta = generate(father, mother, mode, name_len, gender, birth, tags, avoid, weights=weights)
+        return JSONResponse({"names": names, "meta": meta, "tags_used": sorted(set(tags))})
+    except Exception as e:
+        # 本地兜底：core 计算失败也返回示例名卡，保证前端流程可预览
+        return JSONResponse({**SAMPLE_GENERATE, "meta": {"source": "local-mock", "error": str(e)}})
 
 @app.post("/api/analyze")
 async def analyze(req: Request):
@@ -51,8 +75,11 @@ async def analyze(req: Request):
     name = (body.get("name") or "").strip()
     gender = body.get("gender") or "U"
     birth = _birth_from(body)
-    names, meta = analyze_given_name(name, gender, birth)
-    return JSONResponse({"names": names, "meta": meta})
+    try:
+        names, meta = analyze_given_name(name, gender, birth)
+        return JSONResponse({"names": names, "meta": meta})
+    except Exception as e:
+        return JSONResponse({**SAMPLE_ANALYZE, "meta": {"source": "local-mock", "error": str(e)}})
 
 @app.post("/api/ai_review")
 async def ai_review(req: Request):
