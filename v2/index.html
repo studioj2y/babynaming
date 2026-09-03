@@ -98,7 +98,7 @@
 
   /* 表演立绘层：与 #actorWrap 同级（在 #stage 滤镜之外），故表演阶段立绘也保持满色、不受饱和度递进影响 */
   /* 表演立绘层：与 #actorWrap 同级（在 #stage 滤镜之外），故表演阶段立绘也保持满色、不受饱和度递进影响；bottom:34% 让单/双立绘(42vh)与底部文字/按钮之间留出明确空隙，避免遮挡 */
-  #ritualWrap{display:none;position:absolute;left:0;right:0;bottom:34%;justify-content:center;align-items:flex-end;gap:10px;padding:0 8px;pointer-events:none;z-index:2;}
+  #ritualWrap{display:none;position:absolute;left:0;right:0;bottom:34%;justify-content:center;align-items:flex-end;gap:10px;padding:0 8px;pointer-events:none;z-index:1;}  /* z-index 低于 #stage(2)：表演对话泡(#ritual .bubble)显示在立绘上层，由对话泡遮挡立绘 */
 
   /* 顶部品牌条 */
   #top{display:flex;align-items:center;gap:8px;padding:14px 4px 6px;z-index:3;color:var(--ink-soft);font-size:13px;letter-spacing:.18em;filter:saturate(var(--sat));transition:filter .7s var(--ease)}
@@ -127,6 +127,7 @@
   .bubble::before{content:"";position:absolute;top:-7px;left:50%;width:13px;height:13px;margin-left:-6.5px;
     background:var(--panel);border-left:1.5px solid var(--panel-line);border-top:1.5px solid var(--panel-line);
     transform:rotate(45deg);border-top-left-radius:4px}
+  .bubble.no-arrow::before{display:none}  /* 无立绘的对话泡（如过目确认框）去掉指向箭头 */
   .bubble .who{display:block;font-size:12px;letter-spacing:.16em;color:var(--accent);margin-bottom:8px;font-weight:600}
   .bubble p{margin:0}
   .bubble p .tw-cursor{display:inline-block;width:2px;height:1em;background:var(--accent);margin-left:2px;vertical-align:text-bottom;animation:blink .6s step-end infinite}
@@ -666,7 +667,7 @@ function renderSummary(sc){
     : [["父姓","father", state.father||"", "s04"], ["母姓","mother", state.mother||"", "s04"],
        ["名随何方","mode", fmtMode(), "s05"], ["姓名字数","name_len", fmtLen(), "s07"],
        ["命格气韵","gender", fmtGender(), "s08"]];
-  let html = '<div class="bubble"><span class="who">'+(sc.actor?CHAR[sc.actor].name:"")+'</span><p>请小星主过目所录，确认或改动。</p></div><div class="summary">';
+  let html = '<div class="bubble no-arrow"><span class="who">'+(sc.actor?CHAR[sc.actor].name:"")+'</span><p>请小星主过目所录，确认或改动。</p></div><div class="summary">';
   rows.forEach(r=>{
     const empty = !r[2] || r[2]==="（未选）";
     html += '<div class="sumrow"><span class="sk">'+r[0]+'</span><span class="sv'+(empty?' empty':'')+'">'+(empty?'(未填)':r[2])+'</span><button class="edit" data-go="'+r[3]+'">改</button></div>';
