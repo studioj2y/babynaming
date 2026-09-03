@@ -6,10 +6,11 @@
 <title>星命观测局 · 2.0</title>
 <style>
   :root{
-    --bg:#0e0f1a; --bg2:#171a2b;
-    --ink:#ece8f2; --ink-soft:#b9b3c9;
-    --panel:rgba(28,30,48,.82); --panel-line:rgba(255,255,255,.10);
-    --accent:#9a8c98; --accent2:#6f6478; --glow:rgba(180,160,210,.25);
+    --bg:#f5f3fa; --bg2:#e6def2;
+    --ink:#2b2735; --ink-soft:#6b6380;
+    --panel:rgba(255,255,255,.80); --panel-line:rgba(60,40,90,.12);
+    --accent:#8a6fb0; --accent2:#6a4f97; --glow:rgba(150,110,210,.22);
+    --aura:rgba(255,255,255,.95); --aura-soft:rgba(244,240,252,.60);
     --radius:18px;
     --ease:cubic-bezier(.22,.61,.36,1);
   }
@@ -23,25 +24,39 @@
   /* 星尘背景 */
   #stars{position:fixed;inset:0;pointer-events:none;z-index:0;
     background:
-      radial-gradient(2px 2px at 20% 30%,rgba(255,255,255,.5),transparent),
-      radial-gradient(1.5px 1.5px at 70% 20%,rgba(255,255,255,.35),transparent),
-      radial-gradient(1.5px 1.5px at 40% 70%,rgba(255,255,255,.3),transparent),
-      radial-gradient(2px 2px at 85% 60%,rgba(255,255,255,.4),transparent),
-      radial-gradient(1px 1px at 55% 45%,rgba(255,255,255,.3),transparent);
+      radial-gradient(2px 2px at 20% 30%,rgba(123,92,170,.40),transparent),
+      radial-gradient(1.5px 1.5px at 70% 20%,rgba(123,92,170,.30),transparent),
+      radial-gradient(1.5px 1.5px at 40% 70%,rgba(123,92,170,.28),transparent),
+      radial-gradient(2px 2px at 85% 60%,rgba(123,92,170,.34),transparent),
+      radial-gradient(1px 1px at 55% 45%,rgba(123,92,170,.28),transparent);
     animation:drift 18s linear infinite alternate;}
   @keyframes drift{to{transform:translateY(-12px)}}
+
+  #leaves{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .leaf{position:absolute;top:-24px;width:12px;height:14px;
+    background:linear-gradient(160deg,#cdbbe8,#9a86c4);
+    border-radius:0 80% 0 80%/0 80% 0 80%;
+    animation:fall linear forwards;filter:drop-shadow(0 0 4px rgba(150,120,200,.4))}
+  @keyframes fall{
+    0%{transform:translateY(-24px) translateX(0) rotate(0deg);opacity:0}
+    8%{opacity:.85}
+    88%{opacity:.8}
+    100%{transform:translateY(106vh) translateX(var(--drift,30px)) rotate(420deg);opacity:0}
+  }
 
   #app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;
     max-width:520px;margin:0 auto;padding:env(safe-area-inset-top) 18px env(safe-area-inset-bottom);}
 
   /* 立绘层 */
-  #actorWrap{position:absolute;left:0;right:0;bottom:34%;display:flex;justify-content:center;
+  #actorWrap{position:absolute;left:0;right:0;bottom:32%;display:flex;justify-content:center;align-items:flex-end;gap:6px;padding:0 8px;
     pointer-events:none;z-index:1;}
-  #actor{height:56vh;max-height:460px;width:auto;object-fit:contain;
-    filter:drop-shadow(0 12px 30px rgba(0,0,0,.55));
+  .actor{height:54vh;max-height:440px;width:auto;object-fit:contain;
+    filter:blur(10px) drop-shadow(0 0 18px var(--aura)) drop-shadow(0 0 42px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.16));
     opacity:0;transform:translateY(18px) scale(.98);
-    transition:opacity .38s var(--ease),transform .42s var(--ease);}
-  #actor.show{opacity:1;transform:none}
+    transition:opacity .38s var(--ease),transform .42s var(--ease),filter .42s var(--ease);}
+  .actor.show{opacity:1;transform:none;
+    filter:drop-shadow(0 0 18px var(--aura)) drop-shadow(0 0 42px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.16));}
+  .actor.pair{height:40vh;max-height:320px}
 
   /* 顶部品牌条 */
   #top{display:flex;align-items:center;gap:8px;padding:14px 4px 6px;z-index:3;color:var(--ink-soft);font-size:13px;letter-spacing:.18em}
@@ -55,21 +70,25 @@
   #scene.out{opacity:0;transform:translateX(-26px)}
   #scene.in{opacity:0;transform:translateX(26px)}
 
-  /* 对话气泡 */
-  .bubble{background:var(--panel);border:1px solid var(--panel-line);border-radius:var(--radius);
-    padding:16px 18px;backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(0,0,0,.35);
+  /* 对话气泡（漫画风） */
+  .bubble{background:var(--panel);border:1.5px solid var(--panel-line);border-radius:var(--radius);
+    padding:16px 18px 18px;backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(70,50,100,.20);
     font-size:16px;line-height:1.6;color:var(--ink);position:relative;}
+  .bubble::before{content:"";position:absolute;left:30px;bottom:-13px;width:0;height:0;
+    border:13px solid transparent;border-top-color:var(--panel-line);border-bottom:0}
+  .bubble::after{content:"";position:absolute;left:33px;bottom:-9px;width:0;height:0;
+    border:10px solid transparent;border-top-color:var(--panel);border-bottom:0}
   .bubble .who{display:block;font-size:12px;letter-spacing:.16em;color:var(--accent);margin-bottom:8px;font-weight:600}
   .bubble p{margin:0}
 
   /* 输入控件 */
   .ask{margin-top:14px;display:flex;flex-direction:column;gap:10px}
   .field label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;letter-spacing:.05em}
-  .field input{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--panel-line);
+  .field input{width:100%;background:rgba(255,255,255,.65);border:1px solid var(--panel-line);
     border-radius:12px;padding:12px 14px;color:var(--ink);font-size:16px;outline:none;transition:border-color .2s}
   .field input:focus{border-color:var(--accent)}
   .seg{display:flex;gap:8px;flex-wrap:wrap}
-  .seg button{flex:1;min-width:84px;background:rgba(0,0,0,.22);border:1px solid var(--panel-line);
+  .seg button{flex:1;min-width:84px;background:rgba(255,255,255,.60);border:1px solid var(--panel-line);
     color:var(--ink-soft);border-radius:12px;padding:12px 8px;font-size:15px;cursor:pointer;
     transition:all .2s var(--ease)}
   .seg button.sel{background:linear-gradient(160deg,var(--accent),var(--accent2));
@@ -81,10 +100,22 @@
     box-shadow:0 8px 22px var(--glow);transition:transform .15s,opacity .2s,filter .2s;letter-spacing:.05em}
   .btn:active{transform:scale(.98)}
   .btn:disabled{opacity:.4;filter:grayscale(.4);cursor:not-allowed;box-shadow:none}
-  .btn.ghost{background:rgba(255,255,255,.06);border:1px solid var(--panel-line);box-shadow:none;color:var(--ink-soft)}
+  .btn.ghost{background:rgba(255,255,255,.55);border:1px solid var(--panel-line);box-shadow:0 4px 14px rgba(70,50,100,.10);color:var(--ink-soft)}
+
+  /* 汇总过目表 */
+  .summary{background:var(--panel);border:1px solid var(--panel-line);border-radius:var(--radius);
+    padding:4px;backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(70,50,100,.18);overflow:hidden;margin-top:14px}
+  .sumrow{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid var(--panel-line)}
+  .sumrow:last-child{border-bottom:none}
+  .sumrow .sk{font-size:12px;color:var(--ink-soft);letter-spacing:.08em;width:64px;flex:none}
+  .sumrow .sv{flex:1;font-size:15px;color:var(--ink);word-break:break-all}
+  .sumrow .sv.empty{color:var(--ink-soft);opacity:.6}
+  .sumrow .edit{flex:none;border:none;background:linear-gradient(160deg,var(--accent),var(--accent2));
+    color:#fff;border-radius:10px;padding:7px 14px;font-size:13px;cursor:pointer;transition:transform .15s}
+  .sumrow .edit:active{transform:scale(.94)}
 
   /* 品牌开场 */
-  #brand{align-self:center;text-align:center;margin:auto 0}
+  #brand{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 18px}
   #brand .logo{font-size:30px;letter-spacing:.4em;color:var(--accent);font-weight:700;
     text-shadow:0 0 24px var(--glow);animation:logoIn 1.1s var(--ease) both}
   #brand .sub{margin-top:14px;color:var(--ink-soft);font-size:14px;letter-spacing:.2em;opacity:0;animation:fadeUp .9s .5s var(--ease) both}
@@ -108,7 +139,7 @@
   #wait{margin:auto 0;text-align:center}
   #wait .crow{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:18px 0 10px}
   #wait .crow img{width:38px;height:54px;object-fit:cover;object-position:top;border-radius:8px;
-    opacity:.85;border:1px solid var(--panel-line);filter:drop-shadow(0 4px 8px rgba(0,0,0,.4))}
+    opacity:.9;border:1px solid var(--panel-line);filter:drop-shadow(0 0 7px var(--aura-soft)) drop-shadow(0 4px 8px rgba(70,50,100,.18))}
   #wait .tip{color:var(--ink-soft);font-size:14px;letter-spacing:.1em;margin-top:6px}
   .spinner{width:30px;height:30px;border:3px solid var(--panel-line);border-top-color:var(--accent);
     border-radius:50%;margin:20px auto;animation:spin 1s linear infinite}
@@ -120,10 +151,12 @@
   #flash.on{opacity:1}
 
   /* 结果木牌 */
-  #result{position:absolute;inset:0;z-index:5;overflow-y:auto;padding:8px 2px 20px;
-    background:linear-gradient(180deg,rgba(14,15,26,.4),rgba(14,15,26,.92));
-    opacity:0;transform:translateY(20px);transition:opacity .5s var(--ease),transform .5s var(--ease);}
-  #result.show{opacity:1;transform:none}
+  #result{position:absolute;top:0;bottom:0;left:0;right:0;z-index:5;overflow-y:auto;
+    max-width:440px;margin:0 auto;padding:8px 12px 20px;
+    background:linear-gradient(180deg,rgba(245,243,250,.6),rgba(238,234,248,.95));
+    opacity:0;transform:translateY(20px);transition:opacity .5s var(--ease),transform .5s var(--ease);
+    pointer-events:none;}
+  #result.show{opacity:1;transform:none;pointer-events:auto}
   #result h2{font-size:15px;letter-spacing:.2em;color:var(--accent);text-align:center;margin:6px 0 14px;font-weight:600}
   .plate{background:linear-gradient(160deg,#6b4a2f,#4f3621);border:1px solid rgba(255,220,170,.25);
     border-radius:14px;padding:14px 16px;margin-bottom:14px;box-shadow:0 10px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,230,190,.18);
@@ -150,9 +183,10 @@
 </head>
 <body>
 <div id="stars"></div>
+<div id="leaves"></div>
 <div id="app">
   <div id="top"><b>星命观测局</b><span id="step"></span></div>
-  <div id="actorWrap"><img id="actor" alt="" /></div>
+  <div id="actorWrap"></div>
   <div id="stage"><div id="scene"></div></div>
 </div>
 <div id="flash"></div>
@@ -168,14 +202,23 @@ const CHAR = {
   bagua:{name:"八卦老师", file:"/characters/char-bagua-1.png"},
   yijing:{name:"意境老师", file:"/characters/char-yijing-1.png"},
   xingshi:{name:"星师", file:"/characters/char-xingshi-1.png"},
+  shengxiao:{name:"生肖老师", file:"/characters/char-shengxiao-1.png"},
+  shuli:{name:"数理老师", file:"/characters/char-shuli-1.png"},
+  wuxing:{name:"五行老师", file:"/characters/char-wuxing-1.png"},
+  yinlv:{name:"音律老师", file:"/characters/char-yinlv-1.png"},
+  xingtai:{name:"形义老师", file:"/characters/char-xingtai-1.png"},
 };
 const RITUAL = [
-  {key:"bagua", line:"八卦老师起卦：先天既演，请诸位同参。"},
-  {key:"ziyuan", line:"字源老师：形声已定，本义可溯。"},
-  {key:"yuwen", line:"语文老师：平仄相调，读来成韵。"},
-  {key:"zhanxing", line:"占星老师：命盘映照，刚柔可度。"},
-  {key:"yijing", line:"意境老师：气象氤氲，期许在望。"},
-  {key:"xingshi", line:"星师：落笔在即，静候佳名。"},
+  {keys:["bagua"], line:"八卦老师起卦：先天既演，请诸位同参。"},
+  {keys:["ziyuan","yuwen"], line:"字源、语文二位老师同观：形声已定，平仄相调，读来自成其韵。"},
+  {keys:["ziyuan"], line:"字源老师：姓氏所承，血脉可溯，本义既明，骨架乃立。"},
+  {keys:["yuwen"], line:"语文老师：音律朗朗，轻重得宜，呼之清、应之远。"},
+  {keys:["zhanxing"], line:"占星老师：命盘映照，刚柔可度，阴阳各有归处。"},
+  {keys:["wuxing","shuli"], line:"五行、数理二位老师合参：五行相生相济，五格数理各得其位。"},
+  {keys:["shengxiao"], line:"生肖老师：生肖相宜，无冲无克，幼得护、长得益。"},
+  {keys:["yinlv","xingtai"], line:"音律、形义二位老师同审：声形相生，观之悦目、闻之悦耳。"},
+  {keys:["yijing"], line:"意境老师：气象氤氲，期许在望，字里行间已有远意。"},
+  {keys:["xingshi"], line:"星师：诸师既毕，落笔在即，静候佳名降于小星主。"},
 ];
 const DIMS = [["wuxing","五行"],["zodiac","生肖"],["pronounce","音律"],["meaning","字义"],["stroke","数理"],["gender","气韵"]];
 
@@ -209,14 +252,15 @@ const SCENES = {
   s08:{kind:"ask", actor:"zhanxing", step:"第二观测层 · 命格", lines:[
       "先观命盘阴阳，方好定笔意刚柔。"],
       ask:{widget:"seg", field:"gender", def:"U", theme:true,
-      options:[{v:"M",label:"男孩"},{v:"F",label:"女孩"},{v:"U",label:"不限"}]}, next:"s09"},
+      options:[{v:"M",label:"男孩"},{v:"F",label:"女孩"},{v:"U",label:"不限"}]}, next:"s_summary"},
   b1:{kind:"ask", actor:"yuwen", step:"观测 · 名字", lines:[
       "请写下要观测的名字。"],
       ask:{widget:"one", field:"name", ph:"如 林婉婷", require:["name"]}, next:"b2"},
   b2:{kind:"ask", actor:"zhanxing", step:"观测 · 命格", lines:[
       "小星主是男孩还是女孩？"],
       ask:{widget:"seg", field:"gender", def:"U", theme:true,
-      options:[{v:"M",label:"男孩"},{v:"F",label:"女孩"},{v:"U",label:"不限"}]}, next:"s09"},
+      options:[{v:"M",label:"男孩"},{v:"F",label:"女孩"},{v:"U",label:"不限"}]}, next:"s_summary"},
+  s_summary:{kind:"summary", actor:"xingshi", step:"过目", next:"s09"},
   s09:{kind:"ritual"},
   s10:{kind:"wait"},
 };
@@ -228,20 +272,24 @@ const sceneEl = $("#scene");
 
 function setTheme(g){
   const root = document.documentElement.style;
-  if(g==="M"){ root.setProperty("--accent","#7d8db0"); root.setProperty("--accent2","#3f4d72"); root.setProperty("--glow","rgba(120,150,210,.28)"); }
-  else if(g==="F"){ root.setProperty("--accent","#d98ca8"); root.setProperty("--accent2","#b06a86"); root.setProperty("--glow","rgba(220,150,185,.30)"); }
-  else { root.setProperty("--accent","#9a8c98"); root.setProperty("--accent2","#6f6478"); root.setProperty("--glow","rgba(180,160,210,.25)"); }
+  if(g==="M"){ root.setProperty("--accent","#6f86c4"); root.setProperty("--accent2","#3f4d86"); root.setProperty("--glow","rgba(110,140,220,.26)"); }
+  else if(g==="F"){ root.setProperty("--accent","#d4749a"); root.setProperty("--accent2","#a85379"); root.setProperty("--glow","rgba(220,130,175,.28)"); }
+  else { root.setProperty("--accent","#8a6fb0"); root.setProperty("--accent2","#6a4f97"); root.setProperty("--glow","rgba(150,110,210,.22)"); }
 }
-function showActor(key){
-  const img = $("#actor");
-  if(!key){ img.classList.remove("show"); img.dataset.key=""; return; }
-  if(img.dataset.key===key) return;
-  img.classList.remove("show");
+function showActors(keys){
+  const wrap = $("#actorWrap");
+  const list = (Array.isArray(keys)?keys:[keys]).filter(Boolean);
+  const sig = list.join("|");
+  if(wrap.dataset.sig===sig) return;
+  wrap.dataset.sig = sig;
+  wrap.querySelectorAll(".actor").forEach(a=>a.classList.remove("show"));
   setTimeout(()=>{
-    img.src = CHAR[key].file; img.alt = CHAR[key].name; img.dataset.key = key;
-    requestAnimationFrame(()=>img.classList.add("show"));
-  }, 300);
+    if(!list.length){ wrap.innerHTML=""; return; }
+    wrap.innerHTML = list.map(k=>'<img class="actor'+(list.length>1?' pair':'')+'" src="'+CHAR[k].file+'" alt="'+(CHAR[k].name||"")+'" data-key="'+k+'">').join("");
+    requestAnimationFrame(()=>wrap.querySelectorAll(".actor").forEach(a=>a.classList.add("show")));
+  }, 280);
 }
+function showActor(key){ showActors(key?[key]:[]); }
 function rnd(a){ return a[Math.floor(Math.random()*a.length)]; }
 
 function go(id){
@@ -273,6 +321,7 @@ function renderScene(sc){
   if(sc.kind==="talk") return renderTalk(sc);
   if(sc.kind==="branch") return renderBranch(sc);
   if(sc.kind==="ask") return renderAsk(sc);
+  if(sc.kind==="summary") return renderSummary(sc);
   if(sc.kind==="wait") return renderWait(false);
 }
 
@@ -303,32 +352,59 @@ function renderBranch(sc){
 function renderAsk(sc){
   const a = sc.ask;
   const line = rnd(sc.lines);
+  const fields = a.fields || (a.field ? [{field:a.field, label:a.label||"", ph:a.ph||""}] : []);
   let inner = "";
   if(a.widget==="seg"){
     inner = '<div class="seg">'+a.options.map(o=>'<button data-v="'+o.v+'">'+o.label+'</button>').join("")+'</div>';
     if(a.theme) inner += '<div class="hint">选择即定主题气韵</div>';
-  } else if(a.widget==="two" || a.widget==="one"){
-    inner = a.fields.map(f=>'<div class="field"><label>'+f.label+'</label><input data-f="'+f.field+'" placeholder="'+f.ph+'" /></div>').join("");
+  } else {
+    inner = fields.map(f=>'<div class="field"><label>'+f.label+'</label><input data-f="'+f.field+'" placeholder="'+f.ph+'" value="'+((state[f.field]||"").toString().replace(/"/g,'&quot;'))+'" /></div>').join("");
   }
   transitionTo('<div class="bubble"><span class="who">'+CHAR[sc.actor].name+'</span><p>'+line+'</p></div><div class="ask">'+inner+'<button class="btn" disabled>继 续</button></div>', ()=>{
     const btn = sceneEl.querySelector(".ask .btn");
     if(a.widget==="seg"){
-      let chosen = a.def; if(chosen!==undefined){ state[a.field]=chosen; markSeg(); }
+      let chosen = a.def;
+      if(chosen!==undefined){ state[a.field]=chosen; if(a.theme) setTheme(chosen); markSeg(); }
       else btn.disabled = true;
+      btn.onclick = ()=>go(sc.next);
       sceneEl.querySelectorAll(".seg button").forEach(b=>{
-        b.onclick = ()=>{ state[a.field]=b.dataset.v; if(a.theme) setTheme(b.dataset.v); markSeg(); btn.disabled=false; };
+        b.onclick = ()=>{ state[a.field]=b.dataset.v; if(a.theme) setTheme(b.dataset.v); markSeg(); if(btn.disabled) btn.disabled=false; };
       });
       function markSeg(){ sceneEl.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("sel", b.dataset.v==String(state[a.field]))); }
     } else {
       const ins = sceneEl.querySelectorAll("input[data-f]");
       ins.forEach(i=>i.oninput=()=>{ btn.disabled = !(a.require||[]).every(f=>{ const el=sceneEl.querySelector('input[data-f="'+f+'"]'); return el && el.value.trim(); }); });
       btn.onclick = ()=>{
-        a.fields.forEach(f=>{ state[f.field]=sceneEl.querySelector('input[data-f="'+f.field+'"]').value.trim(); });
+        fields.forEach(f=>{ state[f.field]=sceneEl.querySelector('input[data-f="'+f.field+'"]').value.trim(); });
         if(a.require && !a.require.every(f=>state[f])) return;
         go(sc.next);
       };
     }
     if(a.widget==="seg" && a.def!==undefined) btn.disabled=false;
+  });
+}
+
+/* ---------- 汇总过目（可改） ---------- */
+function fmtMode(){ return {F:"随父",M:"随母",B:"复姓双承"}[state.mode] || "（未选）"; }
+function fmtLen(){ return {2:"两字",3:"三字",4:"四字"}[state.name_len] || "（未选）"; }
+function fmtGender(){ return {M:"男孩",F:"女孩",U:"不限"}[state.gender] || "（未选）"; }
+function renderSummary(sc){
+  showActor(sc.actor);
+  $("#step").textContent = sc.step || "过目";
+  const rows = state.branch==="B"
+    ? [["观测名字","name", state.name||"", "b1"], ["命格气韵","gender", fmtGender(), "b2"]]
+    : [["父姓","father", state.father||"", "s04"], ["母姓","mother", state.mother||"", "s04"],
+       ["名随何方","mode", fmtMode(), "s05"], ["姓名字数","name_len", fmtLen(), "s07"],
+       ["命格气韵","gender", fmtGender(), "s08"]];
+  let html = '<div class="bubble"><span class="who">'+(sc.actor?CHAR[sc.actor].name:"")+'</span><p>请小星主过目所录，确认或改动。</p></div><div class="summary">';
+  rows.forEach(r=>{
+    const empty = !r[2] || r[2]==="（未选）";
+    html += '<div class="sumrow"><span class="sk">'+r[0]+'</span><span class="sv'+(empty?' empty':'')+'">'+(empty?'(未填)':r[2])+'</span><button class="edit" data-go="'+r[3]+'">改</button></div>';
+  });
+  html += '</div><button class="btn">确认无误 · 起卦</button>';
+  transitionTo(html, ()=>{
+    sceneEl.querySelectorAll(".edit").forEach(b=> b.onclick = ()=>go(b.dataset.go));
+    sceneEl.querySelector(".btn").onclick = ()=>go(sc.next);
   });
 }
 
@@ -343,7 +419,7 @@ function callAPI(){
       name_len:state.name_len||3, gender:state.gender||"U", tags:[], avoid:"", free_text:"", birth:null, weights:null})}).then(r=>r.json());
 }
 function enterRitual(){
-  showActor("bagua"); $("#step").textContent="占算";
+  showActors("bagua"); $("#step").textContent="占算";
   apiPromise = callAPI();
   apiPromise.then(d=>{ state.result=d; }).catch(e=>{ state.result={meta:{error:"推算中断："+e.message}}; });
   let i=0;
@@ -353,13 +429,13 @@ function enterRitual(){
   const skip = sceneEl.querySelector(".btn");
   function step(){
     if(i<RITUAL.length){
-      const r=RITUAL[i]; showActor(r.key);
+      const r=RITUAL[i]; showActors(r.keys||[r.key]);
       lineEl.classList.add("fade");
-      setTimeout(()=>{ lineEl.textContent=r.line; lineEl.classList.remove("fade"); }, 220);
-      i++; state._rt=setTimeout(step,1150);
-    } else { showActor("xingshi"); go("s10"); }
+      setTimeout(()=>{ lineEl.textContent=r.line; lineEl.classList.remove("fade"); }, 260);
+      i++; state._rt=setTimeout(step,1700);
+    } else { showActors("xingshi"); go("s10"); }
   }
-  skip.onclick = ()=>{ clearTimeout(state._rt); showActor("xingshi"); go("s10"); };
+  skip.onclick = ()=>{ clearTimeout(state._rt); showActors("xingshi"); go("s10"); };
   step();
 }
 
