@@ -1156,7 +1156,8 @@ function renderResult(){
       const ni = parseInt(p.getAttribute("data-i")||"0", 10);
       const nm = (state.result.names||[])[ni];
       if(!nm) return;
-      if(nm.starReview){ out.textContent = nm.starReview; out.classList.add("show"); return; }
+      // 已成功解读：不重复调用，仅确保展开显示（成功则不可重调）
+      if(nm.starReview){ out.classList.add("show"); return; }
       srBtn.disabled = true; srBtn.textContent = "星师推演中…";
       const m2 = state.result.meta || {};
       fetch("/api/star_review",{method:"POST",headers:{"Content-Type":"application/json"},
@@ -1165,12 +1166,22 @@ function renderResult(){
           need:(m2.use_gods||null), dims:(nm.dims||{}),
           bazi:(state.bazi||null), primary:(state.primaryTeacher||null)})})
         .then(r=>r.json()).then(d=>{
-          const txt = (d && d.review) ? d.review
-                    : (d && d.note) ? d.note
-                    : "星师解读暂未显化（天机未启或星象未连）";
-          nm.starReview = txt; out.textContent = txt; out.classList.add("show");
-        }).catch(()=>{ out.textContent = "星师解读暂未显化（星象未连）"; out.classList.add("show"); })
-        .finally(()=>{ srBtn.disabled = false; srBtn.textContent = "✦ 星师详解"; });
+          // 真实成功：写入正文、禁用按钮（不再重调）
+          const txt = (d && typeof d.review==="string" && d.review.trim()) ? d.review.trim() : null;
+          if(txt){
+            nm.starReview = txt; out.textContent = txt; out.classList.add("show");
+            srBtn.textContent = "✦ 已解读"; srBtn.disabled = true;
+          } else {
+            // 失败（缺少 key / 限流 / 服务端异常）：不写入 nm.starReview，保留重试能力
+            out.textContent = "星师解读尚未显化（星象未连，或已达今日推演上限）。可稍后点此重试。";
+            out.classList.add("show");
+            srBtn.textContent = "✦ 重试星师详解"; srBtn.disabled = false;
+          }
+        }).catch(()=>{
+          out.textContent = "星师解读暂未显化（星象未连）。可稍后点此重试。";
+          out.classList.add("show");
+          srBtn.textContent = "✦ 重试星师详解"; srBtn.disabled = false;
+        });
     };
   });
 }

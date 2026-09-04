@@ -11,18 +11,24 @@
 能力 2(重名率)/3(网络撞梗)/4(方言) 依赖外部数据源，不在本文件，
 由 core.py 做本地近似并在前端标注「需接入数据源」。
 """
-import os, json, ssl, urllib.request
+import os, json, ssl, urllib.request, urllib.error, time
 import certifi
 
 BASE_URL = "https://apihub.agnes-ai.com/v1/chat/completions"
 MODEL = "agnes-2.5-flash"
+
+# 429 重试：突发限流可救；日额度耗尽则仍失败，但仅多 3~4s 延迟，无副作用。
+_MAX_RETRY = 2
+_RETRY_BASE = 1.2
 
 # Key：只从环境变量读取（Vercel 后台配置 / 本地 export），不再内置默认值，
 # 避免密钥随代码入库。未配置时 _call 会抛异常、由上层优雅降级为「暂无解读」。
 API_KEY = os.environ.get("AGNES_API_KEY", "")
 
 
-def _call(system_prompt, user_content, maxtok=500, timeout=60):
+def _call(system_prompt, user_content, maxtok=500, timeout=90):
+    if not API_KEY:
+        raise RuntimeError("AGNES_API_KEY 未配置")
     body = json.dumps({
         "model": MODEL,
         "messages": [
@@ -33,13 +39,32 @@ def _call(system_prompt, user_content, maxtok=500, timeout=60):
         "temperature": 0.75,
     }, ensure_ascii=False).encode("utf-8")
     ctx = ssl.create_default_context(cafile=certifi.where())
-    req = urllib.request.Request(
-        BASE_URL, data=body,
-        headers={"Content-Type": "application/json", "Authorization": "Bearer " + API_KEY},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=timeout, context=ctx) as r:
-        return json.loads(r.read().decode("utf-8"))["choices"][0]["message"]["content"]
+    last_err = None
+    # 429 突发限流时退避重试；其余异常也短暂重试一次，降低偶发网络抖动导致的失败
+    for attempt in range(_MAX_RETRY + 1):
+        try:
+            req = urllib.request.Request(
+                BASE_URL, data=body,
+                headers={"Content-Type": "application/json", "Authorization": "Bearer " + API_KEY},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=timeout, context=ctx) as r:
+                return json.loads(r.read().decode("utf-8"))["choices"][0]["message"]["content"]
+        except urllib.error.HTTPError as e:
+            last_err = e
+            if e.code == 429 and attempt < _MAX_RETRY:
+                time.sleep(_RETRY_BASE * (attempt + 1)); continue
+            try:
+                detail = e.read().decode("utf-8", "ignore")[:200]
+            except Exception:
+                detail = ""
+            raise RuntimeError("agnes-ai HTTP %d: %s" % (e.code, detail))
+        except Exception as e:
+            last_err = e
+            if attempt < _MAX_RETRY:
+                time.sleep(_RETRY_BASE * (attempt + 1)); continue
+            raise
+    raise last_err or RuntimeError("agnes-ai 调用失败")
 
 
 def _truncate(text, max_chars):
@@ -52,6 +77,24 @@ def _truncate(text, max_chars):
             cut = i
             break
     return text[:cut].rstrip("，、；： ") + "…"
+
+
+def _clean(text):
+    """清理模型可能夹带的代码围栏、首尾引号、『解读：/星师：』前缀与多余空白。"""
+    if not text:
+        return ""
+    t = text.strip()
+    if t.startswith("```"):
+        t = t.strip("`")
+        if t[:4].lower() == "json":
+            t = t[4:]
+        t = t.strip()
+    t = t.strip("\"'“”‘’")
+    for pfx in ("解读：", "解读:", "星师：", "星师:"):
+        if t.startswith(pfx):
+            t = t[len(pfx):].strip()
+    t = " ".join(t.split())
+    return t
 
 
 # ---------- 能力1：名字整体积极解读 ----------
@@ -99,7 +142,7 @@ def map_free_text(free_text, vocab):
 
 # ---------- 能力（星师详解）：AI 以「星师」口吻生成名字解读 ----------
 def star_review(name, gender, zodiac, need, dims, bazi, primary):
-    """以「星师」古朴温润、带玄学意境的口吻，生成约 150 字名字解读；失败返回 None。"""
+    """以「星师」古朴温润、带玄学意境的口吻，生成约 180 字名字解读；失败返回 None。"""
     gd = {'M': '男孩', 'F': '女孩', 'U': '宝宝'}.get(gender, '宝宝')
     need_s = '/'.join(need) if need else '均衡'
     dim_s = '、'.join(f"{k}{v}" for k, v in (dims or {}).items() if v is not None)
@@ -116,8 +159,9 @@ def star_review(name, gender, zodiac, need, dims, bazi, primary):
     system = (
         "你是「星命观测局」的星师，一位德高望重的命名宗匠。\n"
         "你语调古朴温润、带玄学意境与诗性，善用比喻，从容不迫，如与友人对坐夜话。\n"
-        "请为这个名字写一段约 150 字的解读，自然融入五行、生肖、音律、字义、意境与命局喜用，\n"
+        "请为这个名字写一段解读，自然融入五行、生肖、音律、字义、意境与命局喜用，\n"
         "不宿命、不吓人，多作美好期许。使用纯中文，不要任何 markdown 格式、不要标题。\n"
+        "篇幅控制在 180 字以内，务必在 220 字内收束，不要延展成更长散文。\n"
         f"今日主理侧重为「{prim}」，可稍加呼应。"
     )
     user = (
@@ -126,6 +170,7 @@ def star_review(name, gender, zodiac, need, dims, bazi, primary):
         f"请星师以此名做一段解读。"
     )
     try:
-        return _truncate(_call(system, user, maxtok=500), 200)
+        # maxtok=700 留足余量；截断上限提到 320，使 180~240 字的正常回复不再被中途腰斩
+        return _truncate(_clean(_call(system, user, maxtok=700)), 320)
     except Exception:
         return None
