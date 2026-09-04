@@ -487,10 +487,10 @@ const TEACHER_PICK = [
 ];
 /* 主理轮播引导语：每位老师一句与自身领域相关的说明，引导小星主准确选择侧重（随轮播切换变化） */
 const TEACHER_GUIDE = {
-  wuxing:"名如小宇宙，五行贵在流通。若盼孩子气场和顺、暗补命局所喜，今日便以五行调和为主。",
+  wuxing:"名如宇宙，五行贵在流通。若盼孩子气场和顺、暗补命局所喜，今日便以五行调和为主。",
   yuwen:"名者，声之始也。若重读音清朗、朗朗上口、余韵悠长，今日便以音律声韵为主。",
   ziyuan:"一字一渊源。若重本义寄怀、典故雅正、字字有根，今日便以字义寄意为先。",
-  shuli:"数中有格。若重三才五格、数理吉凶、笔画均衡，今日便以数理格局为主。",
+  shuli:"名字其实是一组数字——三才五格、笔画吉凶，背后都有它的 logic。要是你更吃这一套理性结构，今天让我来主理就好。",
   yijing:"意在言外。若重画面感与气韵、虚实相生、留白之趣，今日便以意境气韵为主。",
   shengxiao:"生肖有宜忌。若重属相三合、喜用偏旁、避冲犯，今日便以生肖相宜为主。"
 };
@@ -600,7 +600,7 @@ function typeText(el, text, speed, onDone){
 function go(id){
   const sc = SCENES[id];
   state.scene = id;
-  if(id !== "brand"){ const lw=$("#leaves"); if(lw) lw.innerHTML=""; }  /* 离开首屏即清除落叶，保证仅第一屏有 */
+  /* 落叶贯穿全程：切换场景不清空，由各自动画时长自然移除 */
   $("#ritualWrap").style.display="none";  // 非表演场景隐藏表演立绘层（表演阶段由 enterRitual 重新打开）
   if(!sc) return;
   /* #6 饱和度按场次递进 */
@@ -1092,7 +1092,7 @@ function renderResult(){
       '<div class="bk-tip">名中已暗补命局所喜之五行（'+useg+'），补益越贴合综合分越高。'+(state.primaryTeacher&&state.primaryTeacher!=="balance"?'今日以'+fmtTeacher()+'为主理，该维度已加权。':'')+'</div></div>';
   }
   let html = '<h2>星师荐名 · 共 '+names.length+' 枚</h2>' + baziHtml;
-  names.slice(0,8).forEach((n,idx)=>{
+  names.forEach((n,idx)=>{
     const dims = DIMS.map(([k,cn])=>{
       const v = n.dims ? n.dims[k] : null;
       const w = (v==null)?0:v;
@@ -1107,7 +1107,8 @@ function renderResult(){
       '<div class="pname">'+n.name+'</div>'+ reason +
       '<div class="dims">'+dims+'</div>'+
       '<button class="toggle">展开细项分析 ▾</button>'+
-      '<div class="explain">'+ex+'</div></div>';
+      '<div class="explain">'+ex+'</div>'+
+      '<button class="exportBtn">导出此名图片</button></div>';
   });
   html += '<div id="resultFoot"><button class="btn ghost" onclick="location.reload()">重新起卦</button></div>';
   wrap.innerHTML = html; wrap.classList.add("show"); wrap.scrollTop=0;
@@ -1117,7 +1118,8 @@ function renderResult(){
       const ex=p.querySelector(".explain"); ex.classList.toggle("show");
       p.querySelector(".toggle").textContent = ex.classList.contains("show")?"收起细项分析 ▴":"展开细项分析 ▾";
     };
-    p.querySelector(".exportBtn").onclick = (e)=>{ e.stopPropagation(); exportNameImage(i); };
+    const exBtn = p.querySelector(".exportBtn");
+    if (exBtn) exBtn.onclick = (e)=>{ e.stopPropagation(); exportNameImage(i); };
   });
 }
 
@@ -1197,8 +1199,7 @@ const LEAF_THEMES = [
 ];
 function spawnLeaf(){
   const wrap = $("#leaves"); if(!wrap) return;
-  if(state.scene !== "brand") return;            /* 落叶仅在第一屏（首屏）出现 */
-  const t = LEAF_THEMES[Math.floor(Math.random()*LEAF_THEMES.length)];
+  /* 落叶贯穿全程（首页与各步骤同屏飘落），颜色/饱和度跟随主题(--accent/--sat) */
   const el = document.createElement("div");
   el.className = "leaf";
   el.style.left = (Math.random()*100).toFixed(1)+"%";
@@ -1207,9 +1208,10 @@ function spawnLeaf(){
   el.style.animationDuration = dur+"s";
   el.style.width = (9+Math.random()*6).toFixed(0)+"px";
   el.style.height = (11+Math.random()*6).toFixed(0)+"px";
-  el.style.background = "linear-gradient(160deg,"+t.a+","+t.b+")";
-  /* 落叶不在任何饱和滤镜下（#leaves 已被移出 body 滤镜层），天然即为最终页满色(100%) */
-  el.style.filter = "drop-shadow(0 0 4px "+t.g+") drop-shadow(0 1px 1px rgba(60,40,90,.2))";
+  const ang = 120 + Math.floor(Math.random()*120);
+  const order = Math.random()<0.5 ? "var(--accent),var(--accent2)" : "var(--accent2),var(--accent)";
+  el.style.background = "linear-gradient("+ang+"deg,"+order+")";
+  el.style.filter = "saturate(var(--sat)) drop-shadow(0 0 4px var(--glow)) drop-shadow(0 1px 1px rgba(60,40,90,.2))";
   wrap.appendChild(el);
   setTimeout(()=>el.remove(), dur*1000+300);
 }
