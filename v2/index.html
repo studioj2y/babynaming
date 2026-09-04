@@ -197,7 +197,11 @@
   @keyframes ritualLeave{
     0%{opacity:1;transform:translateY(0) scale(1)}
     100%{opacity:0;transform:translateY(34px) scale(1.1)}}
-  .ritualActor.pair{height:42vh;max-width:46%}  /* 单/双统一锁定高度，比例一致 */
+  .ritualActor.pair{height:42vh;max-width:46%;margin:0 -12px}  /* 双立绘稍微靠近，可轻微交叠；交叠处由前层(高 z-index+强发光)遮挡后层，形成前后交错站立 */
+  .ritualActor.pair.front{z-index:2;   /* 前层：发光更强，交叠时遮挡后层边缘 */
+    filter:drop-shadow(0 0 26px var(--aura)) drop-shadow(0 0 60px var(--aura-soft)) drop-shadow(0 10px 18px rgba(70,50,100,.22));}
+  .ritualActor.pair.back{z-index:1;    /* 后层(用户指定 字源/数理 恒为后)：发光略弱，被前层遮挡 */
+    filter:drop-shadow(0 0 16px var(--aura)) drop-shadow(0 0 36px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.14));}
   #ritual .bubble{position:relative;z-index:2;max-width:30em;margin:0 auto 44px;text-align:left;   /* margin-bottom 把对话泡略抬高，远离底部 */
     min-height:3.2em;transition:opacity .4s var(--ease)}
   #ritual .bubble.fade{opacity:0}
@@ -473,6 +477,9 @@ const DUOS = [
     ["意境老师： 远意已经出现。", "八卦老师： 卦象尚待落定。"],
     ["八卦老师： 刚柔各有位置。", "意境老师： 留白便有了。"]]},
 ];
+/* 双人表演中恒为「后层(被前层发光遮挡、折叠在后)」的老师；其余双人默认 keys[1] 为前层。
+   用户指定：字源(ziyuan) / 数理(shuli)。 */
+const DUO_BACK = new Set(["ziyuan","shuli"]);
 const STAR_LINES = [
   "形声义数象皆已各安其位，只待小星主点定。",
   "五行音律数理意境参详既尽，格局已成，静候揭晓。",
@@ -962,7 +969,9 @@ function enterRitual(){
     stage.querySelectorAll(".ritualActor").forEach(a=>{ a.classList.remove("show"); a.classList.add("leave"); });   // 退场：镜像淡出(ritualLeave)动画
     setTimeout(()=>{
       if(!list.length){ stage.innerHTML=""; if(onEntered) onEntered(); return; }
-      stage.innerHTML = list.map(k=>'<img class="ritualActor'+(list.length>1?' pair':'')+'" src="'+CHAR[k].file+'" alt="'+(CHAR[k].name||"")+'">').join("");
+      const duoBack = list.find(k=>DUO_BACK.has(k));
+      const duoFront = duoBack ? list.find(k=>k!==duoBack) : (list[1]||list[0]);
+      stage.innerHTML = list.map(k=>'<img class="ritualActor'+(list.length>1?' pair '+(k===duoFront?'front':'back'):'')+'" src="'+CHAR[k].file+'" alt="'+(CHAR[k].name||"")+'">').join("");
       requestAnimationFrame(()=>{ stage.querySelectorAll(".ritualActor").forEach(a=>a.classList.add("show"));
         setTimeout(()=>{ if(onEntered) onEntered(); }, 80); });   // 立绘一开始入场，文字即随之同频出现（不再等完全入场）；120→80ms 提前
     }, EXIT_MS);
