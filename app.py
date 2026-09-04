@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 import os
 from core import generate, analyze_birth, analyze_given_name, map_free_text_to_tags, ai_review_for_name, TAGS_VOCAB
+from ai import star_review as star_review_ai
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 app = FastAPI()
@@ -113,6 +114,27 @@ async def ai_review(req: Request):
         )
     except Exception:
         text = None
+    if not text:
+        return JSONResponse({"review": None})
+    return JSONResponse({"review": text})
+
+@app.post("/api/star_review")
+async def star_review(req: Request):
+    """星师详解：以「星师」口吻为某名字生成解读（无 key/失败返回空，前端回退模板）。"""
+    body = await req.json()
+    name = body.get("name") or ""
+    gender = body.get("gender") or "U"
+    zodiac = body.get("zodiac") or None
+    need = body.get("need") or None
+    dims = body.get("dims") or {}
+    bazi = body.get("bazi") or None
+    primary = body.get("primary") or None
+    if not name:
+        return JSONResponse({"error": "缺少名字"}, status_code=400)
+    try:
+        text = star_review_ai(name, gender, zodiac, need, dims, bazi, primary)
+    except Exception as e:
+        return JSONResponse({"error": "星师详解生成失败: " + str(e)}, status_code=400)
     if not text:
         return JSONResponse({"review": None})
     return JSONResponse({"review": text})

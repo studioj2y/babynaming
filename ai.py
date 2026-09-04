@@ -95,3 +95,37 @@ def map_free_text(free_text, vocab):
         return picks[:4] if picks else None
     except Exception:
         return None
+
+
+# ---------- 能力（星师详解）：AI 以「星师」口吻生成名字解读 ----------
+def star_review(name, gender, zodiac, need, dims, bazi, primary):
+    """以「星师」古朴温润、带玄学意境的口吻，生成约 150 字名字解读；失败返回 None。"""
+    gd = {'M': '男孩', 'F': '女孩', 'U': '宝宝'}.get(gender, '宝宝')
+    need_s = '/'.join(need) if need else '均衡'
+    dim_s = '、'.join(f"{k}{v}" for k, v in (dims or {}).items() if v is not None)
+    prim = primary or '综合'
+    bazi_s = ''
+    if bazi and isinstance(bazi, dict):
+        gz = bazi.get('gz') or ''
+        dm = (bazi.get('day_master') or '') + (bazi.get('day_master_wx') or '')
+        strong = bazi.get('strong') or ''
+        useg = '、'.join(bazi.get('use_gods') or []) or ''
+        zod = bazi.get('zodiac') or ''
+        if gz or dm:
+            bazi_s = f"八字：{gz}；日主：{dm}；旺衰：{strong}；喜用：{useg}；生肖：{zod}"
+    system = (
+        "你是「星命观测局」的星师，一位德高望重的命名宗匠。\n"
+        "你语调古朴温润、带玄学意境与诗性，善用比喻，从容不迫，如与友人对坐夜话。\n"
+        "请为这个名字写一段约 150 字的解读，自然融入五行、生肖、音律、字义、意境与命局喜用，\n"
+        "不宿命、不吓人，多作美好期许。使用纯中文，不要任何 markdown 格式、不要标题。\n"
+        f"今日主理侧重为「{prim}」，可稍加呼应。"
+    )
+    user = (
+        f"名字：{name}\n性别：{gd}\n生肖：{zodiac or '未提供'}\n"
+        f"宜补五行：{need_s}\n各维度评分：{dim_s}\n{bazi_s}\n"
+        f"请星师以此名做一段解读。"
+    )
+    try:
+        return _truncate(_call(system, user, maxtok=500), 200)
+    except Exception:
+        return None

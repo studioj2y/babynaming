@@ -298,6 +298,15 @@
     box-shadow:0 2px 6px rgba(255,170,90,.22);transition:transform .15s,box-shadow .2s,background .2s}
   .exportBtn:hover{transform:translateY(-1px);background:linear-gradient(160deg,#ffe7c2,#ffc982);box-shadow:0 3px 9px rgba(255,170,90,.34)}
   .exportBtn:active{transform:translateY(0)}
+  /* 星师详解：展开卡片底部的 AI 解读（星师紫调） */
+  .starReviewWrap{margin-top:10px;border-top:1px dashed var(--panel-line);padding-top:10px}
+  .starReviewBtn{display:inline-block;margin:0;padding:7px 14px;font-size:13px;color:#4a2f6b;cursor:pointer;white-space:nowrap;
+    background:linear-gradient(160deg,#e9d3ff,#c9a6f0);border:1px solid rgba(150,110,210,.45);border-radius:8px;font-weight:500;letter-spacing:.04em;
+    box-shadow:0 2px 6px rgba(170,140,210,.3);transition:transform .15s,box-shadow .2s,background .2s}
+  .starReviewBtn:hover{transform:translateY(-1px);background:linear-gradient(160deg,#efdcff,#d4b6f5);box-shadow:0 3px 9px rgba(170,140,210,.45)}
+  .starReviewBtn:disabled{opacity:.6;cursor:default;transform:none}
+  .starReviewOut{margin-top:8px;font-size:13px;line-height:1.75;color:var(--ink);white-space:pre-wrap;display:none}
+  .starReviewOut.show{display:block}
   #resultFoot{text-align:center;margin-top:6px}
   .baziCard{background:linear-gradient(160deg,rgba(107,74,47,.92),rgba(79,54,33,.92));
     border:1px solid rgba(255,220,170,.28);border-radius:14px;padding:14px 16px;margin-bottom:14px;
@@ -656,7 +665,7 @@ function renderCarousel(sc){
   state._carouselList = list;
   state._teacherIdx = 0;
   const cur = list[0];
-  const cardHtml = '';
+  const cardHtml = '<div class="tCard" id="tCard"><div class="tDim">'+cur.dim+'</div></div>';
   transitionTo(
     '<div class="bLayer"><div class="bubble"><span class="who">'+cur.name+'</span><p class="tw-line"></p></div></div>'+
     '<div class="cLayer"><div class="carousel"><button class="arrow" id="arrL" aria-label="上一位">‹</button>'+
@@ -678,11 +687,20 @@ function moveCarousel(delta){
   const list = state._carouselList;
   if(!list || !list.length) return;
   let idx = (state._teacherIdx + delta + list.length) % list.length;
-  state._teacherIdx = idx;
-  const cur = list[idx];
-  showActor(cur.v);                            /* 立绘同步切换，触发镜像淡入过渡 */
-  const who = sceneEl.querySelector(".bubble .who"); if(who) who.textContent = cur.name;
-  const tw = sceneEl.querySelector(".tw-line"); if(tw){ tw.textContent=""; typeText(tw, TEACHER_GUIDE[cur.v], 38); }
+  const card = sceneEl.querySelector("#tCard");
+  if(!card){ state._teacherIdx = idx; const cur = list[idx]; showActor(cur.v);
+    const who = sceneEl.querySelector(".bubble .who"); if(who) who.textContent = cur.name;
+    const tw = sceneEl.querySelector(".tw-line"); if(tw){ tw.textContent=""; typeText(tw, TEACHER_GUIDE[cur.v], 38); } return; }
+  card.classList.add("fade-out");
+  setTimeout(()=>{
+    state._teacherIdx = idx;
+    const cur = list[idx];
+    const td = card.querySelector(".tDim"); if(td) td.textContent = cur.dim;
+    card.classList.remove("fade-out");
+    showActor(cur.v);                            /* 立绘同步切换，触发镜像淡入过渡 */
+    const who = sceneEl.querySelector(".bubble .who"); if(who) who.textContent = cur.name;
+    const tw = sceneEl.querySelector(".tw-line"); if(tw){ tw.textContent=""; typeText(tw, TEACHER_GUIDE[cur.v], 38); }
+  }, 350);
 }
 function fetchBazi(){
   if(!state.birth){ state.bazi=null; return Promise.resolve(null); }
@@ -1094,7 +1112,12 @@ function renderResult(){
       '<button class="toggle">展开细项分析 ▾</button>'+
       '<button class="exportBtn">导出此名图片</button>'+
       '</div>'+
-      '<div class="explain">'+ex+'</div></div>';
+      '<div class="explain">'+ex+
+        '<div class="starReviewWrap">'+
+          '<button class="starReviewBtn">✦ 星师详解</button>'+
+          '<div class="starReviewOut"></div>'+
+        '</div>'+
+      '</div></div>';
   });
   html += '<div id="resultFoot"><button class="btn ghost" onclick="location.reload()">重新起卦</button></div>';
   wrap.innerHTML = html; wrap.classList.add("show"); wrap.scrollTop=0;
@@ -1106,6 +1129,28 @@ function renderResult(){
     };
     const exBtn = p.querySelector(".exportBtn");
     if (exBtn) exBtn.onclick = (e)=>{ e.stopPropagation(); exportNameImage(i); };
+    const srBtn = p.querySelector(".starReviewBtn");
+    if (srBtn) srBtn.onclick = ()=>{
+      const out = p.querySelector(".starReviewOut");
+      const ni = parseInt(p.getAttribute("data-i")||"0", 10);
+      const nm = (state.result.names||[])[ni];
+      if(!nm) return;
+      if(nm.starReview){ out.textContent = nm.starReview; out.classList.add("show"); return; }
+      srBtn.disabled = true; srBtn.textContent = "星师推演中…";
+      const m2 = state.result.meta || {};
+      fetch("/api/star_review",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({name:nm.name, gender:state.gender||"U",
+          zodiac:(m2.zodiac||(state.bazi&&state.bazi.zodiac)||null),
+          need:(m2.use_gods||null), dims:(nm.dims||{}),
+          bazi:(state.bazi||null), primary:(state.primaryTeacher||null)})})
+        .then(r=>r.json()).then(d=>{
+          const txt = (d && d.review) ? d.review
+                    : (d && d.note) ? d.note
+                    : "星师解读暂未显化（天机未启或星象未连）";
+          nm.starReview = txt; out.textContent = txt; out.classList.add("show");
+        }).catch(()=>{ out.textContent = "星师解读暂未显化（星象未连）"; out.classList.add("show"); })
+        .finally(()=>{ srBtn.disabled = false; srBtn.textContent = "✦ 星师详解"; });
+    };
   });
 }
 
@@ -1134,6 +1179,7 @@ function exportNameImage(idx){
   ctx.font = "13px 'PingFang SC','Microsoft YaHei',sans-serif";
   let contentH = 70 + (n.rank_reason ? 2*lineH+6 : 0) + 96 + (meta.has_birth ? 5*lineH+10 : 0) + 40;
   (n.explain||[]).forEach(e=>{ const t=(e.label?("· "+e.label+"："):"")+e.text; const lines=Math.max(1, Math.ceil(ctx.measureText(t).width / (W-2*pad-12))); contentH += lines*lineH+10; });
+  if(n.starReview){ const sl=Math.max(1, Math.ceil(ctx.measureText(n.starReview).width / (W-2*pad))); contentH += 2*lineH + sl*lineH + 8; }
   const H = contentH + 2*pad;
   cv.width = W; cv.height = H;
   const bg = ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,"#4a3320"); bg.addColorStop(1,"#2c1d12");
@@ -1170,6 +1216,11 @@ function exportNameImage(idx){
   ctx.fillStyle="#ffdca6"; ctx.font="600 13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillText("字义详解", pad, y); y += lineH;
   ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#efe0c8";
   (n.explain||[]).forEach(e=>{ y = wrapCN(ctx, (e.label?("· "+e.label+"："):"")+e.text, pad+12, y, W-2*pad-12, lineH); y += 8; });
+  if(n.starReview){
+    ctx.fillStyle="#ffdca6"; ctx.font="600 13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillText("星师详解", pad, y); y += lineH;
+    ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#efe0c8";
+    y = wrapCN(ctx, n.starReview, pad+12, y, W-2*pad-12, lineH); y += 8;
+  }
   ctx.fillStyle="rgba(255,220,170,.6)"; ctx.font="11px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillText("星命观测局 · 起名推演", pad, H-pad-14);
   cv.toBlob(b=>{ if(!b) return; const a=document.createElement("a"); a.download="星名_"+n.name+".png"; a.href=URL.createObjectURL(b); a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }, "image/png");
 }
