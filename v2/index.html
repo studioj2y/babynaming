@@ -197,7 +197,7 @@
   @keyframes ritualLeave{
     0%{opacity:1;transform:translateY(0) scale(1)}
     100%{opacity:0;transform:translateY(34px) scale(1.1)}}
-  .ritualActor.pair{height:42vh;max-width:46%;margin:0 -12px}  /* 双立绘稍微靠近，可轻微交叠；交叠处由前层(高 z-index+强发光)遮挡后层，形成前后交错站立 */
+  .ritualActor.pair{height:42vh;max-width:46%;margin:0 -16px}  /* 双立绘再靠近一点(净交叠≈22px)；交叠处由前层(高 z-index+强发光)遮挡后层，形成前后交错站立 */
   .ritualActor.pair.front{z-index:2;   /* 前层：发光更强，交叠时遮挡后层边缘 */
     filter:drop-shadow(0 0 26px var(--aura)) drop-shadow(0 0 60px var(--aura-soft)) drop-shadow(0 10px 18px rgba(70,50,100,.22));}
   .ritualActor.pair.back{z-index:1;    /* 后层(用户指定 字源/数理 恒为后)：发光略弱，被前层遮挡 */
