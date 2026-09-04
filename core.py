@@ -33,6 +33,14 @@ DIRTY_CHARS = set('傻滚操屁屎尿疯贱婊')
 # 高频用字（重名近似：含其一则重名概率偏高）
 HIGH_FREQ = set('伟芳娜秀英华建国婷浩鑫梓涵轩宇睿欣怡晨子凡一')
 
+# ---------- 负面意象 / 不良组合兜底（运行时零 AI） ----------
+# 单字即不宜作名的负面字根（已审核剔除，此处运行时再兜底拦截）
+NEG_ROOT = set('死亡病残凶灾煞鬼棺坟丧哭悲愁苦孤寡奴囚哑瞎瘸癫瘟毒淫贱蠢笨愚邪妖魔厉殃劫祸夭衰痴厄凄怼怨嫉哀')
+# 名（不含姓）两字相连形成的不吉组合，强降权
+BAD_COMBOS = {'离散','悲伤','孤独','病弱','衰亡','凶煞','离丧','愁苦','残破','饥寒','凄凉',
+              '绝望','毁灭','消亡','亡故','灾祸','愚昧','痴傻','疯癫','残废','苦涩','悲凉',
+              '忧戚','哀怨','怨怼','嫉恨','祸患','夭折','死寂','枯竭','崩坏','凋零','败落'}
+
 DEFAULT_WEIGHTS = {
  'wuxing':0.20,'zodiac':0.12,'pronounce':0.33,'meaning':0.15,'stroke':0.10,'gender':0.10
 }
@@ -102,7 +110,48 @@ def nickname_penalty(given_chars, given_py, full_py=None):
                 pen += r.get('penalty', 35); hits.append(r.get('note', m))
     return pen, hits
 
+def bad_imagery_penalty(given_chars, given_it):
+    """负面意象 / 组合扫描：单字负面字根 + 两字负面词组（精确，无子串误杀）。
+    返回 (扣分, 命中说明列表)。命中即强降权，确保「挑中的字 / 组合」不会是明显不吉之名。
+    注：不扫描字义(m)子串——curated 好字库已人工核验，子串扫描会误伤「慈悲/含辛茹苦/华而不妖/桃之夭夭」等正象。"""
+    s = ''.join(given_chars)
+    pen, hits = 0, []
+    for combo in BAD_COMBOS:
+        if combo and combo in s:
+            pen += 40; hits.append(combo)
+    for c in given_chars:
+        if c in NEG_ROOT:
+            pen += 35; hits.append(c)
+    return pen, hits
+
+# 地支藏干（本气 / 中气 / 余气）—— 用于日主旺衰量化打分
+_ZANG = {
+ '子': [('癸','水')],
+ '丑': [('己','土'),('癸','水'),('辛','金')],
+ '寅': [('甲','木'),('丙','火'),('戊','土')],
+ '卯': [('乙','木')],
+ '辰': [('戊','土'),('乙','木'),('癸','水')],
+ '巳': [('丙','火'),('戊','土'),('庚','金')],
+ '午': [('丁','火'),('己','土')],
+ '未': [('己','土'),('丁','火'),('乙','木')],
+ '申': [('庚','金'),('壬','水'),('戊','土')],
+ '酉': [('辛','金')],
+ '戌': [('戊','土'),('辛','金'),('丁','火')],
+ '亥': [('壬','水'),('甲','木')],
+}
+def _ten_god(dm, e):
+    """以日主五行 dm 为参照，元素 e 的十神类别：self 比劫 / support 印枭 / output 食伤 / wealth 财 / control 官杀。"""
+    if e == dm:             return 'self'
+    if SHENG.get(e) == dm:  return 'support'   # 生我
+    if SHENG.get(dm) == e:  return 'output'    # 我生
+    if KE.get(dm) == e:     return 'wealth'    # 我克
+    if KE.get(e) == dm:     return 'control'   # 克我
+    return 'other'
+
 def analyze_birth(year, month, day, hour):
+    """现场推算八字，并据日主旺衰法给出喜用神（扶抑用神）。
+    返回：gz(四柱)、counts(五行计数)、need(喜用元素，用于选字偏置)、zodiac(生肖)，
+    以及展示用 day_master/day_master_wx/strong/use_gods。"""
     solar = Solar.fromYmdHms(year, month, day, hour, 0, 0)
     lunar = solar.getLunar()
     ec = lunar.getEightChar()
@@ -114,14 +163,38 @@ def analyze_birth(year, month, day, hour):
             counts[GAN_WX[ch]] += 1
         elif ch in ZHI_WX:
             counts[ZHI_WX[ch]] += 1
-    missing = [e for e in ELES if counts[e] == 0]
-    if missing:
-        need = missing
+
+    dm_wx = GAN_WX[gz[2][0]]          # 日干五行 = 日主
+    # —— 日主旺衰量化：十神加权（自党 vs 异党），月令本气加权 ——
+    self_w, other_w = 0.0, 0.0
+    for i, pillar in enumerate(gz):
+        tg = _ten_god(dm_wx, GAN_WX[pillar[0]])
+        if tg in ('self', 'support'): self_w += 1.0
+        else:                          other_w += 1.0
+        for j, (zc, zw) in enumerate(_ZANG[pillar[1]]):
+            w = [1.0, 0.5, 0.25][j]          # 本气/中气/余气
+            if i == 1 and j == 0: w *= 1.4   # 月令加权
+            if _ten_god(dm_wx, zw) in ('self', 'support'): self_w += w
+            else:                                                other_w += w
+    diff = self_w - other_w
+    strong = '旺' if diff > 0.3 else ('弱' if diff < -0.3 else '中和')
+
+    # —— 扶抑用神：身弱喜生扶（比劫+印），身旺喜克泄耗（食伤+财+官杀）——
+    if strong == '旺':
+        use = [SHENG.get(dm_wx), KE.get(dm_wx)]        # 我生（食伤）、我克（财）
+        ctrl = next((k for k in ELES if KE.get(k) == dm_wx), None)  # 克我（官杀）
+        if ctrl: use.append(ctrl)
+        need = [e for e in use if e]
     else:
-        mn = min(counts.values())
-        need = [e for e in ELES if counts[e] == mn]
+        support_elem = next((k for k in ELES if SHENG.get(k) == dm_wx), None)  # 生我（印）
+        need = [dm_wx] + ([support_elem] if support_elem else [])
+
     zodiac = lunar.getYearShengXiao()
-    return {'gz': gz, 'counts': counts, 'need': need, 'zodiac': zodiac}
+    return {
+        'gz': gz, 'counts': counts, 'need': need, 'zodiac': zodiac,
+        'day_master': gz[2][0], 'day_master_wx': dm_wx, 'strong': strong,
+        'use_gods': need,
+    }
 
 # ---------- 姓氏校验与构造 ----------
 def validate_surname(s):
@@ -301,11 +374,12 @@ def five_grids(strokes):
     return grids, score
 
 # ---------- 差异化细项文案（多套模板池 + 跨候选去重随机） ----------
-DIM_ORDER = ['wuxing', 'zodiac', 'pronounce', 'meaning', 'stroke', 'gender', 'dup', 'net', 'nick']
+DIM_ORDER = ['wuxing', 'zodiac', 'pronounce', 'meaning', 'stroke', 'gender', 'dup', 'net', 'nick', 'imagery']
 DIM_LABEL = {'wuxing': '五行调和', 'zodiac': '生肖相宜', 'pronounce': '音律朗朗',
              'meaning': '字义寄意', 'stroke': '数理格局', 'gender': '气韵契合',
-             'dup': '重名（近似）', 'net': '撞梗（本地）', 'nick': '昵称/梗（本地）'}
-DIM_APPROX = {'dup': True, 'net': True, 'nick': True}
+             'dup': '重名（近似）', 'net': '撞梗（本地）', 'nick': '昵称/梗（本地）',
+             'imagery': '意象吉凶'}
+DIM_APPROX = {'dup': True, 'net': True, 'nick': True, 'imagery': False}
 
 def _gd_word(o):
     g = o.get('req_gender')
@@ -500,7 +574,7 @@ NICK_TPLS = [
 ]
 
 POOL_SIZE = {'wuxing': 12, 'zodiac': 12, 'pronounce': 12, 'meaning': 4,
-             'stroke': 12, 'gender': 12, 'dup': 12, 'net': 6, 'nick': 6}
+             'stroke': 12, 'gender': 12, 'dup': 12, 'net': 6, 'nick': 6, 'imagery': 6}
 
 def _ex_wuxing(o, meta, mode, idx):
     wx = o['given_wx']; need = meta.get('need') or []
@@ -553,15 +627,30 @@ def _ex_nick(o, meta, mode, idx):
     hit = (o.get('nickname_hits') or [''])[0]
     return NICK_TPLS[idx % len(NICK_TPLS)].format(hit=hit)
 
+IMAGERY_TPLS = [
+ "静态规则提示：此名组合易读出「{hit}」一类负面意象，建议斟酌换字。（可手动维护黑名单）",
+ "意象核查提示：名中或含「{hit}」之不吉联想，取舍在您。（本地规则，非 AI）",
+ "本地规则检出：此名组合偏近「{hit}」意涵，是否采用请自决。（黑名单可维护）",
+ "负面意象提示：易与「{hit}」相系，您可斟酌。（静态规则）",
+ "规则命中：此名意象偏「{hit}」，宜复核；本地可维护。（非联网）",
+ "意象告警：此名或惹「{hit}」之联想，采否由您。（规则可更新）",
+]
+
+def _ex_imagery(o, meta, mode, idx):
+    hit = (o.get('bad_imagery_hits') or [''])[0]
+    return IMAGERY_TPLS[idx % len(IMAGERY_TPLS)].format(hit=hit)
+
 DIM_FUNCS = {'wuxing': _ex_wuxing, 'zodiac': _ex_zodiac, 'pronounce': _ex_pronounce,
              'meaning': _ex_meaning, 'stroke': _ex_stroke, 'gender': _ex_gender,
-             'dup': _ex_dup, 'net': _ex_net, 'nick': _ex_nick}
+             'dup': _ex_dup, 'net': _ex_net, 'nick': _ex_nick, 'imagery': _ex_imagery}
 
 def _key_included(k, o, meta):
     if k == 'net':
         return o.get('homophone_score', 100) <= 20
     if k == 'nick':
         return bool(o.get('nickname_hits'))
+    if k == 'imagery':
+        return bool(o.get('bad_imagery_hits'))
     return True
 
 def _assign_explain_variants(names, meta, mode):
@@ -632,6 +721,9 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
     given_py = to_ascii(''.join(gi['py'].split(',')[0] for gi in given_info))
     np_pen, np_hits = nickname_penalty(given_chars, given_py, full_py)
     total = total - np_pen
+    # —— 负面意象 / 组合兜底降权（不耗 AI）——
+    bi_pen, bi_hits = bad_imagery_penalty(given_chars, given_it)
+    total = total - bi_pen
     name = surname + ''.join(given_chars)
     o = {
         'name': name, 'surname': surname, 'given': ''.join(given_chars),
@@ -643,6 +735,7 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
         'tones': tones,
         'homophone_score': hph,
         'nickname_penalty': np_pen, 'nickname_hits': np_hits,
+        'bad_imagery_penalty': bi_pen, 'bad_imagery_hits': bi_hits,
     }
     o['dup_info'] = ('unique' if not any(c in HIGH_FREQ for c in given_chars) else 'common')
     return o
@@ -752,7 +845,11 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
         names.append(o)
 
     names.sort(key=lambda x: -x['total'])
+    bmeta = birth or {}
     meta = {'has_birth': has_birth, 'need': need, 'zodiac': zodiac,
+            'gz': bmeta.get('gz'), 'day_master': bmeta.get('day_master'),
+            'day_master_wx': bmeta.get('day_master_wx'), 'strong': bmeta.get('strong'),
+            'use_gods': bmeta.get('use_gods'), 'counts': bmeta.get('counts'),
             'pool_size': len(pool), 'surname': surname, 'mode': mode,
             'name_len': name_len, 'relaxed': relaxed, 'relax_reason': relax_reason}
     out = _curate_diverse(names, topn)
@@ -831,7 +928,11 @@ def analyze_given_name(name, gender, birth, weights=None):
     zodiac = birth['zodiac'] if has_birth else None
     o = _build_name('', given, given_info, given_it, gender, birth, need, zodiac,
                     w, '', [], [], None, None, None)
+    bmeta = birth or {}
     meta = {'has_birth': has_birth, 'need': need, 'zodiac': zodiac,
+            'gz': bmeta.get('gz'), 'day_master': bmeta.get('day_master'),
+            'day_master_wx': bmeta.get('day_master_wx'), 'strong': bmeta.get('strong'),
+            'use_gods': bmeta.get('use_gods'), 'counts': bmeta.get('counts'),
             'pool_size': len(given), 'surname': raw, 'mode': None,
             'name_len': len(given), 'analyzed': True}
     o['explain'] = render_explain(o, meta, None,
