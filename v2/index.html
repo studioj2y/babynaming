@@ -67,10 +67,10 @@
     animation:fall linear forwards;filter:drop-shadow(0 0 4px var(--glow)) drop-shadow(0 1px 1px rgba(60,40,90,.2))}
   @keyframes fall{
     0%{transform:translateY(-24px) translateX(0) rotate(0deg) scale(.9);opacity:0}
-    8%{opacity:.30}                /* 落叶透明度：较上一轮(.42)再增淡一点，弱化显眼程度 */
+    8%{opacity:.55}                /* 落叶透明度：明显可见但仍不抢戏 */
     30%{transform:translateY(30vh) translateX(calc(var(--drift,30px)*.28)) rotate(135deg) scale(1)}
     62%{transform:translateY(63vh) translateX(calc(var(--drift,30px)*.62)) rotate(290deg) scale(1.04)}
-    88%{opacity:.28}
+    88%{opacity:.5}
     100%{transform:translateY(106vh) translateX(var(--drift,30px)) rotate(430deg) scale(.92);opacity:0}
   }
 
@@ -289,9 +289,14 @@
   .explain.show{display:block}
   .explain .ei{margin:5px 0;padding-left:12px;border-left:2px solid rgba(255,220,170,.35)}
   .explain .ei b{color:#ffdca6;font-weight:600;margin-right:6px}
-  .toggle{display:block;width:100%;text-align:center;margin:10px auto 0;font-size:12px;color:#ffdca6;cursor:pointer;background:none;border:none;padding:6px 12px;letter-spacing:.05em;
+  .toggle{display:inline-block;width:auto;text-align:left;margin:10px 0 0;font-size:12px;color:#ffdca6;cursor:pointer;background:none;border:none;padding:6px 4px;letter-spacing:.05em;
     text-shadow:0 0 8px rgba(255,220,170,.9),0 0 18px rgba(255,180,100,.6);transition:text-shadow .25s}
   .toggle:hover{text-shadow:0 0 14px rgba(255,220,170,1),0 0 28px rgba(255,180,100,.9)}
+  .exportBtn{display:block;width:100%;margin:10px 0 0;padding:9px 14px;font-size:13px;color:#3a2a1c;cursor:pointer;
+    background:linear-gradient(160deg,#ffd9a0,#ffb259);border:none;border-radius:10px;font-weight:600;letter-spacing:.04em;
+    box-shadow:0 4px 12px rgba(255,170,90,.35);transition:transform .15s,box-shadow .2s}
+  .exportBtn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(255,170,90,.5)}
+  .exportBtn:active{transform:translateY(0)}
   #resultFoot{text-align:center;margin-top:6px}
   .baziCard{background:linear-gradient(160deg,rgba(107,74,47,.92),rgba(79,54,33,.92));
     border:1px solid rgba(255,220,170,.28);border-radius:14px;padding:14px 16px;margin-bottom:14px;
@@ -480,6 +485,15 @@ const TEACHER_PICK = [
   {v:"yijing",    name:"意境老师", dim:"气韵契合"},
   {v:"shengxiao", name:"生肖老师", dim:"生肖相宜"}
 ];
+/* 主理轮播引导语：每位老师一句与自身领域相关的说明，引导小星主准确选择侧重（随轮播切换变化） */
+const TEACHER_GUIDE = {
+  wuxing:"名如小宇宙，五行贵在流通。若盼孩子气场和顺、暗补命局所喜，今日便以五行调和为主。",
+  yuwen:"名者，声之始也。若重读音清朗、朗朗上口、余韵悠长，今日便以音律声韵为主。",
+  ziyuan:"一字一渊源。若重本义寄怀、典故雅正、字字有根，今日便以字义寄意为先。",
+  shuli:"数中有格。若重三才五格、数理吉凶、笔画均衡，今日便以数理格局为主。",
+  yijing:"意在言外。若重画面感与气韵、虚实相生、留白之趣，今日便以意境气韵为主。",
+  shengxiao:"生肖有宜忌。若重属相三合、喜用偏旁、避冲犯，今日便以生肖相宜为主。"
+};
 
 /* 颜色饱和度随场次递进（#6）：首屏 12%→进入 28%→逐次加深→汇总 100%（起点降低，背景渐变也跟随 body 上的 saturate 滤镜同步变化） */
 const SAT = {brand:12, s01:28, s02:36, s03a:44, s03b:44, s04:52, s05:60, s06:70, s07:80, s08:90,
@@ -652,7 +666,7 @@ function renderCarousel(sc){
     '<div class="tName">'+cur.name+'</div>'+
     '<div class="tDim">'+cur.dim+'</div></div>';
   transitionTo(
-    '<div class="bLayer"><div class="bubble"><span class="who">'+CHAR.xingshi.name+'</span><p class="tw-line"></p></div></div>'+
+    '<div class="bLayer"><div class="bubble"><span class="who">'+cur.name+'</span><p class="tw-line"></p></div></div>'+
     '<div class="cLayer"><div class="carousel"><button class="arrow" id="arrL" aria-label="上一位">‹</button>'+
       cardHtml+'<button class="arrow" id="arrR" aria-label="下一位">›</button></div>'+
     '<button class="btn pickBtn" id="pickBtn">选定这位老师</button>'+
@@ -660,7 +674,7 @@ function renderCarousel(sc){
     ()=>{
       showActor(cur.v);                         /* 立绘切到当前主老师 */
       const p = sceneEl.querySelector(".tw-line");
-      typeText(p, '请以此为凭，定今日主理。', 38);
+      typeText(p, TEACHER_GUIDE[cur.v], 38);
       sceneEl.querySelector("#arrL").onclick = ()=>moveCarousel(-1);
       sceneEl.querySelector("#arrR").onclick = ()=>moveCarousel(+1);
       sceneEl.querySelector("#pickBtn").onclick = ()=>{ state.primaryTeacher = list[state._teacherIdx].v; proceed(sc); };
@@ -682,6 +696,8 @@ function moveCarousel(delta){
       '<div class="tDim">'+cur.dim+'</div>';
     card.classList.remove("fade-out");
     showActor(cur.v);                            /* 立绘同步切换，触发镜像淡入过渡 */
+    const who = sceneEl.querySelector(".bubble .who"); if(who) who.textContent = cur.name;
+    const tw = sceneEl.querySelector(".tw-line"); if(tw){ tw.textContent=""; typeText(tw, TEACHER_GUIDE[cur.v], 38); }
   }, 350);
 }
 function fetchBazi(){
@@ -862,8 +878,7 @@ function renderSummary(sc){
   $("#step").textContent = sc.step || "过目";
   const rows = state.branch==="B"
     ? [["观测名字","name", state.name||"", "b1"], ["命格气韵","gender", fmtGender(), "b2"],
-       ["生辰八字","birth", state.birthText||"", "s08b"],
-       ["主理侧重","primaryTeacher", fmtTeacher(), "s08c"]]
+       ["生辰八字","birth", state.birthText||"", "s08b"]]
     : [  ["父姓","father", state.father||"", "s04"], ["母姓","mother", state.mother||"", "s04"],
        ["名随何方","mode", fmtMode(), "s05"], ["姓名字数","name_len", fmtLen(), "s07"],
        ["命格气韵","gender", fmtGender(), "s08"],
@@ -1102,7 +1117,73 @@ function renderResult(){
       const ex=p.querySelector(".explain"); ex.classList.toggle("show");
       p.querySelector(".toggle").textContent = ex.classList.contains("show")?"收起细项分析 ▴":"展开细项分析 ▾";
     };
+    p.querySelector(".exportBtn").onclick = (e)=>{ e.stopPropagation(); exportNameImage(i); };
   });
+}
+
+/* 导出某名字为图片：纯 canvas 手绘（离线可用、无外部依赖），始终导出「展开态」完整信息（名/综合分/六维/推荐理由/字义详解/命盘），不受当前卡片是否展开影响 */
+function roundRect(ctx,x,y,w,h,r){ if(w<2*r)r=w/2; if(h<2*r)r=h/2;
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function wrapCN(ctx, text, x, y, maxW, lineH){
+  let line="", yy=y;
+  for(const ch of text){
+    const test = line + ch;
+    if(line && ctx.measureText(test).width > maxW){ ctx.fillText(line, x, yy); line=ch; yy+=lineH; }
+    else line = test;
+  }
+  if(line) ctx.fillText(line, x, yy);
+  return yy + lineH;
+}
+function exportNameImage(idx){
+  const data = state.result || {names:[]};
+  const n = (data.names||[])[idx];
+  if(!n) return;
+  const meta = data.meta || {};
+  const W = 720, pad = 40, lineH = 22;
+  const cv = document.createElement("canvas");
+  const ctx = cv.getContext("2d");
+  ctx.font = "13px 'PingFang SC','Microsoft YaHei',sans-serif";
+  let contentH = 70 + (n.rank_reason ? 2*lineH+6 : 0) + 96 + (meta.has_birth ? 5*lineH+10 : 0) + 40;
+  (n.explain||[]).forEach(e=>{ const t=(e.label?("· "+e.label+"："):"")+e.text; const lines=Math.max(1, Math.ceil(ctx.measureText(t).width / (W-2*pad-12))); contentH += lines*lineH+10; });
+  const H = contentH + 2*pad;
+  cv.width = W; cv.height = H;
+  const bg = ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,"#4a3320"); bg.addColorStop(1,"#2c1d12");
+  ctx.fillStyle = bg; roundRect(ctx,0,0,W,H,18); ctx.fill();
+  ctx.strokeStyle="rgba(255,220,170,.3)"; ctx.lineWidth=1; roundRect(ctx,6,6,W-12,H-12,14); ctx.stroke();
+  ctx.textBaseline="top"; let y = pad;
+  ctx.fillStyle="#ffdca6"; ctx.font="600 13px 'PingFang SC','Microsoft YaHei',sans-serif";
+  ctx.fillText("星命观测局 · 荐名", pad, y); y += 30;
+  ctx.fillStyle="#ffffff"; ctx.font="700 38px 'PingFang SC','Microsoft YaHei',sans-serif";
+  ctx.shadowColor="rgba(255,200,150,.5)"; ctx.shadowBlur=12; ctx.fillText(n.name, pad, y); ctx.shadowBlur=0;
+  const scoreText = "综合 "+n.total; ctx.font="600 16px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#ffe2b0";
+  ctx.fillText(scoreText, W-pad-ctx.measureText(scoreText).width, y+12); y += 56;
+  if(n.rank_reason){ ctx.fillStyle="#f0d9bb"; ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; y = wrapCN(ctx, "★ 推荐理由："+n.rank_reason, pad, y, W-2*pad, lineH); y += 6; }
+  ctx.font="11px 'PingFang SC','Microsoft YaHei',sans-serif";
+  const colW = (W-2*pad - 2*16)/3;
+  DIMS.forEach(([k,cn],i)=>{
+    const cx = pad + (i%3)*(colW+16), cy = y + Math.floor(i/3)*(lineH+14);
+    const v = n.dims ? n.dims[k] : null;
+    ctx.fillStyle="#e9cfa8"; ctx.fillText(cn+" "+(v==null?"—":v), cx, cy);
+    const bx=cx, by=cy+lineH-2, bw=colW, bh=6;
+    ctx.fillStyle="rgba(0,0,0,.35)"; roundRect(ctx,bx,by,bw,bh,3); ctx.fill();
+    const wpct=(v==null)?0:v, grad=ctx.createLinearGradient(bx,0,bx+bw,0); grad.addColorStop(0,"#ffd9a0"); grad.addColorStop(1,"#ffb259");
+    ctx.fillStyle=grad; if(wpct>0){ roundRect(ctx,bx,by,bw*wpct/100,bh,3); ctx.fill(); }
+  });
+  y += 2*(lineH+14) + 16;
+  if(meta.has_birth){
+    ctx.fillStyle="#ffdca6"; ctx.font="600 13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillText("命盘参详", pad, y); y += lineH;
+    ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#f5e7d2";
+    const gz=(meta.gz||[]).join(" "), dm=meta.day_master?(meta.day_master+(meta.day_master_wx||"")):"—";
+    const strong={"旺":"身旺","弱":"身弱","中和":"中和"}[meta.strong]||"—", useg=(meta.use_gods||[]).join("、")||"—";
+    const zod=meta.zodiac?("生肖 "+meta.zodiac):"";
+    y = wrapCN(ctx, "八字 "+gz+"　日主 "+dm+"　旺衰 "+strong+"　喜用神 "+useg+(zod?("　"+zod):""), pad, y, W-2*pad, lineH); y += 8;
+  }
+  ctx.fillStyle="#ffdca6"; ctx.font="600 13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillText("字义详解", pad, y); y += lineH;
+  ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#efe0c8";
+  (n.explain||[]).forEach(e=>{ y = wrapCN(ctx, (e.label?("· "+e.label+"："):"")+e.text, pad+12, y, W-2*pad-12, lineH); y += 8; });
+  ctx.fillStyle="rgba(255,220,170,.6)"; ctx.font="11px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillText("星命观测局 · 起名推演", pad, H-pad-14);
+  cv.toBlob(b=>{ if(!b) return; const a=document.createElement("a"); a.download="星名_"+n.name+".png"; a.href=URL.createObjectURL(b); a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }, "image/png");
 }
 
 /* 落叶：仅首屏 + 频率+50% + 随机三主题彩色 + 饱和度与最终页一致 */
