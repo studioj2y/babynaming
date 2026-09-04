@@ -60,12 +60,6 @@
       "file": "/characters/char-yinlv-1.png",
       "real": true
     },
-    "xingtai": {
-      "name": "形义老师",
-      "color": "#9aa6b2",
-      "file": "/characters/char-xingtai-1.png",
-      "real": true
-    },
     "shuli": {
       "name": "数理老师",
       "color": "#7c8aa0",
