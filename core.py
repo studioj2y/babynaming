@@ -659,6 +659,8 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
 
     gl = good()
     ch = chars()
+    # 方向2：把用户所选标签扩展为「原标签 + 近义组 + 别名归并」，扩大有效池、贴合直觉
+    query_tags = _expand_tags(tags)
     pool = []
     for it in gl:
         c = it['c']
@@ -671,15 +673,40 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
             continue
         if gender == 'F' and g == 'M':
             continue
-        if tags and not (set(it['t']) & set(tags)):
+        if query_tags and not (set(it['t']) & query_tags):
             continue
         info = ch.get(c)
         if not info:
             continue
         pool.append((c, it, info))
 
+    # 方向3：若因寓意筛选导致池为空，自动松弛退回「忽略寓意」的全量好字（仍按性别/避讳），
+    # 绝不返回错误掉入 mock 占位名。
+    relaxed = False
+    relax_reason = None
+    if tags and not pool:
+        pool = []
+        for it in gl:
+            c = it['c']
+            if c in surname:
+                continue
+            if avoid and c in avoid:
+                continue
+            g = it['g']
+            if gender == 'M' and g == 'F':
+                continue
+            if gender == 'F' and g == 'M':
+                continue
+            info = ch.get(c)
+            if not info:
+                continue
+            pool.append((c, it, info))
+        if pool:
+            relaxed = True
+            relax_reason = '您所选寓意可匹配的字较少，已自动放宽到相近寓意与通用好字。'
+
     if not pool:
-        return [], {'error': '当前筛选（性别/寓意）下可选字过少，请放宽寓意选择或调整性别。'}
+        return [], {'error': '当前筛选（性别/避讳）下可选字过少，请调整姓氏或避讳字。'}
 
     has_birth = birth is not None
     need = birth['need'] if has_birth else None
@@ -694,7 +721,7 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
 
     def base(it, info):
         s = 70
-        if tags and (set(it['t']) & set(tags)):
+        if query_tags and (set(it['t']) & query_tags):
             s += 20
         if gender in ('M', 'F') and it['g'] == gender:
             s += 10
@@ -727,7 +754,7 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
     names.sort(key=lambda x: -x['total'])
     meta = {'has_birth': has_birth, 'need': need, 'zodiac': zodiac,
             'pool_size': len(pool), 'surname': surname, 'mode': mode,
-            'name_len': name_len}
+            'name_len': name_len, 'relaxed': relaxed, 'relax_reason': relax_reason}
     out = _curate_diverse(names, topn)
     if out:
         assigned = _assign_explain_variants(out, meta, mode)
@@ -813,11 +840,21 @@ def analyze_given_name(name, gender, birth, weights=None):
 
 # ---------- 能力5：自由期许 → 标签映射（AI 优先，失败回退关键词） ----------
 def map_free_text_to_tags(free_text):
-    picks = ai.map_free_text(free_text, TAGS_VOCAB)
+    ft = (free_text or '').strip()
+    if not ft:
+        return []
+    # 本地词典优先（零 AI）：覆盖「睿/温柔/诗/自然/音乐/艺术」等直觉词，命中即返回不调 AI
+    local = []
+    for kw, tag in _FREE_TEXT_DICT.items():
+        if kw in ft and tag not in local:
+            local.append(tag)
+    if local:
+        return local
+    # 未命中再走 AI 语义映射（仅此时可能产生 1 次 AI 调用）；再失败回退词表精确包含
+    picks = ai.map_free_text(ft, TAGS_VOCAB)
     if picks:
         return picks
-    # 回退：关键词包含匹配
-    return [t for t in TAGS_VOCAB if t in (free_text or '')]
+    return [t for t in TAGS_VOCAB if t in ft]
 
 # ---------- 能力1：整盘 AI 积极解读（AI 优先，失败返回 None） ----------
 def ai_review_for_name(name_obj, meta):
@@ -825,3 +862,65 @@ def ai_review_for_name(name_obj, meta):
                         meta.get('zodiac'), meta.get('need'), name_obj.get('dims'))
 
 TAGS_VOCAB = ['智慧','才华','健康','安宁','光明','品德','勇敢','温婉','灵秀','仁愛','喜悦','自由','俊逸','坚韧']
+
+# ---------- 标签近义组 / 别名归并（方向2：增厚 + 贴合直觉） ----------
+# 用户选某标签时，一并纳入近义标签（OR 查询，有效池翻倍）。
+TAG_EXPAND = {
+    '智慧': ['才华', '灵秀'],
+    '才华': ['智慧', '灵秀'],
+    '灵秀': ['智慧', '才华'],
+    '温婉': ['安宁', '仁愛'],
+    '安宁': ['温婉', '仁愛', '喜悦'],
+    '仁愛': ['温婉', '安宁'],
+    '喜悦': ['安宁', '光明'],
+    '光明': ['喜悦', '俊逸'],
+    '俊逸': ['光明', '自由'],
+    '自由': ['俊逸', '灵秀'],
+    '品德': ['仁愛', '坚韧'],
+    '勇敢': ['坚韧', '健康'],
+    '坚韧': ['勇敢', '品德'],
+    '健康': ['勇敢', '安宁'],
+}
+# 用户直觉词 → 词表标签（方向4 桥接：不在 TAGS_VOCAB 的选词归并到词表标签）
+TAG_ALIASES = {
+    '睿': '智慧', '聪明': '智慧', '聪慧': '智慧', '伶俐': '智慧', '智': '智慧',
+    '才': '才华', '文': '才华', '诗': '才华', '书': '才华', '艺': '才华',
+    '温柔': '温婉', '柔美': '温婉', '文静': '温婉', '婉': '温婉',
+    '自然': '灵秀', '山水': '灵秀', '风景': '灵秀', '秀丽': '灵秀',
+    '音乐': '才华', '艺术': '才华', '画': '才华',
+    '快乐': '喜悦', '开心': '喜悦', '幸福': '喜悦', '欢乐': '喜悦',
+    '阳光': '光明', '明亮': '光明', '希望': '光明',
+    '帅': '俊逸', '潇洒': '俊逸', '飘逸': '俊逸',
+    '随性': '自由', '洒脱': '自由',
+    '善良': '品德', '德': '品德',
+    '勇': '勇敢', '刚': '勇敢',
+    '顽强': '坚韧', '毅力': '坚韧',
+    '康': '健康', '安': '安宁',
+}
+
+def _expand_tags(tags):
+    """把用户所选标签扩展为「原标签 + 近义组 + 别名归并」的查询集合。"""
+    if not tags:
+        return set()
+    out = set()
+    for t in tags:
+        t = TAG_ALIASES.get(t, t)
+        out.add(t)
+        out.update(TAG_EXPAND.get(t, []))
+    return out
+
+# 自由期许 → 标签 本地关键词词典（零 AI，覆盖直觉词；命中即返回，不调 AI）
+_FREE_TEXT_DICT = {
+    '睿': '智慧', '聪明': '智慧', '聪慧': '智慧', '智': '智慧',
+    '才': '才华', '文': '才华', '诗': '才华', '书': '才华', '艺': '才华',
+    '温柔': '温婉', '柔美': '温婉', '文静': '温婉', '婉': '温婉',
+    '自然': '灵秀', '山水': '灵秀', '风景': '灵秀', '秀丽': '灵秀',
+    '快乐': '喜悦', '开心': '喜悦', '幸福': '喜悦', '欢乐': '喜悦',
+    '阳光': '光明', '明亮': '光明', '希望': '光明',
+    '帅': '俊逸', '潇洒': '俊逸', '飘逸': '俊逸',
+    '随性': '自由', '洒脱': '自由',
+    '善良': '品德', '德': '品德',
+    '勇': '勇敢', '刚': '勇敢',
+    '顽强': '坚韧', '毅力': '坚韧',
+    '康': '健康', '安': '安宁',
+}
