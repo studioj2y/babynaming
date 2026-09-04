@@ -170,7 +170,8 @@ def star_review(name, gender, zodiac, need, dims, bazi, primary):
         f"请星师以此名做一段解读。"
     )
     try:
-        # maxtok=700 留足余量；截断上限提到 320，使 180~240 字的正常回复不再被中途腰斩
-        return _truncate(_clean(_call(system, user, maxtok=700)), 320)
+        # maxtok=700 留足余量；输出仅做 _clean 清理，不再做硬截断（避免句中被腰斩）
+        # 长度由 prompt 约束在 220 字内、max_tokens 亦封顶，不会失控。
+        return _clean(_call(system, user, maxtok=700))
     except Exception:
         return None
