@@ -332,13 +332,29 @@ def score_stroke(total):
     return max(0, 100 - (total - 26) * 3)
 
 def score_gender(genders, req):
-    bad = 0
-    for g in genders:
-        if req == 'M' and g == 'F':
-            bad += 1
-        if req == 'F' and g == 'M':
-            bad += 1
-    return {0: 100, 1: 55, 2: 25}.get(bad, 25)
+    """气韵契合（性别维度）：名中每字性别气韵(M/F/U)与所求性别的贴合度。
+
+    设计要点（用户反馈：男孩气韵不应一直 100%）：
+    - 纯同性别(M 或 F)不再给满分，封顶约 90，避免该维度恒为 100 显得失真；
+    - 含一枚中性(U)字（刚柔相济）反而更见韵味，给予小幅加成，可到 90+；
+    - req='U'（不限）：中性最稳 90；单性别(M/F)亦可 84；M+F 混搭气韵杂乱 55。
+    """
+    if not genders:
+        return 100
+    n = len(genders)
+    if req == 'M':
+        fit = {'M': 90, 'U': 84, 'F': 0}
+    elif req == 'F':
+        fit = {'F': 90, 'U': 84, 'M': 0}
+    else:                               # req == 'U'（不限）
+        if 'M' in genders and 'F' in genders:
+            return 55                    # 气韵杂乱，直接降分
+        fit = {'U': 90, 'M': 84, 'F': 84}
+    s = sum(fit.get(g, 84) for g in genders) / n
+    # 气韵（意境）：清一色同性别略欠含蓄，含一枚中性字更见刚柔相济之韵 → 小幅加成，封顶 100
+    if req in ('M', 'F') and 'U' in genders and genders.count('U') < n:
+        s = min(100, s + 8)
+    return round(s)
 
 # ---------- 五格数理（姓名学 81 数理，吉凶打分，确定性、按笔画逐名不同） ----------
 GRID_SCORE = {
@@ -824,6 +840,14 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
     ranked = sorted(pool, key=lambda x: base(x[1], x[2]), reverse=True)
     M = min(40, len(ranked))
     top = ranked[:M]
+    # 气韵多样化：男/女名候选字池里保留若干中性(U)字，使最终名也能出现「刚柔相济」组合，
+    # 避免因为清一色同性别字导致气韵维度恒定（用户反馈：男孩气韵不应一直 100%）。
+    if gender in ('M', 'F'):
+        u_pool = [x for x in ranked if x[1]['g'] == 'U']
+        for x in u_pool[:12]:
+            if id(x) not in {id(t) for t in top}:
+                top.append(x)
+        M = len(top)
 
     s_info = surname_info(surname)
     s_py = ''.join(p[0] for p in s_info)
