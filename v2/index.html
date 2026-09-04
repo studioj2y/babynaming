@@ -440,6 +440,10 @@ const RITUAL = [
     "把姓氏和名字连起来读，先听重音落在哪里。",
     "声调的起伏已经有轮廓了，再检查连续读几遍。",
     "这个方向的语感比较清楚，先保留下来，等音律老师再做细听。"]},
+  {keys:["yinlv"], lines:[
+    "先把名字轻轻念出来，听声韵往哪边走。",
+    "节奏还在微调，轻重高低还没完全落定。",
+    "听感已经有一点方向了，先记下这条声线，再和字形对一下。"]},
   {keys:["zhanxing"], lines:[
     "球面上的光点还在移动，先看整体气质往哪边走。",
     "星象给出的更像方向，不是一个已经写好的答案。",
@@ -517,7 +521,7 @@ const SCENES = {
   s03b:{kind:"talk", actor:"assistant", step:"引荐", lines:[
       "也好，请写下那名字，我请语文老师为您细细观测。"] , next:"b1"},
   s04:{kind:"ask", actor:"ziyuan", step:"第一观测层 · 血脉", lines:[
-      "姓氏不仅是名字的开端，也影响整体音律、字形与节奏。"],
+      "姓氏不仅是名字的开端，也影响整体音律、字形与节奏。父母姓氏为根，请赐知。"],
       ask:{widget:"two", fields:[{field:"father",label:"父姓",ph:"如 李"},{field:"mother",label:"母姓",ph:"如 王"}],
       require:["father","mother"]}, next:"s05"},
   s05:{kind:"ask", actor:"ziyuan", step:"第一观测层 · 血脉", lines:[
@@ -527,10 +531,10 @@ const SCENES = {
       "我先定下姓名的骨架，余下交由其他老师细看。",
       "姓氏已立，骨架既成，请语文老师斟酌字数。"] , next:"s07"},
   s07:{kind:"ask", actor:"yuwen", step:"第一观测层 · 字数", lines:[
-      "姓氏方式会改变姓名的长度、重音与整体气质。"],
+      "姓氏方式会改变姓名的长度、重音与整体气质。小星主姓名用几个字？"],
       ask:{widget:"seg", field:"name_len", def:3, options:[{v:2,label:"两字"},{v:3,label:"三字"},{v:4,label:"四字"}]}, next:"s08"},
   s08:{kind:"ask", actor:"zhanxing", step:"第二观测层 · 命格", lines:[
-      "先观命盘阴阳，方好定笔意刚柔。"],
+      "先看看星盘——男孩还是女孩？这个定了，后面名字的气质走向才好拿捏。"],
       ask:{widget:"seg", field:"gender", def:"U", theme:true,
       options:[{v:"M",label:"男孩"},{v:"F",label:"女孩"},{v:"U",label:"不限"}]}, next:"s08b"},
   b1:{kind:"ask", actor:"yuwen", step:"观测 · 名字", lines:[
@@ -917,20 +921,28 @@ function callAPI(){
       name_len:state.name_len||3, gender:state.gender||"U", tags:[], avoid:"", free_text:"", birth:state.birth||null, weights:w})}).then(r=>r.json());
 }
 
-/* #2 需求：提问阶段出场过的老师（assistant/ziyuan/yuwen/zhanxing/xingshi）放到表演序列后段；
-        提问阶段未出场的老师（bagua/wuxing/shuli/shengxiao/yijing/diangu）优先出场。*/
-const QTEACHERS = new Set(["assistant","ziyuan","yuwen","zhanxing","xingshi","wuxing"]);
+/* 单人表演分组：三组按序出场；每组随机取若干位（保证音律/字形等偏科老师稳定露面，不再随机被砍）。
+   组1 语文/音律/字形 → 随机2位；组2 字源/典故/意境 → 随机2位；组3 五行/生肖/八卦/数理/术数/占星 → 随机3位。
+   单人共 7 位，随后衔接不变的双人合参（DUOS 每组随机1套）。*/
+const SOLO_GROUPS = [
+  {keys:["yuwen","yinlv","xingzi"], n:2},
+  {keys:["ziyuan","diangu","yijing"], n:2},
+  {keys:["wuxing","shengxiao","bagua","shuli","shushu","zhanxing"], n:3}
+];
 function enterRitual(){
   $("#actorWrap").style.display="none";   // 演出时隐藏全局立绘
   $("#ritualWrap").style.display="flex";  // 表演立绘改由滤镜外的 #ritualWrap 承载（保持满色，不受饱和度递进影响）
   $("#step").textContent="占算";
   apiPromise = callAPI();
   apiPromise.then(d=>{ state.result=d; }).catch(e=>{ state.result={meta:{error:"推算中断："+e.message}}; });
-  const perfSingles = shuffle(RITUAL.filter(r=>r.keys.length===1 && r.keys[0]!=="xingshi").slice());
-  // 排序：非提问老师（0）排在提问老师（1）之前；组内保持 shuffle 顺序
-  perfSingles.sort((a,b)=> (QTEACHERS.has(a.keys[0])?1:0) - (QTEACHERS.has(b.keys[0])?1:0));
-  const pairs = shuffle(DUOS.slice());            // 双人合参走 DUOS 交叉互动台词
-  const SEQ = perfSingles.slice(0,-1).concat(pairs.slice(0,-1));  // 本轮：单人减1、双人减1
+  /* 单人阶段：三组按序，每组内随机取 n 位 */
+  const perfSingles = [];
+  SOLO_GROUPS.forEach(g=>{
+    const picked = shuffle(RITUAL.filter(r=>r.keys.length===1 && g.keys.includes(r.keys[0])).slice()).slice(0, g.n);
+    perfSingles.push(...picked);
+  });
+  const pairs = shuffle(DUOS.slice());            // 双人合参走 DUOS 交叉互动台词（先不动）
+  const SEQ = perfSingles.concat(pairs.slice(0,-1));  // 单人固定7位 + 双人减1（衔接不变）
   let i=0;
   /* 旋转大圆（orbit）沉到 #ritual 底部，不再与立绘/文字重叠；立绘在上、文字用对话泡在下。 */
   sceneEl.innerHTML = '<div id="ritual">'+
