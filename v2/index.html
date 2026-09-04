@@ -313,6 +313,42 @@
     border-color:#ffdca6;box-shadow:0 0 0 1px #ffdca6,0 8px 20px rgba(255,180,100,.3)}
   .teacherGrid .tcard .tn{font-size:15px;font-weight:600;color:#ffe6bf;text-shadow:0 0 8px rgba(255,200,150,.4)}
   .teacherGrid .tcard .td{font-size:12px;color:#e7cba6;opacity:.9}
+  /* 生辰字段：时辰下拉与日期等大（之前 select 偏小） */
+  .birthWrap{display:flex;gap:10px;align-items:flex-end}
+  .birthWrap .field{flex:1;min-width:0}
+  .birthWrap .field:first-child{flex:1.6}
+  .birthWrap input[type="date"],
+  .birthWrap select{height:44px;font-size:15px;border-radius:10px;padding:0 12px;width:100%;box-sizing:border-box;
+    background:rgba(255,240,220,.08);border:1px solid rgba(255,220,170,.28);color:#f3e6d2}
+  .birthWrap input[type="date"]:focus,
+  .birthWrap select:focus{outline:none;border-color:#ffdca6;box-shadow:0 0 0 1px #ffdca6}
+  /* 八字弹窗：复用 .baziCard 样式 */
+  .baziDialog{margin:6px 0}
+  /* 主理老师轮播（一位一张卡，左右箭头切换 + 过渡） */
+  .carousel{display:flex;align-items:center;gap:10px;margin:10px 0 6px}
+  .carousel .arrow{flex:0 0 38px;width:38px;height:38px;border-radius:50%;
+    background:rgba(255,240,220,.1);border:1px solid rgba(255,220,170,.3);
+    color:#ffdca6;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:background .2s,border-color .2s,transform .15s}
+  .carousel .arrow:hover{background:rgba(255,210,150,.22);border-color:#ffdca6}
+  .carousel .arrow:active{transform:scale(.92)}
+  .carousel .tCard{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:10px 8px;border-radius:12px;background:rgba(255,240,220,.07);
+    border:1px solid rgba(255,220,170,.25);min-height:128px;
+    transition:opacity .35s ease;overflow:hidden}
+  .carousel .tCard.fade-out{opacity:0}
+  .carousel .tCard .tImg{width:64px;height:64px;border-radius:50%;object-fit:cover;
+    border:1px solid rgba(255,220,170,.3);background:rgba(255,240,220,.1)}
+  .carousel .tCard .tName{font-size:15px;font-weight:600;color:#ffe6bf;
+    text-shadow:0 0 8px rgba(255,200,150,.4);margin-top:4px}
+  .carousel .tCard .tDim{font-size:12px;color:#e7cba6;opacity:.9}
+  .carousel .pickBtn{margin-top:8px;width:auto;padding:10px 22px;font-size:14px}
+  /* 星师综合：底部常驻按钮（非立绘） */
+  .balanceBtn{margin-top:10px;width:100%;padding:11px 18px;font-size:14px;
+    background:linear-gradient(160deg,rgba(180,140,90,.2),rgba(140,100,70,.14));
+    border:1px solid rgba(255,220,170,.4);color:#ffdca6;border-radius:12px;cursor:pointer;
+    transition:all .2s}
+  .balanceBtn:hover{background:linear-gradient(160deg,rgba(220,180,130,.3),rgba(180,140,100,.2));border-color:#ffdca6}
   /* 动效全程开启（用户偏好观赏落叶与转场效果） */
 </style>
 </head>
@@ -413,10 +449,10 @@ const DUOS = [
     ["典故老师翻检典籍，寻得本源。", "术数老师笑道：「有出处，便更见分量。」"],
     ["术数老师掐指一算：「落于吉位。」", "典故老师补：「又恰有来历，双保险。」"],
     ["典故老师：「这字有本源。」", "术数老师笑：「数上也站得住，妙得很。」"]]},
-  {keys:["yinlv","xingtai"], lines:[
-    ["音律老师随口哼了个调，声韵先活。", "形义老师端详字形：「声形相生，这名一下就立住了。」"],
-    ["形义老师指着间架：「笔画舒朗。」", "音律老师接腔：「读起来也正合拍。」"],
-    ["音律老师：「听着顺。」", "形义老师点头：「看着也正，声形两宜。」"]]},
+  {keys:["yinlv","wuxing"], lines:[
+    ["音律老师随口哼了个调，声韵先活。", "五行老师看气：「声气相求，这名一下就活了。」"],
+    ["五行老师指气脉：「五行流转得宜。」", "音律老师接腔：「读起来也正合调。」"],
+    ["音律老师：「听着顺。」", "五行老师点头：「气也顺，声气两宜。」"]]},
   {keys:["ziyuan","yuwen"], lines:[
     ["字源老师点出本义，骨架先立。", "语文老师调起平仄：「形立声协，念来便妥帖。」"],
     ["语文老师：「节奏一顺就舒服。」", "字源老师笑：「本义也稳，算双美。」"],
@@ -439,15 +475,15 @@ const DIMS = [["wuxing","五行"],["zodiac","生肖"],["pronounce","音律"],["m
 /* V1「第二步·看重什么」维度 → 对应主理老师；选中的老师其维度权重在取名/观测时加权 */
 const DEFAULT_WEIGHTS = {'wuxing':0.20,'zodiac':0.12,'pronounce':0.33,'meaning':0.15,'stroke':0.10,'gender':0.10};
 const WEIGHT_BOOST = 3;   /* 主理老师维度权重放大倍数（可调：越大越偏重该维度） */
-const TEACHER_DIM = {wuxing:'wuxing', yuwen:'pronounce', ziyuan:'meaning', shuli:'stroke', yijing:'gender', bagua:'zodiac'};
+const TEACHER_DIM = {wuxing:'wuxing', yuwen:'pronounce', ziyuan:'meaning', shuli:'stroke', yijing:'gender', shengxiao:'zodiac'};
+/* 轮播清单（不含「星师综合」——综合走底部独立按钮） */
 const TEACHER_PICK = [
-  {v:"wuxing", name:"五行老师", dim:"五行调和"},
-  {v:"yuwen",  name:"语文老师", dim:"音律朗朗"},
-  {v:"ziyuan", name:"字源老师", dim:"字义寄意"},
-  {v:"shuli",  name:"数理老师", dim:"数理格局"},
-  {v:"yijing", name:"意境老师", dim:"气韵契合"},
-  {v:"bagua",  name:"八卦老师", dim:"生肖相宜"},
-  {v:"balance",name:"星师综合", dim:"均衡无偏"}
+  {v:"wuxing",    name:"五行老师", dim:"五行调和"},
+  {v:"yuwen",     name:"语文老师", dim:"音律朗朗"},
+  {v:"ziyuan",    name:"字源老师", dim:"字义寄意"},
+  {v:"shuli",     name:"数理老师", dim:"数理格局"},
+  {v:"yijing",    name:"意境老师", dim:"气韵契合"},
+  {v:"shengxiao", name:"生肖老师", dim:"生肖相宜"}
 ];
 
 /* 颜色饱和度随场次递进（#6）：首屏 12%→进入 28%→逐次加深→汇总 100%（起点降低，背景渐变也跟随 body 上的 saturate 滤镜同步变化） */
@@ -495,15 +531,19 @@ const SCENES = {
   s08b:{kind:"ask", actor:"wuxing", step:"第二观测层 · 命格（可选）", lines:[
       "若告知小星主降生的年、月、日、时，我便能现场推算八字，为名中暗补命局所喜之五行。此步可留空。"],
       ask:{widget:"birth", field:"birth", optional:true}, next:"s08c"},
-  s08c:{kind:"ask", actor:"xingshi", step:"主理 · 今日侧重", lines:[
-      "命名如调琴，诸般维度皆有其美。今日您最看重哪一格？择一位主理老师，其专长便在名中多添几分分量。"],
-      ask:{widget:"teacher", field:"primaryTeacher", def:"balance"}, next:"s_summary"},
+  s08b_result:{kind:"ask", actor:"wuxing", step:"第二观测层 · 八字", lines:[
+      "据此生辰，吾已推得命盘如下。"],
+      ask:{widget:"bazi", field:"bazi"}, next:"s08c"},
+  s08c:{kind:"talk", actor:"xingshi", step:"主理 · 今日侧重（序）", lines:[
+      "命名如调琴，诸般维度皆有其美。今日您最看重哪一格？"],
+      next:"s08c2"},
+  s08c2:{kind:"carousel", actor:"xingshi", step:"主理 · 今日侧重", next:"s_summary"},
   s_summary:{kind:"summary", step:"过目", next:"s09"},  /* 汇总表不再显示星师立绘（与表单重叠严重），让表单更清晰 */
   s09:{kind:"ritual"},
   s10:{kind:"wait"},
 };
 
-const state = {scene:null, branch:"A"};
+const state = {scene:null, branch:"A", _birthHour:12};
 let apiPromise = null;
 const $ = (s)=>document.querySelector(s);
 const sceneEl = $("#scene");
@@ -570,12 +610,17 @@ function proceed(sc){
   if(state.editReturn){ const t=state.editReturn; state.editReturn=null; go(t); }
   else go(sc.next);
 }
+/* 生辰/八字弹窗「继续」：从汇总表「改」返回时回到汇总；否则 A 线回主理序(s08c)，B 线回汇总(s_summary) */
+function _returnTarget(){
+  if(state.editReturn){ const t=state.editReturn; state.editReturn=null; return t; }
+  return state.branch==="B" ? "s_summary" : "s08c";
+}
 /* 点击左上"星命观测局"回到首页，重置整段流程 */
 function goHome(){
   clearTimeout(state._rt);
   state._revealing=false;
   state.editReturn=null;
-  ["father","mother","mode","name_len","gender","name","result","birth","birthText","_birthDate","_birthHour","primaryTeacher"].forEach(k=>delete state[k]);
+  ["father","mother","mode","name_len","gender","name","result","birth","birthText","_birthDate","_birthHour","primaryTeacher","_carouselList","_teacherIdx","bazi"].forEach(k=>delete state[k]);
   state.branch="A";
   apiPromise = Promise.resolve();
   $("#actorWrap").style.display="";
@@ -594,6 +639,67 @@ function transitionTo(html, after){
   }, 300);
 }
 
+/* ---------- 主理老师轮播（一位一张卡 + 左右箭头 + 星师综合底部按钮） ---------- */
+function teacherCarouselList(){
+  const list = TEACHER_PICK.slice();
+  if(!state.birth){                            /* 未填生辰时，生肖老师不出现 */
+    const i = list.findIndex(t=>t.v==="shengxiao");
+    if(i>=0) list.splice(i,1);
+  }
+  return list;
+}
+function renderCarousel(sc){
+  const list = teacherCarouselList();
+  state._carouselList = list;
+  state._teacherIdx = 0;
+  const cur = list[0];
+  const cardHtml = '<div class="tCard" id="tCard">'+
+    '<img class="tImg" src="'+CHAR[cur.v].file+'" alt="'+cur.name+'">'+
+    '<div class="tName">'+cur.name+'</div>'+
+    '<div class="tDim">'+cur.dim+'</div></div>';
+  transitionTo(
+    '<div class="bLayer"><div class="bubble"><span class="who">'+CHAR.xingshi.name+'</span><p class="tw-line"></p></div></div>'+
+    '<div class="cLayer"><div class="carousel"><button class="arrow" id="arrL" aria-label="上一位">‹</button>'+
+      cardHtml+'<button class="arrow" id="arrR" aria-label="下一位">›</button></div>'+
+    '<button class="btn pickBtn" id="pickBtn">选定这位老师</button>'+
+    '<button class="balanceBtn" id="balanceBtn">星师综合（均衡无偏）</button></div>',
+    ()=>{
+      showActor(cur.v);                         /* 立绘切到当前主老师 */
+      const p = sceneEl.querySelector(".tw-line");
+      typeText(p, '请以此为凭，定今日主理。', 38);
+      sceneEl.querySelector("#arrL").onclick = ()=>moveCarousel(-1);
+      sceneEl.querySelector("#arrR").onclick = ()=>moveCarousel(+1);
+      sceneEl.querySelector("#pickBtn").onclick = ()=>{ state.primaryTeacher = list[state._teacherIdx].v; proceed(sc); };
+      sceneEl.querySelector("#balanceBtn").onclick = ()=>{ state.primaryTeacher = "balance"; proceed(sc); };
+    }
+  );
+}
+function moveCarousel(delta){
+  const list = state._carouselList;
+  if(!list || !list.length) return;
+  let idx = (state._teacherIdx + delta + list.length) % list.length;
+  const card = sceneEl.querySelector("#tCard");
+  if(!card) return;
+  card.classList.add("fade-out");
+  setTimeout(()=>{
+    state._teacherIdx = idx;
+    const cur = list[idx];
+    card.innerHTML = '<img class="tImg" src="'+CHAR[cur.v].file+'" alt="'+cur.name+'">'+
+      '<div class="tName">'+cur.name+'</div>'+
+      '<div class="tDim">'+cur.dim+'</div>';
+    card.classList.remove("fade-out");
+    showActor(cur.v);                            /* 立绘同步切换，触发镜像淡入过渡 */
+  }, 350);
+}
+function fetchBazi(){
+  if(!state.birth){ state.bazi=null; return Promise.resolve(null); }
+  return fetch("/api/bazi",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({birth:state.birth})}).then(r=>r.json()).then(bz=>{
+      if(bz && !bz.error) state.bazi = bz;
+      return bz;
+    }).catch(()=>null);
+}
+
 function renderScene(sc){
   $("#step").textContent = sc.step || "";
   sceneEl.classList.toggle("scene--fixed", sc.kind==="talk"||sc.kind==="ask"||sc.kind==="branch");
@@ -604,14 +710,18 @@ function renderScene(sc){
   else if(sc.kind!=="ritual"){ _rd.setProperty("--actor-bottom","38%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
   /* 登场门控：内容(气泡/输入)待立绘登场完成后再出现；小助理按场景切换立绘 */
   state._actorReady=false; state._onActor=null;
-  if(sc.actor!==undefined){
-    const src = (sc.actor==="assistant" && ASS_PORTRAIT[state.scene]) ? ASS_PORTRAIT[state.scene] : null;
-    showActor(sc.actor, src, ()=>{ state._actorReady=true; const f=state._onActor; state._onActor=null; if(f) f(); });
+  /* 轮播场景：立绘直接设为轮播第一位老师，避免先显星师再切换的闪烁 */
+  let _actorKey = sc.actor;
+  if(sc.kind==="carousel"){ _actorKey = teacherCarouselList()[0].v; }
+  if(_actorKey!==undefined){
+    const src = (_actorKey==="assistant" && ASS_PORTRAIT[state.scene]) ? ASS_PORTRAIT[state.scene] : null;
+    showActor(_actorKey, src, ()=>{ state._actorReady=true; const f=state._onActor; state._onActor=null; if(f) f(); });
   }
   if(sc.kind==="brand") return renderBrand(sc);
   if(sc.kind==="talk") return renderTalk(sc);
   if(sc.kind==="branch") return renderBranch(sc);
   if(sc.kind==="ask") return renderAsk(sc);
+  if(sc.kind==="carousel") return renderCarousel(sc);
   if(sc.kind==="summary"){ $("#actorWrap").style.display="none"; return renderSummary(sc); }  /* 汇总表界面去掉星师立绘，确保表单清晰 */
   if(sc.kind==="wait") return renderWait(false);
 }
@@ -665,11 +775,29 @@ function renderAsk(sc){
   } else if(a.widget==="birth"){
     const hr = [];
     for(let h=0; h<24; h++){ const sel = (state._birthHour===h)?' selected':''; hr.push('<option value="'+h+'"'+sel+'>'+h+' 时</option>'); }
-    inner = '<div class="fields-row"><div class="field" style="flex:1.5"><label>出生日期</label>'+
+    inner = '<div class="fields-row birthWrap"><div class="field"><label>出生日期</label>'+
       '<input type="date" data-f="birthdate" value="'+(state._birthDate||"")+'" /></div>'+
       '<div class="field"><label>时辰</label><select data-f="birthhour">'+hr.join("")+'</select></div></div>'+
-      '<div class="hint">可选：留空或点「跳过」则不参八字，仅按常规五行搭配</div>';
-    if(a.optional) extraBtn = '<button class="btn ghost skip">跳过（不填生辰）</button>';
+      '<div class="hint">填后我便现场推算八字，留空则不参命局</div>';
+    if(a.optional) extraBtn = '<button class="btn ghost skip">暂不观察生辰八字</button>';
+  } else if(a.widget==="bazi"){
+    const bz = state.bazi;
+    if(bz){
+      const gz = (bz.gz||[]).join(" ");
+      const dm = bz.day_master ? (bz.day_master + (bz.day_master_wx||"")) : "—";
+      const strong = ({"旺":"身旺","弱":"身弱","中和":"中和"}[bz.strong]) || "—";
+      const useg = (bz.use_gods||[]).join("、") || "—";
+      const zod = bz.zodiac ? ("生肖 "+bz.zodiac) : "";
+      inner = '<div class="baziCard baziDialog"><div class="bk-title">命盘参详</div>'+
+        '<div class="bk-row"><span class="bk-k">八字</span><span class="bk-v bk-gz">'+gz+'</span></div>'+
+        '<div class="bk-row"><span class="bk-k">日主</span><span class="bk-v">'+dm+'</span>'+
+        '<span class="bk-k">旺衰</span><span class="bk-v">'+strong+'</span></div>'+
+        '<div class="bk-row"><span class="bk-k">喜用神</span><span class="bk-v bk-use">'+useg+'</span>'+
+        (zod?'<span class="bk-k">'+zod+'</span>':'')+'</div>'+
+        '<div class="bk-tip">名中可暗补命局所喜之五行（'+useg+'），补益越贴合综合分越高。</div></div>';
+    } else {
+      inner = '<div class="bubble"><p>八字尚在推算…</p></div>';
+    }
   } else if(a.widget==="teacher"){
     inner = '<div class="teacherGrid">'+TEACHER_PICK.map(t=>'<button class="tcard" data-v="'+t.v+'"><span class="tn">'+t.name+'</span><span class="td">'+t.dim+'</span></button>').join("")+'</div>';
   } else {
@@ -690,7 +818,7 @@ function renderAsk(sc){
         btn.onclick = ()=>proceed(sc);
         typeText(p, line, 35, ()=>{ if(chosen!==undefined) btn.disabled=false; });
       } else if(a.widget==="birth"){
-        btn.disabled = false;   // 可选：可留空直接继续，也可点跳过
+        btn.disabled = true;   // 必须填了出生日期才可继续（时辰默认 12）
         const commitBirth = ()=>{
           const dv = sceneEl.querySelector('input[data-f="birthdate"]').value;
           const hv = parseInt(sceneEl.querySelector('select[data-f="birthhour"]').value,10) || 12;
@@ -700,28 +828,22 @@ function renderAsk(sc){
             state._birthDate = dv; state._birthHour = hv;
             state.birthText = p[0]+'年'+p[1]+'月'+p[2]+'日 · '+hv+'时';
           } else {
-            state.birth = null; state.birthText = "";
+            state.birth = null; state.birthText = ""; state._birthDate=""; state.bazi=null;
           }
         };
-        btn.onclick = ()=>{ commitBirth(); proceed(sc); };
+        const dateInput = sceneEl.querySelector('input[data-f="birthdate"]');
+        dateInput.oninput = dateInput.onchange = ()=>{ btn.disabled = !dateInput.value; };
+        btn.onclick = ()=>{ commitBirth(); fetchBazi().then(()=>{
+          // 填了 → 八字弹窗；A 线跳过则直接进主理，B 线直接进汇总
+          go(state.birth ? "s08b_result" : (state.branch==="B"?"s_summary":"s08c"));
+        }); };
         const skip = sceneEl.querySelector(".cLayer .skip");
-        if(skip) skip.onclick = ()=>{ state.birth=null; state.birthText=""; state._birthDate=""; state._birthHour=12; proceed(sc); };
+        if(skip) skip.onclick = ()=>{ state.birth=null; state.bazi=null; state.birthText=""; state._birthDate=""; state._birthHour=12; go(_returnTarget()); };
         typeText(p, line, 35);
-      } else if(a.widget==="teacher"){
-        let chosen = a.def;
-        if(chosen!==undefined){ state[a.field]=chosen; }
-        const grid = sceneEl.querySelector(".teacherGrid");
-        grid.querySelectorAll(".tcard").forEach(card=>{
-          if(card.dataset.v===String(chosen)) card.classList.add("sel");
-          card.onclick = ()=>{
-            sceneEl.querySelectorAll(".tcard").forEach(c=>c.classList.remove("sel"));
-            card.classList.add("sel");
-            state[a.field]=card.dataset.v;
-            if(btn.disabled) btn.disabled=false;
-          };
-        });
-        btn.onclick = ()=>proceed(sc);
-        typeText(p, line, 35, ()=>{ if(chosen!==undefined) btn.disabled=false; });
+      } else if(a.widget==="bazi"){
+        btn.disabled = false;
+        btn.onclick = ()=>{ go(_returnTarget()); };
+        typeText(p, line, 35);
       } else {
         const ins = sceneEl.querySelectorAll("input[data-f]");
         ins.forEach(i=>i.oninput=()=>{ btn.disabled = !(a.require||[]).every(f=>{ const el=sceneEl.querySelector('input[data-f="'+f+'"]'); return el && el.value.trim(); }); });
