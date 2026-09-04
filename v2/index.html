@@ -1188,10 +1188,19 @@ function exportNameImage(idx){
   cv.toBlob(b=>{ if(!b) return; const a=document.createElement("a"); a.download="星名_"+n.name+".png"; a.href=URL.createObjectURL(b); a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }, "image/png");
 }
 
-/* 落叶：仅首屏 + 频率+50% + 随机三主题彩色 + 饱和度与最终页一致 */
+/* 落叶：贯穿全程（首页与各步骤同屏飘落）。首页用多彩色板，内部步骤跟随主体色/饱和度 */
 let wind = 24;
 setInterval(()=>{ wind = Math.max(-100, Math.min(100, wind + (Math.random()*70-35))); }, 4500);
-/* 三种最终主题色（与 setTheme 对应）：M 男孩·蓝 / F 女孩·粉 / U 不限·紫 */
+/* 首页多彩色板：绿/金/橙/红/青/紫，丰富变化 */
+const LEAF_HOME_THEMES = [
+  {a:"#7bc47f", b:"#3f8a4f", g:"rgba(120,200,130,.30)"},
+  {a:"#f2c14e", b:"#d99a2b", g:"rgba(240,200,80,.32)"},
+  {a:"#e8843c", b:"#c75a1e", g:"rgba(230,140,60,.30)"},
+  {a:"#d9596b", b:"#b03a4f", g:"rgba(220,90,110,.30)"},
+  {a:"#6fb6c4", b:"#3f8a9a", g:"rgba(110,190,210,.30)"},
+  {a:"#a98fd0", b:"#7a5fb0", g:"rgba(170,140,210,.30)"}
+];
+/* 内部步骤：跟随最终页主题色（与 setTheme 对应）：M 男孩·蓝 / F 女孩·粉 / U 不限·紫 */
 const LEAF_THEMES = [
   {a:"#6f86c4", b:"#3f4d86", g:"rgba(110,140,220,.26)"},
   {a:"#d4749a", b:"#a85379", g:"rgba(220,130,175,.28)"},
@@ -1209,9 +1218,15 @@ function spawnLeaf(){
   el.style.width = (9+Math.random()*6).toFixed(0)+"px";
   el.style.height = (11+Math.random()*6).toFixed(0)+"px";
   const ang = 120 + Math.floor(Math.random()*120);
-  const order = Math.random()<0.5 ? "var(--accent),var(--accent2)" : "var(--accent2),var(--accent)";
-  el.style.background = "linear-gradient("+ang+"deg,"+order+")";
-  el.style.filter = "saturate(var(--sat)) drop-shadow(0 0 4px var(--glow)) drop-shadow(0 1px 1px rgba(60,40,90,.2))";
+  if(state.scene === "brand"){            /* 首页：多彩色板，满饱和 */
+    const t = LEAF_HOME_THEMES[Math.floor(Math.random()*LEAF_HOME_THEMES.length)];
+    el.style.background = "linear-gradient("+ang+"deg,"+t.a+","+t.b+")";
+    el.style.filter = "drop-shadow(0 0 4px "+t.g+") drop-shadow(0 1px 1px rgba(60,40,90,.2))";
+  } else {                                 /* 内部步骤：跟随主体色与饱和度 */
+    const order = Math.random()<0.5 ? "var(--accent),var(--accent2)" : "var(--accent2),var(--accent)";
+    el.style.background = "linear-gradient("+ang+"deg,"+order+")";
+    el.style.filter = "saturate(var(--sat)) drop-shadow(0 0 4px var(--glow)) drop-shadow(0 1px 1px rgba(60,40,90,.2))";
+  }
   wrap.appendChild(el);
   setTimeout(()=>el.remove(), dur*1000+300);
 }
