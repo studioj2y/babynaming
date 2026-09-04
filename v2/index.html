@@ -289,10 +289,11 @@
   .explain.show{display:block}
   .explain .ei{margin:5px 0;padding-left:12px;border-left:2px solid rgba(255,220,170,.35)}
   .explain .ei b{color:#ffdca6;font-weight:600;margin-right:6px}
-  .toggle{display:inline-block;width:auto;text-align:left;margin:10px 0 0;font-size:12px;color:#ffdca6;cursor:pointer;background:none;border:none;padding:6px 4px;letter-spacing:.05em;
+  .toggle{display:inline-block;width:auto;text-align:left;margin:0;font-size:12px;color:#ffdca6;cursor:pointer;background:none;border:none;padding:6px 4px;letter-spacing:.05em;
     text-shadow:0 0 8px rgba(255,220,170,.9),0 0 18px rgba(255,180,100,.6);transition:text-shadow .25s}
   .toggle:hover{text-shadow:0 0 14px rgba(255,220,170,1),0 0 28px rgba(255,180,100,.9)}
-  .exportBtn{display:block;width:100%;margin:10px 0 0;padding:9px 14px;font-size:13px;color:#3a2a1c;cursor:pointer;
+  .plateActions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px}
+  .exportBtn{display:inline-block;width:auto;margin:0;padding:9px 14px;font-size:13px;color:#3a2a1c;cursor:pointer;white-space:nowrap;
     background:linear-gradient(160deg,#ffd9a0,#ffb259);border:none;border-radius:10px;font-weight:600;letter-spacing:.04em;
     box-shadow:0 4px 12px rgba(255,170,90,.35);transition:transform .15s,box-shadow .2s}
   .exportBtn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(255,170,90,.5)}
@@ -490,7 +491,7 @@ const TEACHER_GUIDE = {
   wuxing:"名如宇宙，五行贵在流通。若盼孩子气场和顺、暗补命局所喜，今日便以五行调和为主。",
   yuwen:"名者，声之始也。若重读音清朗、朗朗上口、余韵悠长，今日便以音律声韵为主。",
   ziyuan:"一字一渊源。若重本义寄怀、典故雅正、字字有根，今日便以字义寄意为先。",
-  shuli:"名字其实是一组数字——三才五格、笔画吉凶，背后都有它的 logic。要是你更吃这一套理性结构，今天让我来主理就好。",
+  shuli:"名字其实是一组数字——三才五格、笔画吉凶，背后都有它的 logic。如果看重理性，今天让我来主理就好。",
   yijing:"意在言外。若重画面感与气韵、虚实相生、留白之趣，今日便以意境气韵为主。",
   shengxiao:"生肖有宜忌。若重属相三合、喜用偏旁、避冲犯，今日便以生肖相宜为主。"
 };
@@ -510,7 +511,7 @@ const SCENES = {
               {label:"观测已有候选名", next:"s03b", set:{branch:"B"}}]},
   s03a:{kind:"talk", actor:"assistant", step:"引荐", lines:[
       "说来惭愧，我修行尚浅，还是请专门的老师为您细看。",
-      "取名乃大事，我这就引各位老师前来，请您安心。"] , next:"s04"},
+      "取名乃大事，我修行不足，这就引各位老师前来，请您安心。"] , next:"s04"},
   s03b:{kind:"talk", actor:"assistant", step:"引荐", lines:[
       "也好，请写下那名字，我请语文老师为您细细观测。"] , next:"b1"},
   s04:{kind:"ask", actor:"ziyuan", step:"第一观测层 · 血脉", lines:[
@@ -1106,9 +1107,11 @@ function renderResult(){
       '<span class="pscore">综合 '+n.total+'</span>'+
       '<div class="pname">'+n.name+'</div>'+ reason +
       '<div class="dims">'+dims+'</div>'+
+      '<div class="plateActions">'+
       '<button class="toggle">展开细项分析 ▾</button>'+
-      '<div class="explain">'+ex+'</div>'+
-      '<button class="exportBtn">导出此名图片</button></div>';
+      '<button class="exportBtn">导出此名图片</button>'+
+      '</div>'+
+      '<div class="explain">'+ex+'</div></div>';
   });
   html += '<div id="resultFoot"><button class="btn ghost" onclick="location.reload()">重新起卦</button></div>';
   wrap.innerHTML = html; wrap.classList.add("show"); wrap.scrollTop=0;
