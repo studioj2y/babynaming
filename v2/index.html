@@ -293,10 +293,10 @@
     text-shadow:0 0 8px rgba(255,220,170,.9),0 0 18px rgba(255,180,100,.6);transition:text-shadow .25s}
   .toggle:hover{text-shadow:0 0 14px rgba(255,220,170,1),0 0 28px rgba(255,180,100,.9)}
   .plateActions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px}
-  .exportBtn{display:inline-block;width:auto;margin:0;padding:9px 14px;font-size:13px;color:#3a2a1c;cursor:pointer;white-space:nowrap;
-    background:linear-gradient(160deg,#ffd9a0,#ffb259);border:none;border-radius:10px;font-weight:600;letter-spacing:.04em;
-    box-shadow:0 4px 12px rgba(255,170,90,.35);transition:transform .15s,box-shadow .2s}
-  .exportBtn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(255,170,90,.5)}
+  .exportBtn{display:inline-block;width:auto;margin:0;padding:6px 12px;font-size:12px;color:#5a4326;cursor:pointer;white-space:nowrap;
+    background:linear-gradient(160deg,#ffe0b0,#ffc070);border:1px solid rgba(214,150,70,.45);border-radius:8px;font-weight:500;letter-spacing:.02em;
+    box-shadow:0 2px 6px rgba(255,170,90,.22);transition:transform .15s,box-shadow .2s,background .2s}
+  .exportBtn:hover{transform:translateY(-1px);background:linear-gradient(160deg,#ffe7c2,#ffc982);box-shadow:0 3px 9px rgba(255,170,90,.34)}
   .exportBtn:active{transform:translateY(0)}
   #resultFoot{text-align:center;margin-top:6px}
   .baziCard{background:linear-gradient(160deg,rgba(107,74,47,.92),rgba(79,54,33,.92));
@@ -331,20 +331,13 @@
   /* 八字弹窗：复用 .baziCard 样式 */
   .baziDialog{margin:6px 0}
   /* 主理老师轮播（一位一张卡，左右箭头切换 + 过渡） */
-  .carousel{display:flex;align-items:center;gap:10px;margin:10px 0 6px}
+  .carousel{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 6px}
   .carousel .arrow{flex:0 0 38px;width:38px;height:38px;border-radius:50%;
     background:#fff;border:1px solid var(--panel-line);
     color:var(--accent);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;
     transition:background .2s,border-color .2s,transform .15s}
   .carousel .arrow:hover{background:var(--panel);border-color:var(--accent)}
   .carousel .arrow:active{transform:scale(.92)}
-  .carousel .tCard{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
-    padding:12px 8px;border-radius:12px;background:rgba(255,255,255,.6);
-    border:1px solid var(--panel-line);min-height:64px;
-    transition:opacity .35s ease;overflow:hidden}
-  .carousel .tCard.fade-out{opacity:0}
-  .carousel .tCard .tName{font-size:16px;font-weight:600;color:var(--ink);margin-top:2px}
-  .carousel .tCard .tDim{font-size:12px;color:var(--ink-soft)}
   .carousel .pickBtn{margin-top:8px;width:auto;padding:10px 22px;font-size:14px}
   /* 星师综合：底部常驻按钮（非立绘） */
   .balanceBtn{margin-top:10px;width:100%;padding:11px 18px;font-size:14px;
@@ -539,7 +532,7 @@ const SCENES = {
       ask:{widget:"seg", field:"gender", def:"U", theme:true,
       options:[{v:"M",label:"男孩"},{v:"F",label:"女孩"},{v:"U",label:"不限"}]}, next:"s08b"},
   s08b:{kind:"ask", actor:"wuxing", step:"第二观测层 · 命格（可选）", lines:[
-      "若告知小星主降生的年、月、日、时，我便能现场推算八字，为名中暗补命局所喜之五行。此步可留空。"],
+      "若告知小星主生辰，我便现场推算八字，为名中暗补命局所喜五行。"],
       ask:{widget:"birth", field:"birth", optional:true}, next:"s08c"},
   s08b_result:{kind:"ask", actor:"wuxing", step:"第二观测层 · 八字", lines:[
       "据此生辰，吾已推得命盘如下。"],
@@ -663,9 +656,7 @@ function renderCarousel(sc){
   state._carouselList = list;
   state._teacherIdx = 0;
   const cur = list[0];
-  const cardHtml = '<div class="tCard" id="tCard">'+
-    '<div class="tName">'+cur.name+'</div>'+
-    '<div class="tDim">'+cur.dim+'</div></div>';
+  const cardHtml = '';
   transitionTo(
     '<div class="bLayer"><div class="bubble"><span class="who">'+cur.name+'</span><p class="tw-line"></p></div></div>'+
     '<div class="cLayer"><div class="carousel"><button class="arrow" id="arrL" aria-label="上一位">‹</button>'+
@@ -687,19 +678,11 @@ function moveCarousel(delta){
   const list = state._carouselList;
   if(!list || !list.length) return;
   let idx = (state._teacherIdx + delta + list.length) % list.length;
-  const card = sceneEl.querySelector("#tCard");
-  if(!card) return;
-  card.classList.add("fade-out");
-  setTimeout(()=>{
-    state._teacherIdx = idx;
-    const cur = list[idx];
-    card.innerHTML = '<div class="tName">'+cur.name+'</div>'+
-      '<div class="tDim">'+cur.dim+'</div>';
-    card.classList.remove("fade-out");
-    showActor(cur.v);                            /* 立绘同步切换，触发镜像淡入过渡 */
-    const who = sceneEl.querySelector(".bubble .who"); if(who) who.textContent = cur.name;
-    const tw = sceneEl.querySelector(".tw-line"); if(tw){ tw.textContent=""; typeText(tw, TEACHER_GUIDE[cur.v], 38); }
-  }, 350);
+  state._teacherIdx = idx;
+  const cur = list[idx];
+  showActor(cur.v);                            /* 立绘同步切换，触发镜像淡入过渡 */
+  const who = sceneEl.querySelector(".bubble .who"); if(who) who.textContent = cur.name;
+  const tw = sceneEl.querySelector(".tw-line"); if(tw){ tw.textContent=""; typeText(tw, TEACHER_GUIDE[cur.v], 38); }
 }
 function fetchBazi(){
   if(!state.birth){ state.bazi=null; return Promise.resolve(null); }
@@ -717,6 +700,7 @@ function renderScene(sc){
   /* 立绘位置/尺寸：汇总表时星师抬到上方并缩小，其余场景用默认（#1/#2） */
   const _rd = document.documentElement.style;
   if(sc.kind==="summary"){ _rd.setProperty("--actor-bottom","66%"); _rd.setProperty("--actor-h","26vh"); _rd.setProperty("--actor-max","220px"); }
+  else if(sc.kind==="ask"){ _rd.setProperty("--actor-bottom","44%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
   else if(sc.kind!=="ritual"){ _rd.setProperty("--actor-bottom","38%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
   /* 登场门控：内容(气泡/输入)待立绘登场完成后再出现；小助理按场景切换立绘 */
   state._actorReady=false; state._onActor=null;
@@ -787,8 +771,7 @@ function renderAsk(sc){
     for(let h=0; h<24; h++){ const sel = (state._birthHour===h)?' selected':''; hr.push('<option value="'+h+'"'+sel+'>'+h+' 时</option>'); }
     inner = '<div class="fields-row birthWrap"><div class="field"><label>出生日期</label>'+
       '<input type="date" data-f="birthdate" value="'+(state._birthDate||"")+'" /></div>'+
-      '<div class="field"><label>时辰</label><select data-f="birthhour">'+hr.join("")+'</select></div></div>'+
-      '<div class="hint">填后我便现场推算八字，留空则不参命局</div>';
+      '<div class="field"><label>时辰</label><select data-f="birthhour">'+hr.join("")+'</select></div></div>';
     if(a.optional) extraBtn = '<button class="btn ghost skip">暂不观察生辰八字</button>';
   } else if(a.widget==="bazi"){
     const bz = state.bazi;
