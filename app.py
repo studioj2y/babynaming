@@ -81,6 +81,22 @@ async def analyze(req: Request):
     except Exception as e:
         return JSONResponse({**SAMPLE_ANALYZE, "meta": {"source": "local-mock", "error": str(e)}})
 
+@app.post("/api/bazi")
+async def bazi(req: Request):
+    """根据年/月/日/时现场推算八字、日主、旺衰、喜用神、生肖、五行计数（生辰弹窗用）。"""
+    body = await req.json()
+    b = body.get("birth") or {}
+    try:
+        year = int(b.get("year")); month = int(b.get("month"))
+        day = int(b.get("day"));  hour = int(b.get("hour", 12))
+    except (TypeError, ValueError):
+        return JSONResponse({"error": "生辰参数缺失或非法"}, status_code=400)
+    try:
+        result = analyze_birth(year, month, day, hour)
+    except Exception as e:
+        return JSONResponse({"error": "八字推算失败: " + str(e)}, status_code=400)
+    return JSONResponse(result)
+
 @app.post("/api/ai_review")
 async def ai_review(req: Request):
     """能力1：对某个名字做整盘 AI 积极解读（无 key/失败返回空，前端回退模板）。"""
@@ -111,8 +127,8 @@ def serve_static(full_path: str):
     fp = os.path.join(HERE, full_path)
     abs_fp = os.path.abspath(fp)
     if os.path.isfile(fp) and os.path.commonpath([HERE, abs_fp]) == HERE:
-        return FileResponse(abs_fp)
+        return FileResponse(abs_fp, headers={"Cache-Control": "no-store, max-age=0"})
     idx = os.path.join(HERE, full_path, "index.html")
     if os.path.isfile(idx):
-        return FileResponse(idx)
+        return FileResponse(idx, headers={"Cache-Control": "no-store, max-age=0"})
     return JSONResponse({"error": "not found"}, status_code=404)
