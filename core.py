@@ -12,6 +12,23 @@ ELES = ['金','木','水','火','土']
 SHENG = {'木':'火','火':'土','土':'金','金':'水','水':'木'}   # 相生
 KE = {'木':'土','土':'水','水':'火','火':'金','金':'木'}       # 相克
 
+# 调候用神：依出生月令寒热燥湿取用（传统姓名学「调候为急」）。月支 → (宜补五行, 缘由)
+# 冬(亥子丑)寒需火暖、夏(巳午未)热需水润、春(寅卯辰)木旺佐金裁、秋(申酉戌)金旺需水泄。
+DIAO_HOU = {
+ '寅': (['火','金'], '初春寒未尽，需火暖局；木渐旺，佐金裁剪'),
+ '卯': (['金','火'], '仲春木最旺，需金裁剪；微寒仍喜火'),
+ '辰': (['金','水'], '季春土旺，金泄土、水润局'),
+ '巳': (['水'], '初夏火炎，需水济暑'),
+ '午': (['水'], '盛夏火最旺，需水制炎'),
+ '未': (['水'], '夏末土燥火余，需水润局'),
+ '申': (['水'], '初秋金旺，需水泄润'),
+ '酉': (['水'], '仲秋金最旺，需水泄金'),
+ '戌': (['水','木'], '季秋土燥金相，水润、木疏'),
+ '亥': (['火'], '初冬水旺，需火暖局'),
+ '子': (['火'], '仲冬水最旺，需火调候'),
+ '丑': (['火'], '冬末寒土，需火暖局'),
+}
+
 ZODIAC_PREF = {
  '鼠':{'xi':['宀','冖','米','豆','禾','田','艹'],'ji':['日','火']},
  '牛':{'xi':['艹','田','车','宀'],'ji':['羊','马','刀']},
@@ -26,6 +43,56 @@ ZODIAC_PREF = {
  '狗':{'xi':['亻','宀','马'],'ji':['龙','鸡']},
  '猪':{'xi':['宀','冖','豆','米'],'ji':['蛇','猴']},
 }
+
+# ---------- 生肖 三合 / 六合 / 六冲 / 六害（姓名学生肖法的完整骨架，用生肖名） ----------
+# 三合（四组）：猴鼠龙 / 猪兔羊 / 虎马狗 / 蛇鸡牛
+# 六合：鼠牛 虎猪 兔狗 龙鸡 蛇猴 马羊
+# 六冲：鼠马 牛羊 虎猴 兔鸡 龙狗 蛇猪
+# 六害：鼠羊 牛马 虎蛇 兔龙 猴猪 鸡狗
+SANHE = [('猴','鼠','龙'), ('猪','兔','羊'), ('虎','马','狗'), ('蛇','鸡','牛')]
+LIUHE = [('鼠','牛'), ('虎','猪'), ('兔','狗'), ('龙','鸡'), ('蛇','猴'), ('马','羊')]
+LIUCHONG = [('鼠','马'), ('牛','羊'), ('虎','猴'), ('兔','鸡'), ('龙','狗'), ('蛇','猪')]
+LIUHAI = [('鼠','羊'), ('牛','马'), ('虎','蛇'), ('兔','龙'), ('猴','猪'), ('鸡','狗')]
+# 生肖 → 代表部首（名字字形判定用，地支字）
+ZODIAC_RAD = {'鼠':'子','牛':'丑','虎':'寅','兔':'卯','龙':'辰','蛇':'巳','马':'午','羊':'未','猴':'申','鸡':'酉','狗':'戌','猪':'亥'}
+# 常见字形代指（五行/意象部首，补全「三合六合」在名中的呈现），键用生肖名
+ZODIAC_EXTRA_RAD = {
+ '鼠':['氵','冫'], '兔':['木','艹'], '马':['火','马'], '龙':['雨','云'], '狗':['犬','犭'],
+ '猪':['豕','家'], '猴':['侯','袁'], '鸡':['鸟','隹'], '虎':['山','虍'], '牛':['田'],
+ '羊':['羊'], '蛇':['虫'],
+}
+def _zodiac_friends(z):
+    """三合+六合 的友好生肖集合。"""
+    out = set()
+    for g in SANHE:
+        if z in g:
+            out |= set(g) - {z}
+    for a, b in LIUHE:
+        if z == a: out.add(b)
+        elif z == b: out.add(a)
+    return out
+def _zodiac_foes(z):
+    """六冲+六害 的犯生肖集合。"""
+    out = set()
+    for a, b in LIUCHONG:
+        if z == a: out.add(b)
+        elif z == b: out.add(a)
+    for a, b in LIUHAI:
+        if z == a: out.add(b)
+        elif z == b: out.add(a)
+    return out
+# 预派生：每个生肖「三合六合友好部首」「六冲六害犯部首」
+ZODIAC_HE_RAD, ZODIAC_FAN_RAD = {}, {}
+for _z in ZODIAC_PREF:
+    _he = _zodiac_friends(_z); _fan = _zodiac_foes(_z)
+    ZODIAC_HE_RAD[_z] = []
+    ZODIAC_FAN_RAD[_z] = []
+    for f in _he:
+        for r in [ZODIAC_RAD[f]] + ZODIAC_EXTRA_RAD.get(f, []):
+            if r not in ZODIAC_HE_RAD[_z]: ZODIAC_HE_RAD[_z].append(r)
+    for f in _fan:
+        for r in [ZODIAC_RAD[f]] + ZODIAC_EXTRA_RAD.get(f, []):
+            if r not in ZODIAC_FAN_RAD[_z]: ZODIAC_FAN_RAD[_z].append(r)
 
 NEG_HOMO = ['baichi','sharen','fengzi','shaizi','aocao','fanren','yangwei','duziteng','shabi','tama','nima','wangba']
 # 明显不宜作姓氏的脏字/ insult 字符（轻量校验）
@@ -192,10 +259,13 @@ def analyze_birth(year, month, day, hour):
         need = []
 
     zodiac = lunar.getYearShengXiao()
+    month_zhi = gz[1][1]                       # 月柱地支（月令）
+    dh, dh_why = DIAO_HOU.get(month_zhi, ([], ''))
     return {
         'gz': gz, 'counts': counts, 'need': need, 'zodiac': zodiac,
+        'zodiac_he': ''.join(sorted(_zodiac_friends(zodiac))), 'zodiac_fan': ''.join(sorted(_zodiac_foes(zodiac))),
         'day_master': gz[2][0], 'day_master_wx': dm_wx, 'strong': strong,
-        'use_gods': need,
+        'use_gods': need, 'diao_hou': dh, 'diao_hou_why': dh_why,
     }
 
 # ---------- 姓氏校验与构造 ----------
@@ -233,7 +303,7 @@ def surname_info(surname):
     return out
 
 # ---------- 评分（泛化支持变长） ----------
-def score_wuxing(wx_list, need, has_birth, s_wx=None):
+def score_wuxing(wx_list, need, has_birth, s_wx=None, diao_hou=None):
     seq = (list(s_wx) if s_wx else []) + list(wx_list)
     if not has_birth:
         # 未提供生辰时，看全名五行「相生相克」是否调和（真实玄学逻辑，逐名不同）
@@ -252,31 +322,39 @@ def score_wuxing(wx_list, need, has_birth, s_wx=None):
         return max(46, min(100, s))
     seq = (list(s_wx) if s_wx else []) + list(wx_list)
     total = len(seq)
-    if not need:
-        # 中和：五行分布越均衡越好，越偏枯越减分（不偏补为贵）
+    if not need and not diao_hou:
+        # 中和且无调候：五行分布越均衡越好，越偏枯越减分（不偏补为贵）
         c = {}
         for w in seq:
             c[w] = c.get(w, 0) + 1
         max_share = (max(c.values()) / total) if total else 1
         return max(46, min(96, round(88 - 42 * max_share)))
-    matched = sum(1 for w in seq if w in need)
+    sup = set(need or []) | set(diao_hou or [])   # 旺衰喜用 ∪ 调候，合并为「宜补」集合
+    matched = sum(1 for w in seq if w in sup)
     ratio = matched / total if total else 0
     s = 44 + 52 * ratio                      # 全补→96，半补→70，无补→44（平滑）
-    if need and all(any(w == e for w in seq) for e in need):
-        s = min(96, s + 4)                    # 喜用元素逐一被覆盖，再嘉 4
+    if sup and all(any(w == e for w in seq) for e in sup):
+        s = min(96, s + 4)                    # 宜补元素逐一被覆盖，再嘉 4
     return max(44, min(96, round(s)))
 
 def score_zodiac(radicals, zodiac):
-    """未提供生辰（zodiac 为 None）时返回 None：该维度不评分、不参与总分加权。"""
+    """生肖相宜（传统生肖法：部首喜忌 + 三合六合强吉 + 六冲六害强凶）。
+    未提供生辰（zodiac 为 None）时返回 None：该维度不评分、不参与总分加权。"""
     pref = ZODIAC_PREF.get(zodiac)
     if not pref:
         return None
+    he = ZODIAC_HE_RAD.get(zodiac, [])
+    fan = ZODIAC_FAN_RAD.get(zodiac, [])
     s = 56
     for r in radicals:
-        if r in pref['xi']:
-            s += 14
-        if r in pref['ji']:
-            s -= 20
+        if r in he:
+            s += 18          # 三合/六合：强吉（比普通部首喜忌更宜）
+        elif r in pref['xi']:
+            s += 14          # 普通部首喜忌
+        if r in fan:
+            s -= 26          # 六冲/六害：强凶
+        elif r in pref['ji']:
+            s -= 20          # 普通部首忌
     return max(36, min(96, s))
 
 def _final_brightness(final):
@@ -525,7 +603,14 @@ def sancai(grids):
     if rb == '克': kes.append('人格克地格')
     elif rb == '生': sans.append('人格生地格')
     if kes:
-        grade, tip = '凶', '、'.join(kes) + '，三才有克，根基稍滞'
+        # 通关化解：A 克 B 时，用 A 所生五行字介入，使 A→通→B 顺生，化解相战
+        tong = []
+        if rt == '克': tong.append(SHENG.get(tw))
+        if rd == '克': tong.append(SHENG.get(dw))
+        if rb == '克': tong.append(SHENG.get(rw))
+        tong = [t for t in dict.fromkeys(tong) if t]
+        tip = '、'.join(kes) + '，三才有克，根基稍滞' + ('；可增' + '、'.join(tong) + '字通关，化相战之滞' if tong else '')
+        grade = '凶'
     elif rt == '生' and rb == '生':
         grade, tip = '大吉', '、'.join(sans) + '，三才顺生，根基稳固'
     elif sans:
@@ -636,6 +721,13 @@ ZX_WITH = [
  "名承{zodiac}之瑞，喜用俱全，主禀赋清嘉、承托有力。",
  "生肖{zodiac}于此名中各得其所，主性情温厚、际遇稳当。",
  "此名与{zodiac}相宜相生，主福泽内蕴、行藏有度。",
+]
+ZX_HE = [
+ "名中字形暗合{zodiac}之三合六合，贵人生扶、根基得托，主一生多遇顺势之助。",
+ "「{given}」结{zodiac}三合之局，气脉相生无犯，主外缘和顺、内里安稳。",
+ "与{zodiac}三合相生，喜用得地，主早年得护、中年得运，行藏自有分寸。",
+ "名承{zodiac}三合之瑞，用字无冲，主运途平和、少生波折，贵人暗扶。",
+ "生肖{zodiac}于此名中各得其所，三合相济，主性情温厚、际遇稳当。",
 ]
 ZX_WITHOUT = [
  "属相之宜留待添上生辰后再细参，此名意象本就周正安稳。",
@@ -770,6 +862,8 @@ def _ex_wuxing(o, meta, mode, idx):
 
 def _ex_zodiac(o, meta, mode, idx):
     if meta.get('has_birth'):
+        if o.get('dims', {}).get('zodiac_he_hit'):
+            return ZX_HE[idx % len(ZX_HE)].format(zodiac=meta.get('zodiac') or '?', given=o.get('given', ''))
         return ZX_WITH[idx % len(ZX_WITH)].format(zodiac=meta.get('zodiac') or '?')
     return ZX_WITHOUT[idx % len(ZX_WITHOUT)].format(given=o['given'])
 
@@ -895,8 +989,9 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
 
     hph = score_homophone(full_py)            # 谐音（不良读音）并入「音律」，由音律老师统管
     dims = {
-        'wuxing': score_wuxing(wx_list, need, birth is not None, s_wx),
+        'wuxing': score_wuxing(wx_list, need, birth is not None, s_wx, (birth or {}).get('diao_hou')),
         'zodiac': score_zodiac(radicals, zodiac),
+        'zodiac_he_hit': bool(zodiac and any(r in ZODIAC_HE_RAD.get(zodiac, []) for r in radicals)),
         'pronounce': round(0.55*score_pronounce(tones, initials, finals) + 0.45*hph),
         'meaning': max(45, min(97, score_meaning(given_it, chosen_tags) + echo_bonus)),
         'stroke': grid_score,
@@ -1083,6 +1178,8 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
             'gz': bmeta.get('gz'), 'day_master': bmeta.get('day_master'),
             'day_master_wx': bmeta.get('day_master_wx'), 'strong': bmeta.get('strong'),
             'use_gods': bmeta.get('use_gods'), 'counts': bmeta.get('counts'),
+            'diao_hou': bmeta.get('diao_hou'), 'diao_hou_why': bmeta.get('diao_hou_why'),
+            'zodiac_he': bmeta.get('zodiac_he'), 'zodiac_fan': bmeta.get('zodiac_fan'),
             'pool_size': len(pool), 'surname': surname, 'mode': mode,
             'name_len': name_len, 'relaxed': relaxed, 'relax_reason': relax_reason}
     out = _curate_diverse(names, topn)

@@ -360,6 +360,9 @@
   .baziCard .bk-v{color:#fff;font-weight:600}
   .baziCard .bk-gz{font-size:15px;letter-spacing:.06em;color:#ffe6bf;text-shadow:0 0 10px rgba(255,200,150,.5)}
   .baziCard .bk-use{color:#9fe3c0;text-shadow:0 0 10px rgba(120,230,180,.45)}
+  .baziCard .bk-he .bk-v{color:#ffd9a0;font-size:13px}
+  .baziCard .bk-diao .bk-v{color:#9fd6e6;text-shadow:0 0 10px rgba(120,210,230,.45)}
+  .baziCard .bk-why{font-size:11px;color:#cdbfa6;opacity:.8;margin-left:4px}
   .baziCard .bk-tip{font-size:12px;color:#e7cba6;margin-top:8px;line-height:1.5;border-top:1px dashed rgba(255,220,170,.3);padding-top:8px}
   .baziCard .bk-wx{margin:6px 0 2px}
   .baziCard .bk-wx .wxseg{display:inline-flex;align-items:center;gap:4px;margin-right:9px;font-size:12px}
@@ -898,6 +901,10 @@ function renderAsk(sc){
       const strong = ({"旺":"身旺","弱":"身弱","中和":"中和"}[bz.strong]) || "—";
       const useg = (bz.use_gods||[]).join("、") || "平和（宜均衡）";
       const zod = bz.zodiac ? ("生肖 "+bz.zodiac) : "";
+      const heTxt = bz.zodiac_he ? (bz.zodiac+" 三合六合："+bz.zodiac_he) : "";
+      const fanTxt = bz.zodiac_fan ? ("犯："+bz.zodiac_fan) : "";
+      const dh = (bz.diao_hou||[]);
+      const diaotxt = dh.length ? ("调候："+dh.join("、")) : "";
       const wxHtml = wxCountsHtml(bz.counts);
       const isBal = !((bz.use_gods||[]).length);
       const tipTxt = isBal ? '命局中和，名字五行宜均衡分布、勿偏补。'
@@ -909,6 +916,8 @@ function renderAsk(sc){
         wxHtml +
         '<div class="bk-row"><span class="bk-k">喜用神</span><span class="bk-v bk-use">'+useg+'</span>'+
         (zod?'<span class="bk-k">'+zod+'</span>':'')+'</div>'+
+        (heTxt?'<div class="bk-row bk-he"><span class="bk-k">生肖缘</span><span class="bk-v">'+heTxt+(fanTxt?('　'+fanTxt):'')+'</span></div>':'')+
+        (diaotxt?'<div class="bk-row bk-diao"><span class="bk-k">调候</span><span class="bk-v bk-use">'+diaotxt+'</span></div>':'')+
         '<div class="bk-tip">'+tipTxt+'</div></div>';
     } else {
       inner = '<div class="bubble"><p>八字尚在推算…</p></div>';
@@ -1234,7 +1243,11 @@ function renderResult(){
     const dm = meta.day_master ? (meta.day_master + (meta.day_master_wx||"")) : "—";
     const strong = ({"旺":"身旺","弱":"身弱","中和":"中和"}[meta.strong]) || "—";
     const useg = (meta.use_gods||[]).join("、") || "平和（宜均衡）";
+    const dhg = (meta.diao_hou||[]).join("、") || "—";
+    const dhWhy = meta.diao_hou_why || "";
     const zod = meta.zodiac ? ("生肖 "+meta.zodiac) : "";
+    const heTxt = meta.zodiac_he ? (meta.zodiac+" 三合六合："+meta.zodiac_he) : "";
+    const fanTxt = meta.zodiac_fan ? ("犯："+meta.zodiac_fan) : "";
     const wxHtml = wxCountsHtml(meta.counts);
     const isBal = !((meta.use_gods||[]).length);
     const tipTxt = isBal
@@ -1247,6 +1260,9 @@ function renderResult(){
       wxHtml +
       '<div class="bk-row"><span class="bk-k">喜用神</span><span class="bk-v bk-use">'+useg+'</span>'+
       (zod?'<span class="bk-k">'+zod+'</span>':'')+'</div>'+
+      '<div class="bk-row"><span class="bk-k">调候</span><span class="bk-v bk-use">'+dhg+'</span>'+
+      (dhWhy?'<span class="bk-why">'+dhWhy+'</span>':'')+'</div>'+
+      (heTxt?'<div class="bk-row bk-he"><span class="bk-k">生肖缘</span><span class="bk-v">'+heTxt+(fanTxt?('　'+fanTxt):'')+'</span></div>':'')+
       (state.primaryTeacher&&state.primaryTeacher!=="balance"?'<div class="bk-row"><span class="bk-k">主理侧重</span><span class="bk-v">'+fmtTeacher()+'</span></div>':'')+
       '<div class="bk-tip">'+tipTxt+(state.primaryTeacher&&state.primaryTeacher!=="balance"?'今日以'+fmtTeacher()+'为主理，该维度已加权。':'')+'</div></div>';
   }
@@ -1395,7 +1411,8 @@ function exportNameImage(idx){
     const gz=(meta.gz||[]).join(" "), dm=meta.day_master?(meta.day_master+(meta.day_master_wx||"")):"—";
     const strong={"旺":"身旺","弱":"身弱","中和":"中和"}[meta.strong]||"—", useg=(meta.use_gods||[]).join("、")||"平和（宜均衡）";
     const zod=meta.zodiac?("生肖 "+meta.zodiac):"";
-    y = wrapCN(ctx, "八字 "+gz+"　日主 "+dm+"　旺衰 "+strong+"　喜用神 "+useg+(zod?("　"+zod):""), pad, y, W-2*pad, lineH); y += 8;
+    const diao=(meta.diao_hou||[]).join("、");
+    y = wrapCN(ctx, "八字 "+gz+"　日主 "+dm+"　旺衰 "+strong+"　喜用神 "+useg+(zod?("　"+zod):"")+(diao?("　调候 "+diao):""), pad, y, W-2*pad, lineH); y += 8;
   }
   ctx.fillStyle="#ffdca6"; ctx.font="600 13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillText("字义详解", pad, y); y += lineH;
   ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#efe0c8";
