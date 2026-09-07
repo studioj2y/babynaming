@@ -296,6 +296,19 @@ def _final_brightness(final):
         score -= 2
     return score
 
+def _apply_tone_sandhi(tones):
+    """上声变调：两个上声(3)相连时，前一个实际读作阳平(2)。
+
+    这是普通话真实语音规律——「李雨」实际读 lí yǔ，而非字典调 lǐ yǔ。
+    平仄判断必须基于**实际读音**：按字典调会把「仄仄」误判，实际是「平仄」。
+    「一/不」的变调在人名中极罕见，暂不处理。
+    """
+    t = list(tones)
+    for i in range(len(t) - 1):
+        if t[i] == 3 and t[i + 1] == 3:
+            t[i] = 2
+    return t
+
 def score_pronounce(tones, initials, finals):
     """音调韵律评分（增强版）：平仄回环 + 三连声硬惩 + 尾字调 + 声韵响亮度 + 双声叠韵。
     签名与 [42,96] 返回区间保持兼容，总分合成（dims['pronounce']）无需改动。"""
@@ -337,8 +350,22 @@ def score_homophone(full_py):
 
 TAG_MEANING = {'智慧':90,'才华':88,'健康':86,'安宁':89,'光明':87,'品德':88,'勇敢':85,
                 '温婉':87,'灵秀':86,'仁愛':88,'喜悦':84,'自由':85,'俊逸':86,'坚韧':85}
+# 意象族：用于判断两字意象是「雷同」「同族有层次」还是「跨族互补」
+TAG_GROUP = {
+    '光明': '境', '安宁': '境', '自由': '境',
+    '品德': '德', '仁愛': '德', '勇敢': '德', '坚韧': '德',
+    '智慧': '才', '才华': '才', '灵秀': '才', '俊逸': '才',
+    '喜悦': '情', '温婉': '情',
+    '健康': '体',
+}
 def score_coherence(given_it):
-    """两字组合语义协调度：奖励互补、惩罚雷同/性别气韵冲突。返回 -12~+8 的调整量（叠加进字义维度）。"""
+    """两字组合语义协调度：奖励互补、惩罚雷同/性别气韵冲突。返回 -12~+8 的调整量（叠加进字义维度）。
+
+    三档判定（原来只有「雷同 -8 / 互补 +4」两档，区分度不足）：
+      - 主意象雷同（瑶+琪 皆俊逸）      → -8  意境重复
+      - 同族不同意象（光明+安宁 皆「境」）→ +6  画面统一且有层次（最优）
+      - 跨族互补（智慧+温婉）            → +4  意境丰富
+    """
     if len(given_it) < 2:
         return 0
     t0, t1 = given_it[0].get('t', []), given_it[1].get('t', [])
@@ -348,8 +375,10 @@ def score_coherence(given_it):
     if p0 and p1:
         if p0 == p1:
             adj -= 8          # 主标签雷同（如 瑶+琪 皆俊逸）→ 意境重复
+        elif TAG_GROUP.get(p0) and TAG_GROUP.get(p0) == TAG_GROUP.get(p1):
+            adj += 6          # 同族不同意象（光明+安宁）→ 画面统一且有层次
         else:
-            adj += 4          # 主标签互补 → 意境更丰富
+            adj += 4          # 跨族互补 → 意境更丰富
     if g0 not in ('U', '') and g1 not in ('U', '') and g0 != g1:
         adj -= 6             # 性别气韵冲突（男字+女字混搭）
     return max(-12, min(8, adj))
@@ -359,6 +388,7 @@ def score_meaning(given_it, chosen):
     for gi in (given_it or []):
         ts = gi.get('t', [])
         v = round(sum(TAG_MEANING.get(t, 80) for t in ts) / len(ts)) if ts else 78
+        v += min(4, max(0, len(ts) - 1))   # 意象丰富度：多一枚意象多一分层次（0~4）
         vals.append(v)
     base = round(sum(vals) / len(vals)) if vals else 80
     if chosen:
@@ -373,16 +403,44 @@ def score_stroke(total):
         return 100
     return max(0, 100 - (total - 26) * 3)
 
-def score_gender(genders, req):
-    """气韵契合（性别维度）：名中每字性别气韵(M/F/U)与所求性别的贴合度。
+# 刚柔度：字义层面的「刚/柔」连续谱（+1 极刚 … -1 极柔），供气韵维度细粒度评分
+TAG_TEMPER = {
+    '勇敢': 0.8, '坚韧': 0.7, '俊逸': 0.35, '光明': 0.25, '自由': 0.2,
+    '智慧': 0.1, '才华': 0.1, '健康': 0.0, '品德': 0.0, '仁愛': -0.15,
+    '安宁': -0.35, '喜悦': -0.35, '灵秀': -0.55, '温婉': -0.8,
+}
+GENDER_TEMPER = {'M': 0.6, 'U': 0.0, 'F': -0.6}
 
-    设计要点（用户反馈：男孩气韵不应一直 100%）：
-    - 纯同性别(M 或 F)不再给满分，封顶约 90，避免该维度恒为 100 显得失真；
-    - 含一枚中性(U)字（刚柔相济）反而更见韵味，给予小幅加成，可到 90+；
-    - req='U'（不限）：中性最稳 90；单性别(M/F)亦可 84；M+F 混搭气韵杂乱 55。
+def _char_temper(g, tags):
+    """单字刚柔度：性别气韵为主(0.6)、字义标签为辅(0.4)，合成 -1 ~ +1 连续值。"""
+    base = GENDER_TEMPER.get(g, 0.0)
+    t = (sum(TAG_TEMPER.get(x, 0.0) for x in tags) / len(tags)) if tags else 0.0
+    return 0.6 * base + 0.4 * t
+
+def score_gender(genders, req, given_it=None):
+    """气韵契合（性别维度）：名中每字气韵与所求性别的贴合度。
+
+    旧实现只按 M/F/U 三值查表，区分度极低（实测 sd=0~2.5，形同虚设）：
+    好字池近半是中性字，导致「不限性别」时该维度恒为 84、完全不产生区分。
+
+    新实现（given_it 可用时）按**连续刚柔度**评分：
+    - 每字由「性别气韵(M/F/U) + 字义标签」合成 -1(极柔) ~ +1(极刚) 的连续值；
+    - 男孩/女孩各有目标区间（略偏刚/略偏柔），走高斯型曲线，越贴合越高分；
+    - 「刚柔相济」优于「一味刚硬」，故极端值反不如中段；
+    - 一字极刚一字极柔视为气韵杂乱，按 spread 额外扣分。
+    given_it 不可用时回退旧的三值查表（保持兼容）。
     """
     if not genders:
         return 100
+    if given_it and len(given_it) == len(genders):
+        temps = [_char_temper(given_it[i].get('g', 'U'), given_it[i].get('t', []))
+                 for i in range(len(genders))]
+        avg = sum(temps) / len(temps)
+        target = {'M': 0.25, 'F': -0.25, 'U': 0.0}.get(req, 0.0)
+        spread = max(temps) - min(temps)
+        s = 96 - 55 * (avg - target) ** 2 - 8 * spread
+        return max(40, min(97, round(s)))
+    # —— 回退：旧三值查表 ——
     n = len(genders)
     if req == 'M':
         fit = {'M': 90, 'U': 84, 'F': 0}
@@ -416,6 +474,22 @@ def _grid_num(n):
     if n > 81:
         n = ((n - 1) % 81) + 1
     return GRID_SCORE.get(n, 70)
+
+# 五格传统角色：人格主运（一生核心）、总格后运（中晚年）、地格前运（青年/家庭）、天格祖运、外格副运（社交）
+GRID_ROLE = {'天格': '祖运', '人格': '主运', '地格': '前运', '总格': '后运', '外格': '副运'}
+def grid_fortune(n):
+    """把五格数理还原成传统吉凶标签（依据 GRID_SCORE 分值档位）。"""
+    s = _grid_num(n)
+    if s >= 95:
+        return '大吉'
+    if s >= 75:
+        return '吉'
+    if s >= 55:
+        return '半吉'
+    return '凶'
+def grid_fortune_map(grids):
+    """{格名: (数值, 角色, 吉凶)} —— 供前端展示。"""
+    return {k: (v, GRID_ROLE.get(k, ''), grid_fortune(v)) for k, v in (grids or {}).items()}
 def five_grids(strokes):
     """天格/人格/地格/总格/外格 数理（单姓标准算法）。"""
     n = len(strokes)
@@ -751,7 +825,8 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
     """由一组「名」字符构造完整名字对象（generate 与 analyze 共用）。"""
     wx_list = [gi['wx'] for gi in given_info]
     radicals = [gi['radical'] for gi in given_info]
-    tones = s_tones + [gi['tone'] for gi in given_info]
+    tones_base = s_tones + [gi['tone'] for gi in given_info]   # 字典调（拼音标注用）
+    tones = _apply_tone_sandhi(tones_base)                      # 实际读音（平仄/音律评分用）
     initials = s_ini + [gi['initial'] for gi in given_info]
     given_finals = [gi.get('final', '') for gi in given_info]
     full_py = to_ascii(s_py + ''.join(gi['py'].split(',')[0] for gi in given_info))
@@ -767,11 +842,12 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
         echo_bonus = 6
 
     ch = chars() if surname else None
-    s_strokes = [ch.get(c, {}).get('stroke', 0) for c in surname] if ch else []
+    # 五格数理按传统用「康熙笔画」(stroke_kx，构建期烘进字库)，而非简体画数
+    s_strokes = [(ch.get(c, {}).get('stroke_kx') or ch.get(c, {}).get('stroke', 0)) for c in surname] if ch else []
     s_wx = [ch.get(c, {}).get('wx', '土') for c in surname] if ch else []
     s_finals = [ch.get(c, {}).get('final', '') for c in surname] if ch else []
     finals = s_finals + given_finals
-    all_strokes = s_strokes + [gi['stroke'] for gi in given_info]
+    all_strokes = s_strokes + [(gi.get('stroke_kx') or gi['stroke']) for gi in given_info]
     grids, grid_score = five_grids(all_strokes)
 
     hph = score_homophone(full_py)            # 谐音（不良读音）并入「音律」，由音律老师统管
@@ -781,7 +857,7 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
         'pronounce': round(0.55*score_pronounce(tones, initials, finals) + 0.45*hph),
         'meaning': max(45, min(97, score_meaning(given_it, chosen_tags) + echo_bonus)),
         'stroke': grid_score,
-        'gender': score_gender(g_gender, gender),
+        'gender': score_gender(g_gender, gender, given_it),
     }
     active = {k: w for k, w in weights.items() if dims.get(k) is not None}
     total = sum(dims[k] * active[k] for k in active) / sum(active.values()) + echo_bonus * 0.05
@@ -799,6 +875,7 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
         'py_str': s_py + ' ' + ' '.join(gi['py'].split(',')[0] for gi in given_info),
         'given_chars': given_chars, 'given_wx': wx_list, 'given_mean': g_mean,
         'given_stroke': g_stroke, 'tags': sorted(set(g_tags)), 'grids': grids,
+        'grid_fortune': grid_fortune_map(grids),
         'req_gender': gender, 'dims': dims, 'total': round(total, 1),
         'tones': tones,
         'pz': _pingze(tones),
@@ -809,6 +886,40 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
     o['tone_note'] = _tone_phrase(o)
     o['dup_info'] = ('unique' if not any(c in HIGH_FREQ for c in given_chars) else 'common')
     return o
+
+def _diverse_top(ranked, size):
+    """分层轮换采样：按「(性别气韵 g, 主意象族)」分桶后轮流取，保证候选多样性。
+
+    原实现直接取 base 排序的前 N 个。问题在于 base 同分者极多（无标签时仅 2~3 种
+    分值），等于每次都选中同一批「同性别 + 喜用五行」的字 → 候选在评分前就已同质化，
+    各维度方差趋零（实测五行 sd=0.00、气韵恒定、总分极差仅 2.5 分），维度权重再高也
+    产生不了区分。分层后候选在气韵、意象、五行上都有覆盖，维度才真正起作用。
+    """
+    if len(ranked) <= size:
+        return list(ranked)
+    buckets = {}
+    for x in ranked:
+        it = x[1]
+        gkey = it.get('g', 'U')
+        ts = it.get('t') or []
+        tkey = TAG_GROUP.get(ts[0], 'x') if ts else 'x'
+        buckets.setdefault((gkey, tkey), []).append(x)
+    keys = sorted(buckets, key=lambda k: -len(buckets[k]))
+    out, i, seen = [], 0, set()
+    while len(out) < size:
+        added = False
+        for k in keys:
+            b = buckets[k]
+            if i < len(b) and id(b[i]) not in seen:
+                seen.add(id(b[i]))
+                out.append(b[i])
+                added = True
+                if len(out) >= size:
+                    break
+        if not added:
+            break
+        i += 1
+    return out
 
 def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12, weights=None):
     ef = validate_surname(father)
@@ -892,8 +1003,8 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
             s += 12
         return s
     ranked = sorted(pool, key=lambda x: base(x[1], x[2]), reverse=True)
-    M = min(40, len(ranked))
-    top = ranked[:M]
+    top = _diverse_top(ranked, 40)          # 分层采样替代「取前 40」，候选不再同质
+    M = len(top)
     # 气韵多样化：男/女名候选字池里保留若干中性(U)字，使最终名也能出现「刚柔相济」组合，
     # 避免因为清一色同性别字导致气韵维度恒定（用户反馈：男孩气韵不应一直 100%）。
     if gender in ('M', 'F'):

@@ -309,6 +309,14 @@
   .plate .toneNote{font-size:12px;color:#e9cfa8;margin-top:5px;line-height:1.5;opacity:.92;
     padding-left:14px;position:relative}
   .plate .toneNote::before{content:"♪";position:absolute;left:0;top:0;color:#ffd9a0;opacity:.8}
+  .plate .grids{font-size:12px;color:#e9cfa8;margin-top:6px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .plate .grids .gk{color:#cbb48f;letter-spacing:.05em}
+  .plate .grids .g{display:inline-flex;align-items:center;gap:3px;color:#f1e2c8;font-variant-numeric:tabular-nums}
+  .plate .grids .g .gfort{font-size:10px;padding:0 4px;border-radius:6px;line-height:1.5;font-style:normal}
+  .plate .grids .g .grole{font-size:9px;color:#cbb48f;font-style:normal;margin-left:1px}
+  .g-luck{background:rgba(143,209,158,.20);color:#bfe9c8}
+  .g-mid{background:rgba(232,210,138,.20);color:#ecd79a}
+  .g-bad{background:rgba(239,154,138,.20);color:#f0b3a6}
   .plate .pscore{float:right;font-size:14px;color:#ffe2b0;margin-top:6px}
   .plate .preason{font-size:13px;color:#f0d9bb;margin-top:8px;line-height:1.5;border-top:1px dashed rgba(255,220,170,.3);padding-top:8px}
   .dims{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 12px;margin-top:12px}
@@ -1178,6 +1186,20 @@ function wxCountsHtml(counts){
   }).join('');
   return '<div class="bk-row bk-wx"><span class="bk-k">五行</span>'+segs+'</div>';
 }
+function gridsHtml(n){
+  const gf = n.grid_fortune;
+  if(!gf) return '';
+  const cls = {'大吉':'g-luck','吉':'g-luck','半吉':'g-mid','凶':'g-bad'};
+  const main = {'人格':1,'总格':1};
+  const order = ['天格','人格','地格','总格','外格'];
+  const segs = order.map(k=>{
+    const it = gf[k]; if(!it) return '';
+    const num = it[0], role = it[1], fort = it[2];
+    const rl = (role && main[k]) ? '<i class="grole">'+role+'</i>' : '';
+    return '<span class="g">'+k[0]+num+'<span class="gfort '+(cls[fort]||'')+'">'+fort+'</span>'+rl+'</span>';
+  }).join('');
+  return '<div class="grids"><span class="gk">五格</span>'+segs+'</div>';
+}
 function renderResult(){
   sceneEl.innerHTML="";                 /* 清掉背后残留的对话框，避免从结果层透出 */
   $("#actorWrap").style.display="none";
@@ -1230,7 +1252,8 @@ function renderResult(){
       '<span class="pscore">综合 '+n.total+'</span>'+
       '<div class="pname">'+n.name+'</div>'+
       '<div class="pinyin">'+((n.py||[]).join(' '))+(n.pz?' <span class="pz">· '+n.pz+'</span>':'')+'</div>'+
-      (n.tone_note?'<div class="toneNote">♪ '+n.tone_note+'</div>':'')+ reason +
+      (n.tone_note?'<div class="toneNote">♪ '+n.tone_note+'</div>':'')+
+      gridsHtml(n) + reason +
       '<div class="dims">'+dims+'</div>'+
       '<div class="plateActions">'+
       '<button class="toggle">展开细项分析 ▾</button>'+
@@ -1311,7 +1334,7 @@ function exportNameImage(idx){
   const ctx = cv.getContext("2d");
   ctx.font = "13px 'PingFang SC','Microsoft YaHei',sans-serif";
   let contentH = 70 + (n.rank_reason ? 2*lineH+6 : 0) + 96 + (meta.has_birth ? 6*lineH+18 : 0) + 40
-    + 24 /* 拼音+平仄行 */ + (n.tone_note ? 2*lineH+8 : 0);
+    + 24 /* 拼音+平仄行 */ + (n.tone_note ? 2*lineH+8 : 0) + (n.grid_fortune ? 22 : 0);
   (n.explain||[]).forEach(e=>{ const t=(e.label?("· "+e.label+"："):"")+e.text; const lines=Math.max(1, Math.ceil(ctx.measureText(t).width / (W-2*pad-12))); contentH += lines*lineH+10; });
   if(n.starReview){ const sl=Math.max(1, Math.ceil(ctx.measureText(n.starReview).width / (W-2*pad))); contentH += 2*lineH + sl*lineH + 8; }
   const H = contentH + 2*pad;
@@ -1330,6 +1353,9 @@ function exportNameImage(idx){
     ctx.fillText(n.py.join(" ") + (n.pz?("  ·  "+n.pz):""), pad, y); y += 24; }
   if(n.rank_reason){ ctx.fillStyle="#f0d9bb"; ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; y = wrapCN(ctx, "★ 推荐理由："+n.rank_reason, pad, y, W-2*pad, lineH); y += 6; }
   if(n.tone_note){ ctx.fillStyle="#e9cfa8"; ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; y = wrapCN(ctx, "♪ "+n.tone_note, pad, y, W-2*pad, lineH); y += 6; }
+  if(n.grid_fortune){ const gf=n.grid_fortune; const order=['天格','人格','地格','总格','外格'];
+    const seg = order.map(k=>{ const it=gf[k]; return it?((k==='人格'||k==='总格')?(k[0]+it[0]+'('+it[1]+'·'+it[2]+')'):(k[0]+it[0]+'·'+it[2])):''; }).join('  ');
+    ctx.fillStyle="#bfe9c8"; ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillText("五格 "+seg, pad, y); y += 22; }
   ctx.font="11px 'PingFang SC','Microsoft YaHei',sans-serif";
   const colW = (W-2*pad - 2*16)/3;
   DIMS.forEach(([k,cn],i)=>{
