@@ -309,6 +309,9 @@
   .plate .toneNote{font-size:12px;color:#e9cfa8;margin-top:5px;line-height:1.5;opacity:.92;
     padding-left:14px;position:relative}
   .plate .toneNote::before{content:"♪";position:absolute;left:0;top:0;color:#ffd9a0;opacity:.8}
+  .plate .allusionNote{font-size:12px;color:#d7e6d2;margin-top:5px;line-height:1.5;opacity:.92;
+    padding-left:16px;position:relative}
+  .plate .allusionNote::before{content:"卷";position:absolute;left:0;top:-1px;color:#9fd6a8;opacity:.85;font-size:11px}
   .plate .grids{font-size:12px;color:#e9cfa8;margin-top:6px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
   .plate .grids .gk{color:#cbb48f;letter-spacing:.05em}
   .plate .grids .g{display:inline-flex;align-items:center;gap:3px;color:#f1e2c8;font-variant-numeric:tabular-nums}
@@ -1282,6 +1285,7 @@ function renderResult(){
       '<div class="pname">'+n.name+'</div>'+
       '<div class="pinyin">'+((n.py||[]).join(' '))+(n.pz?' <span class="pz">· '+n.pz+'</span>':'')+'</div>'+
       (n.tone_note?'<div class="toneNote">♪ '+n.tone_note+'</div>':'')+
+      (n.allusion_note?'<div class="allusionNote">卷 '+n.allusion_note+'</div>':'')+
       gridsHtml(n) + sancaiHtml(n) + reason +
       '<div class="dims">'+dims+'</div>'+
       '<div class="plateActions">'+
@@ -1319,7 +1323,8 @@ function renderResult(){
           zodiac:(m2.zodiac||(state.bazi&&state.bazi.zodiac)||null),
           need:(m2.use_gods||null), dims:(nm.dims||{}),
           bazi:(state.bazi||null), primary:(state.primaryTeacher||null),
-          py:(nm.py||null), pz:(nm.pz||null)})})
+          py:(nm.py||null), pz:(nm.pz||null),
+          allusion_note:(nm.allusion_note||null)})})
         .then(r=>r.json()).then(d=>{
           // 成功：写入正文；失败（缺 key/限流/异常）：提示可重试。两者都允许再次点击
           const txt = (d && typeof d.review==="string" && d.review.trim()) ? d.review.trim() : null;
@@ -1363,7 +1368,7 @@ function exportNameImage(idx){
   const ctx = cv.getContext("2d");
   ctx.font = "13px 'PingFang SC','Microsoft YaHei',sans-serif";
   let contentH = 70 + (n.rank_reason ? 2*lineH+6 : 0) + 96 + (meta.has_birth ? 6*lineH+18 : 0) + 40
-    + 24 /* 拼音+平仄行 */ + (n.tone_note ? 2*lineH+8 : 0) + (n.grid_fortune ? 22 : 0) + (n.sancai ? 22 : 0);
+    + 24 /* 拼音+平仄行 */ + (n.tone_note ? 2*lineH+8 : 0) + (n.allusion_note ? 2*lineH+8 : 0) + (n.grid_fortune ? 22 : 0) + (n.sancai ? 22 : 0);
   (n.explain||[]).forEach(e=>{ const t=(e.label?("· "+e.label+"："):"")+e.text; const lines=Math.max(1, Math.ceil(ctx.measureText(t).width / (W-2*pad-12))); contentH += lines*lineH+10; });
   if(n.starReview){ const sl=Math.max(1, Math.ceil(ctx.measureText(n.starReview).width / (W-2*pad))); contentH += 2*lineH + sl*lineH + 8; }
   const H = contentH + 2*pad;
@@ -1380,6 +1385,7 @@ function exportNameImage(idx){
   ctx.fillText(scoreText, W-pad-ctx.measureText(scoreText).width, y+12); y += 56;
   if(n.py && n.py.length){ ctx.fillStyle="#f3dcb8"; ctx.font="italic 15px 'PingFang SC','Microsoft YaHei',sans-serif";
     ctx.fillText(n.py.join(" ") + (n.pz?("  ·  "+n.pz):""), pad, y); y += 24; }
+  if(n.allusion_note){ ctx.fillStyle="#d7e6d2"; ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; y = wrapCN(ctx, "卷 "+n.allusion_note, pad, y, W-2*pad, lineH); y += 6; }
   if(n.rank_reason){ ctx.fillStyle="#f0d9bb"; ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; y = wrapCN(ctx, "★ 推荐理由："+n.rank_reason, pad, y, W-2*pad, lineH); y += 6; }
   if(n.tone_note){ ctx.fillStyle="#e9cfa8"; ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; y = wrapCN(ctx, "♪ "+n.tone_note, pad, y, W-2*pad, lineH); y += 6; }
   if(n.grid_fortune){ const gf=n.grid_fortune; const order=['天格','人格','地格','总格','外格'];

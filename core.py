@@ -129,6 +129,18 @@ def good():
             _GOOD = json.load(f)
     return _GOOD
 
+_ALLUSIONS = None
+def allusions():
+    """字义典籍出处字典：字 → 出处串（人工精校，真实可考）。"""
+    global _ALLUSIONS
+    if _ALLUSIONS is None:
+        try:
+            with open(os.path.join(DATA, 'allusions.json'), encoding='utf-8') as f:
+                _ALLUSIONS = json.load(f)
+        except Exception:
+            _ALLUSIONS = {}
+    return _ALLUSIONS
+
 def to_ascii(s):
     # 先把带声调的拼音(如 lín)归一化拆出基元音，再丢弃声调组合符号，
     # 这样 lín→lin、yáng→yang，声调被去但元音保留，拼音匹配才正确。
@@ -880,11 +892,14 @@ def _ex_pronounce(o, meta, mode, idx):
 
 def _ex_meaning(o, meta, mode, idx):
     parts = [(c, m) for c, m in zip(o['given_chars'], o['given_mean']) if m]
+    alu = ''
+    if o.get('allusions'):
+        alu = '。其字各有典出：' + '；'.join('「%s」%s' % (a['c'], a['src']) for a in o['allusions'])
     if parts:
         mean_txt = '；'.join(f"「{c}」{m}" for c, m in parts)
         extra = "父母二姓皆镌于此名之中，血脉亲情一目了然。" if mode == 'B' else ""
-        return MN_HAS[idx % len(MN_HAS)].format(mean_txt=mean_txt, extra=extra)
-    return MN_NONE[idx % len(MN_NONE)].format()
+        return MN_HAS[idx % len(MN_HAS)].format(mean_txt=mean_txt, extra=extra) + alu
+    return MN_NONE[idx % len(MN_NONE)].format() + alu
 
 def _ex_stroke(o, meta, mode, idx):
     zg = o.get('grids', {}).get('总格', '?')
@@ -1023,6 +1038,13 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
         'bad_imagery_penalty': bi_pen, 'bad_imagery_hits': bi_hits,
     }
     o['tone_note'] = _tone_phrase(o)
+    # 字义典籍出处：收集名中每个有出处的字
+    al = allusions()
+    o['allusions'] = [{'c': c, 'src': al[c]} for c in given_chars if c in al]
+    if o['allusions']:
+        o['allusion_note'] = '　'.join('「%s」出%s' % (a['c'], a['src'].split('「')[0].rstrip('·')) for a in o['allusions'])
+    else:
+        o['allusion_note'] = ''
     o['dup_info'] = ('unique' if not any(c in HIGH_FREQ for c in given_chars) else 'common')
     return o
 
