@@ -77,7 +77,9 @@ async def analyze(req: Request):
     gender = body.get("gender") or "U"
     birth = _birth_from(body)
     try:
-        names, meta = analyze_given_name(name, gender, birth)
+        names, meta = analyze_given_name(name, gender, birth,
+                                         father=body.get("father"), mother=body.get("mother"),
+                                         mode=body.get("mode"))
         return JSONResponse({"names": names, "meta": meta})
     except Exception as e:
         return JSONResponse({**SAMPLE_ANALYZE, "meta": {"source": "local-mock", "error": str(e)}})

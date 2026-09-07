@@ -293,14 +293,46 @@ def validate_surname(s):
         return '姓氏含有不雅用字，请更换'
     return None
 
+# 常见姓氏表（单姓 + 传统复姓），供「观测已有名」自动拆姓兜底使用。
+# 仅覆盖最常见者，前端观测流程会优先把父/母姓与 mode 传给后端，本表只作最后退路。
+_SURNAME_SINGLE = (
+    "王李张刘陈杨黄赵周吴徐孙朱马胡郭何高林郑谢罗梁宋唐许韩冯邓曹彭曾"
+    "萧田董袁潘于蒋蔡余杜叶程苏魏吕丁任沈姚卢傅钟姜崔谭廖范汪熊金陆郝"
+    "孔白秦江史顾侯邵孟龙万段钱汤尹黎易常武乔贺赖龚文庞樊兰殷施陶洪翟"
+    "安颜倪严牛莫芦季俞章鲁葛伍韦申尤毕聂丛焦向柳邢路岳齐梅庄辛管祝左"
+    "涂谷祁时舒耿牟卜詹游司柴练阚项曲饶解欧卫邝车冉殷邬安乐苟骆关苗凤"
+    "花荆红谈窦迟仁宫闵屈项裘缪荆乐银巫敖原植弓宿怀邝阙璩亢裘赛边辜"
+)
+SURNAME_SET = set(_SURNAME_SINGLE) | set(
+    ["欧阳","上官","司马","诸葛","东方","皇甫","尉迟","公羊","澹台","公孙","慕容",
+     "仲孙","钟离","长孙","宇文","司徒","司空","百里","拓跋","夹谷","宰父","谷梁",
+     "段干","东郭","南门","呼延","微生","梁丘","左丘","西门","南宫","第伍","羊舌",
+     "漆雕","壤驷","公冶","宗政","濮阳","闻人","夏侯","赫连","万俟","是云","素和",
+     "乞伏"]
+)
+
 def build_surname(father, mother, mode):
+    """组姓。返回 (surname, note)。
+
+    - 随母姓：取母姓
+    - 复姓双承：父姓 + 母姓（父为先）。
+        * 父母同姓时退化为单姓（民俗惯例：同姓不叠，避免「李李」式双字叠姓）
+        * 任一方缺失则取另一方，不报错
+    - 默认随父姓
+    """
     father = (father or '').strip()
     mother = (mother or '').strip()
     if mode == 'M':
-        return mother
+        return mother, ''
     if mode == 'B':
-        return father + mother  # 父姓为先，母姓其后（复姓）
-    return father  # 默认随父姓
+        if not father:
+            return mother, ''
+        if not mother:
+            return father, ''
+        if father == mother:
+            return father, '父母同姓，双姓已自动取单姓（不叠姓）'
+        return father + mother, ''
+    return father, ''
 
 def surname_info(surname):
     """返回每个字的 (py, tone, initial, radical, wx, stroke)"""
@@ -1083,11 +1115,16 @@ def _diverse_top(ranked, size):
     return out
 
 def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12, weights=None):
-    ef = validate_surname(father)
-    em = validate_surname(mother)
-    if ef or em:
-        return [], {'error': ef or em}
-    surname = build_surname(father, mother, mode)
+    # BUG A 修复：只校验实际参与组姓的父/母，避免随父姓时母姓为空被误报"姓氏不能为空"
+    if mode == 'M':
+        serr = validate_surname(mother)
+    elif mode == 'B':
+        serr = validate_surname(father) or validate_surname(mother)
+    else:  # 'F' 默认随父姓
+        serr = validate_surname(father)
+    if serr:
+        return [], {'error': serr}
+    surname, surname_note = build_surname(father, mother, mode)
     given_len = name_len - len(surname)
     if given_len < 1:
         return [], {'error': f'当前姓氏共 {len(surname)} 字，无法组成 {name_len} 字名（名字至少需 1 个名），请改选字数或姓氏方式。'}
@@ -1202,6 +1239,7 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
             'use_gods': bmeta.get('use_gods'), 'counts': bmeta.get('counts'),
             'diao_hou': bmeta.get('diao_hou'), 'diao_hou_why': bmeta.get('diao_hou_why'),
             'zodiac_he': bmeta.get('zodiac_he'), 'zodiac_fan': bmeta.get('zodiac_fan'),
+            'surname': surname, 'surname_note': surname_note, 'mode': mode,
             'pool_size': len(pool), 'surname': surname, 'mode': mode,
             'name_len': name_len, 'relaxed': relaxed, 'relax_reason': relax_reason}
     out = _curate_diverse(names, topn)
@@ -1209,7 +1247,7 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
         assigned = _assign_explain_variants(out, meta, mode)
         for i, o in enumerate(out):
             o['explain'] = render_explain(o, meta, mode, assigned[i])
-        out[0]['rank_reason'] = build_rank_reason(out[0], out)
+            o['rank_reason'] = build_rank_reason(o, out, i)
     return out, meta
 
 def _curate_diverse(names, out_n):
@@ -1256,39 +1294,68 @@ def _tone_phrase(o):
     if head_ze:
         return f"仄平相协（{pz}），起伏分明，呼之有余韵"
     return f"声调错落（{pz}），念来不涩不滞"
-def build_rank_reason(top, names):
-    """基于候选群像，数据驱动地说明榜首为何排第一（优势维度 + 唯一可优化点 + 平仄韵律）。"""
+def build_rank_reason(o, names, idx=0):
+    """数据驱动地为每个候选生成「推荐理由」：突出该名相对候选群像最强的维度 + 平仄韵律。
+    idx==0 强调'居首'；其余标注名次并突出'本名亮点'，确保每个卡片信息完整、不简略。"""
     if not names:
         return ''
-    keys = [k for k in ['wuxing','zodiac','pronounce','meaning','stroke','gender'] if top['dims'].get(k) is not None]
+    keys = [k for k in ['wuxing','zodiac','pronounce','meaning','stroke','gender'] if o['dims'].get(k) is not None]
     n = len(names)
-    avgs = {k: round(sum(o['dims'][k] for o in names) / n, 1) for k in keys}
-    td = top['dims']
+    avgs = {k: round(sum(x['dims'][k] for x in names) / n, 1) for k in keys}
+    td = o['dims']
     diff_sorted = sorted(keys, key=lambda k: td[k] - avgs[k], reverse=True)
     strong = [k for k in diff_sorted if td[k] - avgs[k] >= 3][:2]
     weak = [k for k in sorted(keys, key=lambda k: td[k] - avgs[k]) if td[k] - avgs[k] <= -3][:1]
-    head = f"综合分 {top['total']} 居首（共 {n} 个候选）。"
+    rank_txt = (f"综合分 {o['total']} 居首（共 {n} 个候选）" if idx == 0
+                else f"综合分 {o['total']}（候选第 {idx+1} 名，共 {n} 个）")
     if strong:
         s = "、".join(f"{DIM_LABELS_CN[k]}突出（{td[k]}，高于候选均值 {avgs[k]}）" for k in strong)
         tail = ""
         if weak:
             k = weak[0]
-            tail = f"；唯一可优化项是{DIM_LABELS_CN[k]}（{td[k]}，低于均值 {avgs[k]}）"
-        base = head + "优势在于：" + s + tail + "。"
+            tail = f"；可留意{DIM_LABELS_CN[k]}（{td[k]}，略低于均值 {avgs[k]}）"
+        base = rank_txt + ("，优势在于：" if idx == 0 else "，亮点在于：") + s + tail + "。"
     else:
-        base = head + "各维度均处中上水平，是综合表现最均衡的一个。" + (
-            f"；{DIM_LABELS_CN[weak[0]]}（{td[weak[0]]}）略低于候选均值 {avgs[weak[0]]}。" if weak else "")
-    tp = _tone_phrase(top)
+        base = rank_txt + "，各维度均处中上、表现均衡。" + (
+            f"可留意{DIM_LABELS_CN[weak[0]]}（{td[weak[0]]}，略低于均值 {avgs[weak[0]]}）。" if weak else "")
+    tp = _tone_phrase(o)
     if tp:
         base += " " + tp + "。"
     return base
 
 # ---------- 候选名字分析（能力 B：帮我观测我的候选名字） ----------
-def analyze_given_name(name, gender, birth, weights=None):
+def _split_surname(name_chars):
+    """自动拆姓兜底：优先匹配 2 字复姓，否则取首字（若为已知单姓）。仅作最后退路。"""
+    if len(name_chars) >= 2:
+        two = ''.join(name_chars[:2])
+        if two in SURNAME_SET:
+            return two
+    one = name_chars[0] if name_chars else ''
+    if one in SURNAME_SET:
+        return one
+    return one  # 兜底：首字为姓
+
+
+def analyze_given_name(name, gender, birth, surname=None, mode=None, father=None, mother=None, weights=None):
     raw = (name or '').strip()
-    given = [c for c in raw if '\u4e00' <= c <= '\u9fff']
-    if not given:
+    chars_all = [c for c in raw if '\u4e00' <= c <= '\u9fff']
+    if not chars_all:
         return [], {'error': '请输入中文名字（如：林婉婷）'}
+
+    # BUG B 修复：正确拆分「姓 + 名」，否则整串当名会导致五格(天格)、姓氏五行算错。
+    # 优先级：显式 surname > 用父/母姓构建 > 姓氏表自动拆姓兜底。
+    if surname:
+        surname = (surname or '').strip()
+        snote = ''
+    elif father is not None or mother is not None or mode is not None:
+        surname, snote = build_surname(father, mother, mode or 'F')
+    else:
+        surname = _split_surname(chars_all)
+        snote = '已由姓名自动拆姓（若不准，可在观测时一并提供父母姓氏）'
+    given = chars_all[len(surname):] or chars_all
+    if not given:
+        return [], {'error': '名字（名的部分）不能为空'}
+
     ch = chars()
     glmap = {it['c']: it for it in good()}
     given_info, given_it = [], []
@@ -1304,16 +1371,21 @@ def analyze_given_name(name, gender, birth, weights=None):
     has_birth = birth is not None
     need = birth['need'] if has_birth else None
     zodiac = birth['zodiac'] if has_birth else None
-    o = _build_name('', given, given_info, given_it, gender, birth, need, zodiac,
-                    w, '', [], [], None, None, None)
+    # 真实姓氏进入五格(天格)/五行，而非把整串当名
+    s_info = surname_info(surname)
+    s_py = ''.join(p[0] for p in s_info)
+    s_tones = [p[1] for p in s_info]
+    s_ini = [p[2] for p in s_info]
+    o = _build_name(surname, given, given_info, given_it, gender, birth, need, zodiac,
+                    w, s_py, s_tones, s_ini, mode, None, None)
     bmeta = birth or {}
     meta = {'has_birth': has_birth, 'need': need, 'zodiac': zodiac,
             'gz': bmeta.get('gz'), 'day_master': bmeta.get('day_master'),
             'day_master_wx': bmeta.get('day_master_wx'), 'strong': bmeta.get('strong'),
             'use_gods': bmeta.get('use_gods'), 'counts': bmeta.get('counts'),
-            'pool_size': len(given), 'surname': raw, 'mode': None,
-            'name_len': len(given), 'analyzed': True}
-    o['explain'] = render_explain(o, meta, None,
+            'pool_size': len(given), 'surname': surname, 'surname_note': snote,
+            'mode': mode, 'name_len': len(chars_all), 'analyzed': True}
+    o['explain'] = render_explain(o, meta, meta.get('mode'),
         {k: random.randrange(POOL_SIZE[k]) for k in DIM_FUNCS if _key_included(k, o, meta)})
     return [o], meta
 

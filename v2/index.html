@@ -416,6 +416,8 @@
   .baziCard .bk-wx .wxseg{display:inline-flex;align-items:center;gap:4px;margin-right:9px;font-size:12px}
   .baziCard .bk-wx .wxseg i{display:block;width:16px;height:7px;border-radius:3px;opacity:.9}
   .baziCard .bk-wx .wxseg b{color:#fff;font-weight:600}
+  .surnameNote{font-size:13px;color:#caa6e8;background:rgba(120,90,160,.16);border:1px solid rgba(160,120,200,.35);
+    border-radius:10px;padding:8px 12px;margin:10px 0 4px;line-height:1.55}
   /* 主理老师选择网格 */
   .teacherGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:6px 0 4px}
   .teacherGrid .tcard{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border-radius:12px;
@@ -1080,7 +1082,9 @@ function callAPI(){
   const w = buildWeights();
   if(state.branch==="B"){
     return fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({name:state.name||"", gender:state.gender||"U", birth:state.birth||null, weights:w})}).then(r=>r.json());
+      body:JSON.stringify({name:state.name||"", gender:state.gender||"U",
+        father:state.father||"", mother:state.mother||"", mode:state.mode||"F",
+        birth:state.birth||null, weights:w})}).then(r=>r.json());
   }
   return fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({father:state.father||"", mother:state.mother||"", mode:state.mode||"F",
@@ -1321,7 +1325,9 @@ function renderResult(){
       (state.primaryTeacher&&state.primaryTeacher!=="balance"?'<div class="bk-row"><span class="bk-k">主理侧重</span><span class="bk-v">'+fmtTeacher()+'</span></div>':'')+
       '<div class="bk-tip">'+tipTxt+(state.primaryTeacher&&state.primaryTeacher!=="balance"?'今日以'+fmtTeacher()+'为主理，该维度已加权。':'')+'</div></div>';
   }
-  let html = '<h2>星师荐名 · 共 '+names.length+' 枚</h2>' + baziHtml;
+  let noteHtml = (meta.surname_note && meta.surname_note.trim())
+    ? '<div class="surnameNote">※ '+meta.surname_note+'（姓名：'+(meta.surname||'')+'）</div>' : '';
+  let html = '<h2>星师荐名 · 共 '+names.length+' 枚</h2>' + baziHtml + noteHtml;
   names.forEach((n,idx)=>{
     const dims = DIMS.map(([k,cn])=>{
       const v = n.dims ? n.dims[k] : null;

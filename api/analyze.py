@@ -28,5 +28,7 @@ async def analyze(req: Request):
     name = (body.get("name") or "").strip()
     gender = body.get("gender") or "U"
     birth = _birth_from(body)
-    names, meta = analyze_given_name(name, gender, birth)
+    names, meta = analyze_given_name(name, gender, birth,
+                                     father=body.get("father"), mother=body.get("mother"),
+                                     mode=body.get("mode"))
     return JSONResponse({"names": names, "meta": meta})
