@@ -344,6 +344,51 @@
     box-shadow:0 2px 6px rgba(255,170,90,.22);transition:transform .15s,box-shadow .2s,background .2s}
   .exportBtn:hover{transform:translateY(-1px);background:linear-gradient(160deg,#ffe7c2,#ffc982);box-shadow:0 3px 9px rgba(255,170,90,.34)}
   .exportBtn:active{transform:translateY(0)}
+  /* 收藏按钮（卡片内） */
+  .favBtn{display:inline-block;width:auto;margin:0;padding:6px 12px;font-size:12px;cursor:pointer;white-space:nowrap;
+    background:rgba(255,255,255,.62);border:1px solid var(--panel-line);border-radius:8px;color:#9a6b52;font-weight:500;
+    transition:transform .15s,background .2s,border-color .2s,color .2s}
+  .favBtn:hover{background:rgba(255,255,255,.85);border-color:var(--accent)}
+  .favBtn:active{transform:scale(.96)}
+  .favBtn.on{color:#e06b8a;border-color:rgba(224,107,138,.5);background:rgba(255,225,233,.7)}
+  /* 顶部收藏入口 */
+  #top .favTop{margin-left:auto;font-family:inherit;flex:none;display:inline-flex;align-items:center;gap:5px;cursor:pointer;
+    background:rgba(255,255,255,.66);border:1px solid var(--panel-line);border-radius:14px;padding:5px 13px;font-size:12.5px;
+    color:#7a5a3a;letter-spacing:.04em;transition:background .2s,border-color .2s}
+  #top .favTop:hover{background:rgba(255,255,255,.88);border-color:var(--accent)}
+  #top .favTop #favCount{display:inline-block;min-width:16px;text-align:center;background:var(--accent);color:#fff;border-radius:9px;
+    font-size:11px;padding:0 5px;line-height:16px}
+  /* 收藏夹弹窗 */
+  .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    background:rgba(40,28,60,.42);backdrop-filter:blur(4px);padding:18px;animation:modalIn .25s var(--ease)}
+  .modal[hidden]{display:none}
+  @keyframes modalIn{from{opacity:0}to{opacity:1}}
+  .modalCard{width:min(680px,96vw);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--panel-line);
+    border-radius:var(--radius);box-shadow:0 24px 70px rgba(60,40,90,.40);padding:18px 18px 20px;filter:saturate(var(--sat))}
+  .modalHead{display:flex;align-items:center;justify-content:space-between;font-size:16px;font-weight:600;letter-spacing:.06em;
+    color:var(--accent);margin-bottom:12px}
+  .modalX{border:none;background:none;font-size:24px;line-height:1;color:var(--ink-soft);cursor:pointer;padding:0 4px}
+  .modalX:hover{color:var(--accent)}
+  .favEmpty{color:var(--ink-soft);font-size:13px;text-align:center;padding:30px 0;opacity:.8}
+  .favItem{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--panel-line);border-radius:12px;margin-bottom:8px;
+    background:rgba(255,255,255,.45)}
+  .favItem .cmpPick{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-soft);cursor:pointer;flex:none}
+  .favItem .favMain{flex:1;min-width:0}
+  .favItem .favName{font-size:17px;font-weight:700;letter-spacing:.06em;color:var(--ink)}
+  .favItem .favName b{font-size:12px;font-weight:500;color:var(--ink-soft);margin-left:6px}
+  .favItem .favSub{font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .favItem .favDel{border:1px solid var(--panel-line);background:rgba(255,255,255,.6);color:#a06b6b;border-radius:8px;
+    padding:5px 10px;font-size:12px;cursor:pointer;flex:none}
+  .favItem .favDel:hover{border-color:#e08a8a;background:rgba(255,228,228,.7)}
+  .favHint{font-size:12px;color:var(--ink-soft);margin:10px 2px 4px;opacity:.85}
+  .cmpTable{width:100%;border-collapse:collapse;margin-top:6px;font-size:12.5px}
+  .cmpTable th,.cmpTable td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--panel-line);vertical-align:top}
+  .cmpTable th{color:var(--accent);font-weight:600;letter-spacing:.04em}
+  .cmpTable td.dimname{color:var(--ink-soft);white-space:nowrap}
+  .cmpTable .cbar{height:7px;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));margin-top:3px}
+  .cmpTable .cscore{font-weight:600;color:var(--ink)}
+  .cmpTable .cbest{color:#7bbf8e;font-size:11px;margin-left:4px}
   /* 星师详解：展开卡片底部的 AI 解读（星师紫调） */
   .starReviewWrap{margin-top:10px;border-top:1px dashed var(--panel-line);padding-top:10px}
   .starReviewBtn{display:inline-block;margin:0;padding:7px 14px;font-size:13px;color:#4a2f6b;cursor:pointer;white-space:nowrap;
@@ -422,7 +467,14 @@
 <div id="ambient"></div>
 <div id="leaves"></div>
 <div id="app">
-  <div id="top"><b title="回到首页">星命观测局</b><span id="step"></span><button id="backBtn" class="backBtn" type="button" hidden>‹ 上一步</button></div>
+  <div id="top"><b title="回到首页">星命观测局</b><span id="step"></span><button id="favTop" class="favTop" type="button">★ 收藏 <span id="favCount">0</span></button><button id="backBtn" class="backBtn" type="button" hidden>‹ 上一步</button></div>
+  <div id="favModal" class="modal" hidden>
+    <div class="modalCard">
+      <div class="modalHead">★ 我的收藏 <button id="favClose" class="modalX" type="button">×</button></div>
+      <div id="favBody" class="favBody"></div>
+      <div id="favCmp"></div>
+    </div>
+  </div>
   <div id="prog"><i></i></div>
   <div id="actorWrap"></div>
   <div id="stage"><div id="scene"></div></div>
@@ -1290,6 +1342,7 @@ function renderResult(){
       '<div class="dims">'+dims+'</div>'+
       '<div class="plateActions">'+
       '<button class="toggle">展开细项分析 ▾</button>'+
+      '<button class="favBtn'+(isFav(n.name)?' on':'')+'">'+(isFav(n.name)?'♥ 已藏':'♡ 收藏')+'</button>'+
       '<button class="exportBtn">导出此名图片</button>'+
       '</div>'+
       '<div class="explain">'+ex+
@@ -1309,6 +1362,14 @@ function renderResult(){
     };
     const exBtn = p.querySelector(".exportBtn");
     if (exBtn) exBtn.onclick = (e)=>{ e.stopPropagation(); exportNameImage(i); };
+    const fb = p.querySelector(".favBtn");
+    if (fb) fb.onclick = (e)=>{
+      e.stopPropagation();
+      const nm = (state.result.names||[])[i]; if(!nm) return;
+      toggleFav(nm);
+      const on = isFav(nm.name);
+      fb.classList.toggle("on", on); fb.textContent = on?"♥ 已藏":"♡ 收藏";
+    };
     const srBtn = p.querySelector(".starReviewBtn");
     if (srBtn) srBtn.onclick = ()=>{
       const out = p.querySelector(".starReviewOut");
@@ -1561,6 +1622,73 @@ function buildConstellation(a){
   setInterval(()=>{ svg.style.opacity="0"; setTimeout(()=>{ regen(); svg.style.opacity="1"; }, 900); }, 7200);
 }
 buildAmbient();
+
+/* ---------- 收藏 + 对比（纯前端 localStorage） ---------- */
+const FAV_KEY = "babyname_favs_v1";
+function loadFavs(){ try{ const a = JSON.parse(localStorage.getItem(FAV_KEY)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function saveFavs(a){ try{ localStorage.setItem(FAV_KEY, JSON.stringify(a)); }catch(e){} }
+let favs = loadFavs();
+function isFav(name){ return favs.some(f=>f.name===name); }
+function toggleFav(o){
+  if(isFav(o.name)){ favs = favs.filter(f=>f.name!==o.name); }
+  else {
+    favs.push({name:o.name, total:o.total, gender:o.gender, dims:o.dims||null, py:o.py||null, pz:o.pz||null,
+      grids:o.grids||null, grid_fortune:o.grid_fortune||null, sancai:o.sancai||null,
+      tone_note:o.tone_note||null, allusion_note:o.allusion_note||null});
+  }
+  saveFavs(favs); renderFavTop(); syncCardFavBtns();
+}
+function renderFavTop(){ const el=$("#favCount"); if(el) el.textContent = favs.length; }
+function syncCardFavBtns(){
+  document.querySelectorAll(".plate").forEach(p=>{
+    const fb = p.querySelector(".favBtn"); if(!fb) return;
+    const i = parseInt(p.getAttribute("data-i")||"0",10); const nm=(state.result&&state.result.names||[])[i]; if(!nm) return;
+    const on = isFav(nm.name); fb.classList.toggle("on",on); fb.textContent = on?"♥ 已藏":"♡ 收藏";
+  });
+}
+function gridFortuneShort(gf){ if(!gf) return "—"; const order=["天格","人格","地格","总格","外格"];
+  return order.map(k=>{ const v=gf[k]; return v? (v[0]+v[2].slice(0,1)) : ""; }).join(" "); }
+function openFavModal(){ renderFavModal(); $("#favModal").hidden=false; }
+function closeFavModal(){ $("#favModal").hidden=true; }
+function renderFavModal(){
+  const body=$("#favBody"); const cmp=$("#favCmp");
+  if(cmp) cmp.innerHTML="";
+  if(!favs.length){ body.innerHTML='<div class="favEmpty">还没有收藏的名字。<br>在结果页点名字卡片上的「♡ 收藏」即可收在这里。</div>'; return; }
+  body.innerHTML = favs.map(f=>{
+    const sub=[f.pz?("平仄 "+f.pz):"", gridFortuneShort(f.grid_fortune), f.sancai?(f.sancai.x+"·"+f.sancai.grade):""].filter(Boolean).join("　·　");
+    return '<div class="favItem">'+
+      '<label class="cmpPick"><input type="checkbox" class="cmpChk" value="'+f.name+'"> 对比</label>'+
+      '<div class="favMain"><div class="favName">'+f.name+'<b>综合 '+f.total+'</b></div>'+
+      '<div class="favSub">'+sub+'</div></div>'+
+      '<button class="favDel" data-name="'+f.name+'">移除</button></div>';
+  }).join("");
+  // 事件
+  body.querySelectorAll(".favDel").forEach(b=>b.onclick=()=>{ const nm=b.getAttribute("data-name"); favs=favs.filter(f=>f.name!==nm); saveFavs(favs); renderFavTop(); renderFavModal(); syncCardFavBtns(); });
+  body.querySelectorAll(".cmpChk").forEach(c=>c.onchange=()=>renderCompare());
+}
+function renderCompare(){
+  const cmp=$("#favCmp"); if(!cmp) return;
+  const sel = favs.filter(f=>{ const el=document.querySelector('.cmpChk[value="'+CSS.escape(f.name)+'"]'); return el&&el.checked; });
+  if(sel.length<2){ cmp.innerHTML = sel.length===1? '<div class="favHint">再勾选一个名字即可并排对比。</div>' : ''; return; }
+  const dimNames = DIMS.map(([k,cn])=>[k,cn]);
+  let rows = '<tr><th class="dimname">综合分</th>'+sel.map(f=>'<td class="cscore">'+f.total+'</td>').join("")+'</tr>';
+  dimNames.forEach(([k,cn])=>{
+    rows += '<tr><th class="dimname">'+cn+'</th>'+sel.map(f=>{
+      const v = f.dims?f.dims[k]:null; if(v==null) return '<td class="cscore">—</td>';
+      const best = sel.every(x=>x.dims&&x.dims[k]!=null) && v===Math.max(...sel.map(x=>x.dims[k]));
+      return '<td><div class="cscore">'+v+(best?'<span class="cbest">↑最高</span>':'')+'</div><div class="cbar" style="width:'+v+'%"></div></td>';
+    }).join("")+'</tr>';
+  });
+  rows += '<tr><th class="dimname">五格</th>'+sel.map(f=>'<td>'+gridFortuneShort(f.grid_fortune)+'</td>').join("")+'</tr>';
+  rows += '<tr><th class="dimname">三才</th>'+sel.map(f=>'<td>'+(f.sancai?(f.sancai.x+"·"+f.sancai.grade):"—")+'</td>').join("")+'</tr>';
+  rows += '<tr><th class="dimname">平仄</th>'+sel.map(f=>'<td>'+(f.pz||"—")+'</td>').join("")+'</tr>';
+  cmp.innerHTML = '<div class="favHint">并排对比（带 ↑最高 的为该项最优）：</div>'+
+    '<table class="cmpTable"><thead><tr><th class="dimname">维度</th>'+sel.map(f=>'<th>'+f.name+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table>';
+}
+$("#favTop").onclick = openFavModal;
+$("#favClose").onclick = closeFavModal;
+$("#favModal").addEventListener("click", e=>{ if(e.target.id==="favModal") closeFavModal(); });
+renderFavTop();
 
 /* 启动 */
 go("brand");
