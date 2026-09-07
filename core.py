@@ -490,6 +490,49 @@ def grid_fortune(n):
 def grid_fortune_map(grids):
     """{格名: (数值, 角色, 吉凶)} —— 供前端展示。"""
     return {k: (v, GRID_ROLE.get(k, ''), grid_fortune(v)) for k, v in (grids or {}).items()}
+
+# ---------- 三才配置（天格/人格/地格 五行生克，五格派的另一半，定根基吉凶） ----------
+# 数理尾数 → 五行：1,2 木；3,4 火；5,6 土；7,8 金；9,0 水
+_GRID_WX = {1:'木',2:'木',3:'火',4:'火',5:'土',6:'土',7:'金',8:'金',9:'水',0:'水'}
+SHENG = {'木':'火','火':'土','土':'金','金':'水','水':'木'}   # a 生 b
+KE = {'木':'土','土':'水','水':'火','火':'金','金':'木'}       # a 克 b
+def grid_wx(n):
+    if n is None or n <= 0:
+        return '土'
+    return _GRID_WX[n % 10]
+def _rel(a, b):
+    """a 对 b 的作用：'生'(a生b, 利b) / '克'(a克b, 损b) / '比' / None(泄或克出，中性)。"""
+    if a == b:
+        return '比'
+    if SHENG.get(a) == b:
+        return '生'
+    if KE.get(a) == b:
+        return '克'
+    return None
+def sancai(grids):
+    """三才配置：天格/人格/地格 五行生克 → (五行三元组, 等级, 文案)。人格为主运、地格为根基。
+    判定（以人格为中心）：天克人/人克地/地克人 任一即凶；天生人且人生地(顺生)为大吉；
+    至少一重相生为吉；仅比和/泄为半吉。"""
+    if not grids or '人格' not in grids or '天格' not in grids or '地格' not in grids:
+        return None
+    tw, rw, dw = grid_wx(grids['天格']), grid_wx(grids['人格']), grid_wx(grids['地格'])
+    rt, rd, rb = _rel(tw, rw), _rel(dw, rw), _rel(rw, dw)   # 天→人 / 地→人 / 人→地
+    kes, sans = [], []
+    if rt == '克': kes.append('天格克人格')
+    elif rt == '生': sans.append('天格生人格')
+    if rd == '克': kes.append('地格克人格')
+    elif rd == '生': sans.append('地格生人格')
+    if rb == '克': kes.append('人格克地格')
+    elif rb == '生': sans.append('人格生地格')
+    if kes:
+        grade, tip = '凶', '、'.join(kes) + '，三才有克，根基稍滞'
+    elif rt == '生' and rb == '生':
+        grade, tip = '大吉', '、'.join(sans) + '，三才顺生，根基稳固'
+    elif sans:
+        grade, tip = '吉', '、'.join(sans) + '，三才相生，根基得养'
+    else:
+        grade, tip = '半吉', '三才比和，气运平顺'
+    return {'wx': (tw, rw, dw), 'grade': grade, 'text': tip, 'x': tw + '·' + rw + '·' + dw}
 def five_grids(strokes):
     """天格/人格/地格/总格/外格 数理（单姓标准算法）。"""
     n = len(strokes)
@@ -876,6 +919,7 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
         'given_chars': given_chars, 'given_wx': wx_list, 'given_mean': g_mean,
         'given_stroke': g_stroke, 'tags': sorted(set(g_tags)), 'grids': grids,
         'grid_fortune': grid_fortune_map(grids),
+        'sancai': sancai(grids),
         'req_gender': gender, 'dims': dims, 'total': round(total, 1),
         'tones': tones,
         'pz': _pingze(tones),
