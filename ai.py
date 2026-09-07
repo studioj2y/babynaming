@@ -141,7 +141,7 @@ def map_free_text(free_text, vocab):
 
 
 # ---------- 能力（星师详解）：AI 以「星师」口吻生成名字解读 ----------
-def star_review(name, gender, zodiac, need, dims, bazi, primary):
+def star_review(name, gender, zodiac, need, dims, bazi, primary, py=None, pz=None):
     """以「星师」古朴温润、带玄学意境的口吻，生成约 180 字名字解读；失败返回 None。"""
     gd = {'M': '男孩', 'F': '女孩', 'U': '宝宝'}.get(gender, '宝宝')
     need_s = '/'.join(need) if need else '均衡'
@@ -160,13 +160,18 @@ def star_review(name, gender, zodiac, need, dims, bazi, primary):
         "你是「星命观测局」的星师，一位德高望重的命名宗匠。\n"
         "你语调古朴温润、带玄学意境与诗性，善用比喻，从容不迫，如与友人对坐夜话。\n"
         "请为这个名字写一段解读，自然融入五行、生肖、音律、字义、意境与命局喜用，\n"
+        "其中「音律」须点出其声调平仄的起伏（如平仄平、仄平仄之回环，或三连声之平板），\n"
         "不宿命、不吓人，多作美好期许。使用纯中文，不要任何 markdown 格式、不要标题。\n"
         "篇幅控制在 180 字以内，务必在 220 字内收束，不要延展成更长散文。\n"
         f"今日主理侧重为「{prim}」，可稍加呼应。"
     )
+    tone_s = ""
+    if py or pz:
+        py_s = " ".join(py) if isinstance(py, (list, tuple)) else (py or "")
+        tone_s = f"读音：{py_s}" + (f"（{pz}）" if pz else "")
     user = (
         f"名字：{name}\n性别：{gd}\n生肖：{zodiac or '未提供'}\n"
-        f"宜补五行：{need_s}\n各维度评分：{dim_s}\n{bazi_s}\n"
+        f"宜补五行：{need_s}\n各维度评分：{dim_s}\n{tone_s}\n{bazi_s}\n"
         f"请星师以此名做一段解读。"
     )
     try:

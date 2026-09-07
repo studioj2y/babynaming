@@ -304,6 +304,11 @@
     color:#f5e7d2;transform:translateY(14px);opacity:0;transition:opacity .5s var(--ease),transform .5s var(--ease)}
   .plate.in{opacity:1;transform:none}
   .plate .pname{font-size:26px;font-weight:700;letter-spacing:.08em;color:#fff}
+  .plate .pinyin{font-size:14px;color:#f3dcb8;margin-top:3px;letter-spacing:.04em;font-style:italic}
+  .plate .pinyin .pz{color:#ffd9a0;font-style:normal;font-weight:600;margin-left:4px}
+  .plate .toneNote{font-size:12px;color:#e9cfa8;margin-top:5px;line-height:1.5;opacity:.92;
+    padding-left:14px;position:relative}
+  .plate .toneNote::before{content:"♪";position:absolute;left:0;top:0;color:#ffd9a0;opacity:.8}
   .plate .pscore{float:right;font-size:14px;color:#ffe2b0;margin-top:6px}
   .plate .preason{font-size:13px;color:#f0d9bb;margin-top:8px;line-height:1.5;border-top:1px dashed rgba(255,220,170,.3);padding-top:8px}
   .dims{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 12px;margin-top:12px}
@@ -344,6 +349,10 @@
   .baziCard .bk-gz{font-size:15px;letter-spacing:.06em;color:#ffe6bf;text-shadow:0 0 10px rgba(255,200,150,.5)}
   .baziCard .bk-use{color:#9fe3c0;text-shadow:0 0 10px rgba(120,230,180,.45)}
   .baziCard .bk-tip{font-size:12px;color:#e7cba6;margin-top:8px;line-height:1.5;border-top:1px dashed rgba(255,220,170,.3);padding-top:8px}
+  .baziCard .bk-wx{margin:6px 0 2px}
+  .baziCard .bk-wx .wxseg{display:inline-flex;align-items:center;gap:4px;margin-right:9px;font-size:12px}
+  .baziCard .bk-wx .wxseg i{display:block;width:16px;height:7px;border-radius:3px;opacity:.9}
+  .baziCard .bk-wx .wxseg b{color:#fff;font-weight:600}
   /* 主理老师选择网格 */
   .teacherGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:6px 0 4px}
   .teacherGrid .tcard{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border-radius:12px;
@@ -875,15 +884,20 @@ function renderAsk(sc){
       const gz = (bz.gz||[]).join(" ");
       const dm = bz.day_master ? (bz.day_master + (bz.day_master_wx||"")) : "—";
       const strong = ({"旺":"身旺","弱":"身弱","中和":"中和"}[bz.strong]) || "—";
-      const useg = (bz.use_gods||[]).join("、") || "—";
+      const useg = (bz.use_gods||[]).join("、") || "平和（宜均衡）";
       const zod = bz.zodiac ? ("生肖 "+bz.zodiac) : "";
+      const wxHtml = wxCountsHtml(bz.counts);
+      const isBal = !((bz.use_gods||[]).length);
+      const tipTxt = isBal ? '命局中和，名字五行宜均衡分布、勿偏补。'
+        : '名中可暗补命局所喜之五行（'+useg+'），补益越贴合综合分越高。';
       inner = '<div class="baziCard baziDialog"><div class="bk-title">命盘参详</div>'+
         '<div class="bk-row"><span class="bk-k">八字</span><span class="bk-v bk-gz">'+gz+'</span></div>'+
         '<div class="bk-row"><span class="bk-k">日主</span><span class="bk-v">'+dm+'</span>'+
         '<span class="bk-k">旺衰</span><span class="bk-v">'+strong+'</span></div>'+
+        wxHtml +
         '<div class="bk-row"><span class="bk-k">喜用神</span><span class="bk-v bk-use">'+useg+'</span>'+
         (zod?'<span class="bk-k">'+zod+'</span>':'')+'</div>'+
-        '<div class="bk-tip">名中可暗补命局所喜之五行（'+useg+'），补益越贴合综合分越高。</div></div>';
+        '<div class="bk-tip">'+tipTxt+'</div></div>';
     } else {
       inner = '<div class="bubble"><p>八字尚在推算…</p></div>';
     }
@@ -1152,6 +1166,18 @@ function playRevealOrbFx(btn, done){
   setTimeout(()=>{ fx.querySelectorAll(".orb").forEach(o=>o.classList.add("boom")); }, 1300);   // 飞出(0.39s)+旋转(≈0.91s)后炸开
   setTimeout(()=>{ fx.classList.remove("go"); fx.innerHTML=""; if(done) done(); }, 1300+500);
 }
+function wxCountsHtml(counts){
+  if(!counts) return '';
+  const order=['金','木','水','火','土'];
+  const colors={'金':'#e8d28a','木':'#8fd19e','水':'#88c5e8','火':'#ef9a8a','土':'#d8b48a'};
+  const maxc = Math.max(1, ...order.map(e=>counts[e]||0));
+  const segs = order.map(e=>{
+    const v = counts[e]||0;
+    const w = Math.max(8, Math.round(v/maxc*100));
+    return '<span class="wxseg" title="'+e+'行"><i style="width:'+w+'%;background:'+colors[e]+'"></i><b>'+e+v+'</b></span>';
+  }).join('');
+  return '<div class="bk-row bk-wx"><span class="bk-k">五行</span>'+segs+'</div>';
+}
 function renderResult(){
   sceneEl.innerHTML="";                 /* 清掉背后残留的对话框，避免从结果层透出 */
   $("#actorWrap").style.display="none";
@@ -1172,16 +1198,22 @@ function renderResult(){
     const gz = (meta.gz||[]).join(" ");
     const dm = meta.day_master ? (meta.day_master + (meta.day_master_wx||"")) : "—";
     const strong = ({"旺":"身旺","弱":"身弱","中和":"中和"}[meta.strong]) || "—";
-    const useg = (meta.use_gods||[]).join("、") || "—";
+    const useg = (meta.use_gods||[]).join("、") || "平和（宜均衡）";
     const zod = meta.zodiac ? ("生肖 "+meta.zodiac) : "";
+    const wxHtml = wxCountsHtml(meta.counts);
+    const isBal = !((meta.use_gods||[]).length);
+    const tipTxt = isBal
+      ? '命局中和，名字五行宜均衡分布、勿偏补，分布越匀综合分越高。'
+      : '名中已暗补命局所喜之五行（'+useg+'），补益越贴合综合分越高。';
     baziHtml = '<div class="baziCard"><div class="bk-title">命盘参详</div>'+
       '<div class="bk-row"><span class="bk-k">八字</span><span class="bk-v bk-gz">'+gz+'</span></div>'+
       '<div class="bk-row"><span class="bk-k">日主</span><span class="bk-v">'+dm+'</span>'+
       '<span class="bk-k">旺衰</span><span class="bk-v">'+strong+'</span></div>'+
+      wxHtml +
       '<div class="bk-row"><span class="bk-k">喜用神</span><span class="bk-v bk-use">'+useg+'</span>'+
       (zod?'<span class="bk-k">'+zod+'</span>':'')+'</div>'+
       (state.primaryTeacher&&state.primaryTeacher!=="balance"?'<div class="bk-row"><span class="bk-k">主理侧重</span><span class="bk-v">'+fmtTeacher()+'</span></div>':'')+
-      '<div class="bk-tip">名中已暗补命局所喜之五行（'+useg+'），补益越贴合综合分越高。'+(state.primaryTeacher&&state.primaryTeacher!=="balance"?'今日以'+fmtTeacher()+'为主理，该维度已加权。':'')+'</div></div>';
+      '<div class="bk-tip">'+tipTxt+(state.primaryTeacher&&state.primaryTeacher!=="balance"?'今日以'+fmtTeacher()+'为主理，该维度已加权。':'')+'</div></div>';
   }
   let html = '<h2>星师荐名 · 共 '+names.length+' 枚</h2>' + baziHtml;
   names.forEach((n,idx)=>{
@@ -1196,7 +1228,9 @@ function renderResult(){
     const reason = n.rank_reason ? '<div class="preason">★ 推荐理由：'+n.rank_reason+'</div>' : '';
     html += '<div class="plate" data-i="'+idx+'">'+
       '<span class="pscore">综合 '+n.total+'</span>'+
-      '<div class="pname">'+n.name+'</div>'+ reason +
+      '<div class="pname">'+n.name+'</div>'+
+      '<div class="pinyin">'+((n.py||[]).join(' '))+(n.pz?' <span class="pz">· '+n.pz+'</span>':'')+'</div>'+
+      (n.tone_note?'<div class="toneNote">♪ '+n.tone_note+'</div>':'')+ reason +
       '<div class="dims">'+dims+'</div>'+
       '<div class="plateActions">'+
       '<button class="toggle">展开细项分析 ▾</button>'+
@@ -1232,7 +1266,8 @@ function renderResult(){
         body:JSON.stringify({name:nm.name, gender:state.gender||"U",
           zodiac:(m2.zodiac||(state.bazi&&state.bazi.zodiac)||null),
           need:(m2.use_gods||null), dims:(nm.dims||{}),
-          bazi:(state.bazi||null), primary:(state.primaryTeacher||null)})})
+          bazi:(state.bazi||null), primary:(state.primaryTeacher||null),
+          py:(nm.py||null), pz:(nm.pz||null)})})
         .then(r=>r.json()).then(d=>{
           // 成功：写入正文；失败（缺 key/限流/异常）：提示可重试。两者都允许再次点击
           const txt = (d && typeof d.review==="string" && d.review.trim()) ? d.review.trim() : null;
@@ -1275,7 +1310,8 @@ function exportNameImage(idx){
   const cv = document.createElement("canvas");
   const ctx = cv.getContext("2d");
   ctx.font = "13px 'PingFang SC','Microsoft YaHei',sans-serif";
-  let contentH = 70 + (n.rank_reason ? 2*lineH+6 : 0) + 96 + (meta.has_birth ? 5*lineH+10 : 0) + 40;
+  let contentH = 70 + (n.rank_reason ? 2*lineH+6 : 0) + 96 + (meta.has_birth ? 6*lineH+18 : 0) + 40
+    + 24 /* 拼音+平仄行 */ + (n.tone_note ? 2*lineH+8 : 0);
   (n.explain||[]).forEach(e=>{ const t=(e.label?("· "+e.label+"："):"")+e.text; const lines=Math.max(1, Math.ceil(ctx.measureText(t).width / (W-2*pad-12))); contentH += lines*lineH+10; });
   if(n.starReview){ const sl=Math.max(1, Math.ceil(ctx.measureText(n.starReview).width / (W-2*pad))); contentH += 2*lineH + sl*lineH + 8; }
   const H = contentH + 2*pad;
@@ -1290,7 +1326,10 @@ function exportNameImage(idx){
   ctx.shadowColor="rgba(255,200,150,.5)"; ctx.shadowBlur=12; ctx.fillText(n.name, pad, y); ctx.shadowBlur=0;
   const scoreText = "综合 "+n.total; ctx.font="600 16px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#ffe2b0";
   ctx.fillText(scoreText, W-pad-ctx.measureText(scoreText).width, y+12); y += 56;
+  if(n.py && n.py.length){ ctx.fillStyle="#f3dcb8"; ctx.font="italic 15px 'PingFang SC','Microsoft YaHei',sans-serif";
+    ctx.fillText(n.py.join(" ") + (n.pz?("  ·  "+n.pz):""), pad, y); y += 24; }
   if(n.rank_reason){ ctx.fillStyle="#f0d9bb"; ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; y = wrapCN(ctx, "★ 推荐理由："+n.rank_reason, pad, y, W-2*pad, lineH); y += 6; }
+  if(n.tone_note){ ctx.fillStyle="#e9cfa8"; ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; y = wrapCN(ctx, "♪ "+n.tone_note, pad, y, W-2*pad, lineH); y += 6; }
   ctx.font="11px 'PingFang SC','Microsoft YaHei',sans-serif";
   const colW = (W-2*pad - 2*16)/3;
   DIMS.forEach(([k,cn],i)=>{
@@ -1305,9 +1344,15 @@ function exportNameImage(idx){
   y += 2*(lineH+14) + 16;
   if(meta.has_birth){
     ctx.fillStyle="#ffdca6"; ctx.font="600 13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillText("命盘参详", pad, y); y += lineH;
-    ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#f5e7d2";
+    ctx.font="13px 'PingFang SC','Microsoft YaHei',sans-serif";
+    const counts = meta.counts || {};
+    if(counts && Object.keys(counts).length){
+      const order=['金','木','水','火','土'];
+      ctx.fillStyle="#e9cfa8"; ctx.fillText("五行 "+order.map(e=>e+(counts[e]||0)).join("  "), pad, y); y += lineH;
+    }
+    ctx.fillStyle="#f5e7d2";
     const gz=(meta.gz||[]).join(" "), dm=meta.day_master?(meta.day_master+(meta.day_master_wx||"")):"—";
-    const strong={"旺":"身旺","弱":"身弱","中和":"中和"}[meta.strong]||"—", useg=(meta.use_gods||[]).join("、")||"—";
+    const strong={"旺":"身旺","弱":"身弱","中和":"中和"}[meta.strong]||"—", useg=(meta.use_gods||[]).join("、")||"平和（宜均衡）";
     const zod=meta.zodiac?("生肖 "+meta.zodiac):"";
     y = wrapCN(ctx, "八字 "+gz+"　日主 "+dm+"　旺衰 "+strong+"　喜用神 "+useg+(zod?("　"+zod):""), pad, y, W-2*pad, lineH); y += 8;
   }

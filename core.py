@@ -179,15 +179,17 @@ def analyze_birth(year, month, day, hour):
     diff = self_w - other_w
     strong = '旺' if diff > 0.3 else ('弱' if diff < -0.3 else '中和')
 
-    # —— 扶抑用神：身弱喜生扶（比劫+印），身旺喜克泄耗（食伤+财+官杀）——
+    # —— 扶抑用神：身弱喜生扶（比劫+印），身旺喜克泄耗（食伤+财+官杀），中和宜平和为贵 ——
     if strong == '旺':
         use = [SHENG.get(dm_wx), KE.get(dm_wx)]        # 我生（食伤）、我克（财）
         ctrl = next((k for k in ELES if KE.get(k) == dm_wx), None)  # 克我（官杀）
         if ctrl: use.append(ctrl)
         need = [e for e in use if e]
-    else:
+    elif strong == '弱':
         support_elem = next((k for k in ELES if SHENG.get(k) == dm_wx), None)  # 生我（印）
         need = [dm_wx] + ([support_elem] if support_elem else [])
+    else:  # 中和：不宜偏补，喜用神置空，由 score_wuxing 走「五行均衡」评分
+        need = []
 
     zodiac = lunar.getYearShengXiao()
     return {
@@ -248,8 +250,21 @@ def score_wuxing(wx_list, need, has_birth, s_wx=None):
             else:
                 s -= 2
         return max(46, min(100, s))
-    fill = sum(1 for w in wx_list if w in need)
-    return {len(wx_list): 96, len(wx_list)-1: 70, 0: 42}.get(fill, 52)
+    seq = (list(s_wx) if s_wx else []) + list(wx_list)
+    total = len(seq)
+    if not need:
+        # 中和：五行分布越均衡越好，越偏枯越减分（不偏补为贵）
+        c = {}
+        for w in seq:
+            c[w] = c.get(w, 0) + 1
+        max_share = (max(c.values()) / total) if total else 1
+        return max(46, min(96, round(88 - 42 * max_share)))
+    matched = sum(1 for w in seq if w in need)
+    ratio = matched / total if total else 0
+    s = 44 + 52 * ratio                      # 全补→96，半补→70，无补→44（平滑）
+    if need and all(any(w == e for w in seq) for e in need):
+        s = min(96, s + 4)                    # 喜用元素逐一被覆盖，再嘉 4
+    return max(44, min(96, round(s)))
 
 def score_zodiac(radicals, zodiac):
     """未提供生辰（zodiac 为 None）时返回 None：该维度不评分、不参与总分加权。"""
@@ -264,27 +279,54 @@ def score_zodiac(radicals, zodiac):
             s -= 20
     return max(36, min(96, s))
 
+def _final_brightness(final):
+    """声韵响亮度（开口呼/后鼻音增响，闭口呼略减）。final 为完整韵母，如 'ang'/'i'/'er'。"""
+    f = (final or '').lower()
+    if not f:
+        return 0
+    open_ = f[0] in 'aoe'            # 开口呼(a/o/e 开头)：张口最响
+    nasal_ng = f.endswith('ng')      # 后鼻音：余韵悠长
+    close = f[0] in 'iuüv' and not nasal_ng   # 齐/合/撮口呼（闭口）：偏柔
+    score = 0
+    if open_:
+        score += 4
+    if nasal_ng:
+        score += 2
+    if close:
+        score -= 2
+    return score
+
 def score_pronounce(tones, initials, finals):
-    n = len(tones)
-    s = 60
+    """音调韵律评分（增强版）：平仄回环 + 三连声硬惩 + 尾字调 + 声韵响亮度 + 双声叠韵。
+    签名与 [42,96] 返回区间保持兼容，总分合成（dims['pronounce']）无需改动。"""
     real = [t for t in tones if t != 0]
-    if real and all(t == real[0] for t in real):
-        s -= 18
-    else:
-        s += (len(set(real)) - 1) * 5
-    def ping(x):
-        return x in (1, 2)
-    alt = 0
-    for i in range(1, n):
-        if tones[i-1] and tones[i] and ping(tones[i-1]) != ping(tones[i]):
-            alt += 1
-    s += alt * 6
-    for i in range(1, n):  # 双声（同声母）
-        if initials[i-1] and initials[i] and initials[i-1] == initials[i]:
-            s -= 16
-    for i in range(1, n):  # 叠韵（同韵母）
-        if finals[i-1] and finals[i] and finals[i-1] == finals[i]:
-            s -= 12
+    n = len(real)
+    s = 60
+    # ① 全同调惩罚：双名同调(拗) / 三连声(最拗) 硬惩
+    if real and len(set(real)) == 1:
+        s -= (22 if n >= 3 else 14)
+    # ② 平仄回环：首尾同平仄、中间异调 → 最优；相邻平仄切换 → 加分
+    pz = [t in (1, 2) for t in real]
+    if n >= 3 and pz[0] == pz[-1] and pz[0] != pz[n // 2]:
+        s += 12
+    s += sum(6 for i in range(1, n) if pz[i] != pz[i-1])
+    # ③ 尾字调：平声余韵、去声收束、上声略纤曲
+    s += {1: 4, 2: 4, 4: 2, 3: -3}.get(real[-1] if real else 0, 0)
+    # ④ 声韵响亮度（用 finals）：开口呼/后鼻音增响，闭口呼略减
+    if finals:
+        br = sum(_final_brightness(f) for f in finals) / len(finals)
+        s += round(br * 0.9)
+    # ⑤ 双声/叠韵：任意同声母/同韵母（含非相邻）轻惩（汪文伟 w/w/w、顾叔武 u/u/u）
+    ini = [x for x in initials if x and x != 'NULL']
+    fin = [x for x in finals if x]
+    for i in range(len(ini)):
+        for j in range(i + 1, len(ini)):
+            if ini[i] == ini[j]:
+                s -= 7
+    for i in range(len(fin)):
+        for j in range(i + 1, len(fin)):
+            if fin[i] == fin[j]:
+                s -= 5
     return max(42, min(96, s))
 
 def score_homophone(full_py):
@@ -506,6 +548,12 @@ PR_TPLS = [
  "声律{pz_desc}，与字义相生，{clear}，愈读愈雅。",
  "「{given}」以{pz}成吟，不疾不徐，{clear}，余味悠长。",
 ]
+PR_TPLS_FLAT = [   # 同调/三连声（缺起伏）专属文案池
+ "全名{pz_desc}（{pz}），三字如一，念来稍欠起伏，{clear}，不妨易一字调之。",
+ "声调作{pz}之局，缺错落之致，呼之少抑扬，{clear}，宜参平仄。",
+ "「{given}」读若{pz}，声调相重，听感偏平，{clear}，或可换字增韵。",
+ "声口{pz_desc}（{pz}），三声相叠，略显平板，{clear}，可调以谐音。",
+]
 MN_HAS = [
  "{mean_txt}。意境相映，寄意深远，足见长辈拳拳之心。{extra}",
  "字义上，{mean_txt}；组在一处，情味悠长，长辈期许尽付笔端。{extra}",
@@ -609,10 +657,14 @@ def _ex_zodiac(o, meta, mode, idx):
     return ZX_WITHOUT[idx % len(ZX_WITHOUT)].format(given=o['given'])
 
 def _ex_pronounce(o, meta, mode, idx):
-    pz = _pingze(o.get('tones', []))
-    varies = len(set(t for t in o.get('tones', []) if t)) > 1
+    tones = o.get('tones', [])
+    pz = _pingze(tones)
+    varies = len(set(t for t in tones if t)) > 1
     pz_desc = '平仄交错' if varies else '声调平和'
     clear = '细究并无不良谐音' if o.get('homophone_score', 100) > 20 else '读音已附谐音提示'
+    # 同调/三连声（缺起伏）走专属文案池，其余走常规池
+    if not varies:
+        return PR_TPLS_FLAT[idx % len(PR_TPLS_FLAT)].format(given=o['given'], pz=pz, pz_desc=pz_desc, clear=clear)
     return PR_TPLS[idx % len(PR_TPLS)].format(given=o['given'], pz=pz, pz_desc=pz_desc, clear=clear)
 
 def _ex_meaning(o, meta, mode, idx):
@@ -749,10 +801,12 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
         'given_stroke': g_stroke, 'tags': sorted(set(g_tags)), 'grids': grids,
         'req_gender': gender, 'dims': dims, 'total': round(total, 1),
         'tones': tones,
+        'pz': _pingze(tones),
         'homophone_score': hph,
         'nickname_penalty': np_pen, 'nickname_hits': np_hits,
         'bad_imagery_penalty': bi_pen, 'bad_imagery_hits': bi_hits,
     }
+    o['tone_note'] = _tone_phrase(o)
     o['dup_info'] = ('unique' if not any(c in HIGH_FREQ for c in given_chars) else 'common')
     return o
 
@@ -907,8 +961,29 @@ def _curate_diverse(names, out_n):
     return kept
 
 DIM_LABELS_CN = {'wuxing':'五行','zodiac':'生肖','pronounce':'音律','meaning':'字义','stroke':'数理','gender':'气韵'}
+def _tone_phrase(o):
+    """把平仄韵律判断量化成一句推荐理由补充语（基于 tones/pz，不依赖 AI）。"""
+    tones = o.get('tones', [])
+    real = [t for t in tones if t]
+    if len(real) < 2:
+        return ''
+    pz = o.get('pz', '') or _pingze(tones)
+    pron = o.get('dims', {}).get('pronounce')
+    if len(set(real)) == 1:
+        base = f"声调全同（{pz}），读来稍欠起伏"
+        if pron is not None and pron < 70:
+            base += f"，音律仅 {pron}"
+        return base + "，若求朗朗上口可换字增韵"
+    mid = real[len(real) // 2]
+    head_ping = real[0] in (1, 2) and real[-1] in (1, 2) and mid not in (1, 2)
+    head_ze = real[0] not in (1, 2) and real[-1] not in (1, 2) and mid in (1, 2)
+    if head_ping:
+        return f"平仄回环（{pz}），首尾呼应，读来朗朗上口"
+    if head_ze:
+        return f"仄平相协（{pz}），起伏分明，呼之有余韵"
+    return f"声调错落（{pz}），念来不涩不滞"
 def build_rank_reason(top, names):
-    """基于候选群像，数据驱动地说明榜首为何排第一（优势维度 + 唯一可优化点）。"""
+    """基于候选群像，数据驱动地说明榜首为何排第一（优势维度 + 唯一可优化点 + 平仄韵律）。"""
     if not names:
         return ''
     keys = [k for k in ['wuxing','zodiac','pronounce','meaning','stroke','gender'] if top['dims'].get(k) is not None]
@@ -925,9 +1000,14 @@ def build_rank_reason(top, names):
         if weak:
             k = weak[0]
             tail = f"；唯一可优化项是{DIM_LABELS_CN[k]}（{td[k]}，低于均值 {avgs[k]}）"
-        return head + "优势在于：" + s + tail + "。"
-    return head + "各维度均处中上水平，是综合表现最均衡的一个。" + (
-        f"；{DIM_LABELS_CN[weak[0]]}（{td[weak[0]]}）略低于候选均值 {avgs[weak[0]]}。" if weak else "")
+        base = head + "优势在于：" + s + tail + "。"
+    else:
+        base = head + "各维度均处中上水平，是综合表现最均衡的一个。" + (
+            f"；{DIM_LABELS_CN[weak[0]]}（{td[weak[0]]}）略低于候选均值 {avgs[weak[0]]}。" if weak else "")
+    tp = _tone_phrase(top)
+    if tp:
+        base += " " + tp + "。"
+    return base
 
 # ---------- 候选名字分析（能力 B：帮我观测我的候选名字） ----------
 def analyze_given_name(name, gender, birth, weights=None):
