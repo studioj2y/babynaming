@@ -894,7 +894,7 @@ def _ex_meaning(o, meta, mode, idx):
     parts = [(c, m) for c, m in zip(o['given_chars'], o['given_mean']) if m]
     alu = ''
     if o.get('allusions'):
-        alu = '。其字各有典出：' + '；'.join('「%s」%s' % (a['c'], a['src']) for a in o['allusions'])
+        alu = '其字各有典出：' + '；'.join('「%s」%s' % (a['c'], a['src']) for a in o['allusions'])
     if parts:
         mean_txt = '；'.join(f"「{c}」{m}" for c, m in parts)
         extra = "父母二姓皆镌于此名之中，血脉亲情一目了然。" if mode == 'B' else ""
