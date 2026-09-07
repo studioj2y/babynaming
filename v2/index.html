@@ -101,10 +101,32 @@
   #ritualWrap{display:none;position:absolute;left:0;right:0;bottom:34%;justify-content:center;align-items:flex-end;gap:10px;padding:0 8px;pointer-events:none;z-index:1;}  /* z-index 低于 #stage(2)：表演对话泡(#ritual .bubble)显示在立绘上层，由对话泡遮挡立绘 */
 
   /* 顶部品牌条 */
-  #top{display:flex;align-items:center;gap:8px;padding:14px 4px 6px;z-index:3;color:var(--ink-soft);font-size:13px;letter-spacing:.18em;filter:saturate(var(--sat));transition:filter .7s var(--ease)}
+  #top{display:flex;align-items:center;gap:10px;padding:12px 2px 7px;z-index:3;color:var(--ink-soft);font-size:13px;letter-spacing:.18em;filter:saturate(var(--sat));transition:filter .7s var(--ease)}
   #top b{color:var(--accent);font-weight:600;letter-spacing:.22em;cursor:pointer;transition:opacity .2s}
   #top b:hover{opacity:.7}
-  #step{margin-left:auto;font-size:12px;opacity:.7;letter-spacing:.05em}
+  /* 步骤徽标：与右上「上一步」同排做成胶囊，横向对齐更齐整 */
+  #step{margin-left:auto;font-size:12px;opacity:.9;letter-spacing:.06em;
+    max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    background:rgba(255,255,255,.55);border:1px solid var(--panel-line);border-radius:999px;
+    padding:4px 11px;backdrop-filter:blur(6px)}
+  #step:empty{display:none}   /* 首页/无步骤名时不占一个空胶囊 */
+  /* 右上「上一步」：仅询问阶段出现，回到上一问 */
+  .backBtn{flex:none;display:inline-flex;align-items:center;gap:2px;font-family:inherit;
+    background:rgba(255,255,255,.62);border:1px solid var(--panel-line);color:var(--ink-soft);
+    border-radius:999px;padding:5px 12px;font-size:12.5px;letter-spacing:.06em;cursor:pointer;
+    backdrop-filter:blur(6px);box-shadow:0 4px 14px rgba(70,50,100,.08);
+    transition:transform .15s var(--ease),background var(--theme-t) var(--ease),
+      border-color var(--theme-t) var(--ease),color var(--theme-t) var(--ease)}
+  .backBtn:hover{background:rgba(255,255,255,.9);border-color:var(--accent)}
+  .backBtn:active{transform:scale(.95)}
+  .backBtn[hidden]{display:none}
+  /* 询问进度：顶部细线，随流程推进 */
+  #prog{height:2px;margin:0 4px 2px;border-radius:2px;background:rgba(60,40,90,.08);overflow:hidden;
+    filter:saturate(var(--sat));opacity:0;transition:opacity .45s var(--ease)}
+  #prog.on{opacity:.85}
+  #prog i{display:block;height:100%;width:0;border-radius:2px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 8px var(--glow);
+    transition:width .55s var(--ease),background var(--theme-t) var(--ease),box-shadow var(--theme-t) var(--ease)}
 
   /* 场景舞台 */
   #stage{flex:1;display:flex;flex-direction:column;justify-content:flex-end;z-index:2;
@@ -122,8 +144,8 @@
 
   /* 对话气泡（漫画风） */
   .bubble{background:var(--panel);border:1.5px solid var(--panel-line);border-radius:var(--radius);
-    padding:16px 18px 18px;backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(70,50,100,.20);
-    font-size:16px;line-height:1.6;color:var(--ink);position:relative;}
+    padding:15px 18px 17px;backdrop-filter:blur(8px);box-shadow:0 10px 28px rgba(70,50,100,.16);
+    font-size:16px;line-height:1.68;color:var(--ink);position:relative;}
   .bubble::before{content:"";position:absolute;top:-7px;left:50%;width:13px;height:13px;margin-left:-6.5px;
     background:var(--panel);border-left:1.5px solid var(--panel-line);border-top:1.5px solid var(--panel-line);
     transform:rotate(45deg);border-top-left-radius:4px}
@@ -138,12 +160,12 @@
   .field label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;letter-spacing:.05em}
   .field input{width:100%;background:rgba(255,255,255,.65);border:1px solid var(--panel-line);
     border-radius:12px;padding:12px 14px;color:var(--ink);font-size:16px;outline:none;transition:border-color .2s}
-  .field input:focus{border-color:var(--accent)}
+  .field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
   .fields-row{display:flex;gap:12px}
   .fields-row .field{flex:1;min-width:0}
   .seg{display:flex;gap:8px;flex-wrap:wrap}
   .seg button{flex:1;min-width:84px;background:rgba(255,255,255,.60);border:1px solid var(--panel-line);
-    color:var(--ink-soft);border-radius:12px;padding:12px 8px;font-size:15px;cursor:pointer;
+    color:var(--ink-soft);border-radius:14px;padding:12px 8px;font-size:15px;cursor:pointer;
     transition:all .2s var(--ease)}
   .seg button.sel{background:linear-gradient(160deg,var(--accent),var(--accent2));
     color:#fff;border-color:transparent;box-shadow:0 6px 18px var(--glow)}
@@ -151,7 +173,7 @@
 
   .btn{margin-top:16px;width:100%;border:none;border-radius:14px;padding:14px;font-size:16px;
     font-weight:600;color:#fff;cursor:pointer;background:linear-gradient(160deg,var(--accent),var(--accent2));
-    box-shadow:0 8px 22px var(--glow);transition:transform .15s,opacity .2s,filter .2s;letter-spacing:.05em}
+    box-shadow:0 8px 22px var(--glow);transition:transform .15s,opacity .2s,filter .2s;letter-spacing:.08em}
   .btn:active{transform:scale(.98)}
   .btn:disabled{opacity:.4;filter:grayscale(.4);cursor:not-allowed;box-shadow:none}
   .btn.ghost{background:rgba(255,255,255,.55);border:1px solid var(--panel-line);box-shadow:0 4px 14px rgba(70,50,100,.10);color:var(--ink-soft)}
@@ -163,9 +185,9 @@
   /* 汇总过目表 */
   .summary{background:var(--panel);border:1px solid var(--panel-line);border-radius:var(--radius);
     padding:4px;backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(70,50,100,.18);overflow:hidden;margin-top:14px}
-  .sumrow{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid var(--panel-line)}
+  .sumrow{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--panel-line)}
   .sumrow:last-child{border-bottom:none}
-  .sumrow .sk{font-size:12px;color:var(--ink-soft);letter-spacing:.08em;width:64px;flex:none}
+  .sumrow .sk{font-size:12px;color:var(--ink-soft);letter-spacing:.08em;width:68px;flex:none}
   .sumrow .sv{flex:1;font-size:15px;color:var(--ink);word-break:break-all}
   .sumrow .sv.empty{color:var(--ink-soft);opacity:.6}
   .sumrow .edit{flex:none;border:none;background:linear-gradient(160deg,var(--accent),var(--accent2));
@@ -357,6 +379,13 @@
     background:rgba(255,255,255,.6);border:1px solid var(--panel-line);color:var(--ink-soft);
     border-radius:12px;cursor:pointer;transition:all .2s}
   .balanceBtn:hover{background:var(--panel);border-color:var(--accent);color:var(--ink)}
+  /* 小屏：顶部品牌/步骤/上一步三件套压缩，避免拥挤出换行 */
+  @media (max-width:380px){
+    #top{font-size:12px;gap:8px;padding:10px 2px 6px}
+    #top b{letter-spacing:.16em}
+    #step{max-width:34%;padding:4px 9px;font-size:11.5px}
+    .backBtn{padding:5px 10px;font-size:12px}
+  }
   /* 动效全程开启（用户偏好观赏落叶与转场效果） */
 </style>
 </head>
@@ -366,7 +395,8 @@
 <div id="ambient"></div>
 <div id="leaves"></div>
 <div id="app">
-  <div id="top"><b title="回到首页">星命观测局</b><span id="step"></span></div>
+  <div id="top"><b title="回到首页">星命观测局</b><span id="step"></span><button id="backBtn" class="backBtn" type="button" hidden>‹ 上一步</button></div>
+  <div id="prog"><i></i></div>
   <div id="actorWrap"></div>
   <div id="stage"><div id="scene"></div></div>
   <div id="ritualWrap"></div>
@@ -611,12 +641,47 @@ function typeText(el, text, speed, onDone){
   }, speed || 35);
 }
 
-function go(id){
+/* ---------- 顶部：询问进度条 + 右上「上一步」 ---------- */
+const PROG_FLOW = {
+  A:["s01","s02","s03a","s04","s05","s06","s07","s08","s08b","s08c","s08c2","s_summary"],
+  B:["s01","s02","s03b","b1","b2","s08b","s08c","s08c2","s_summary"]
+};
+/* 可回退的场景（询问/填表/主理/汇总阶段；表演与结果阶段不可回退） */
+const BACK_OK = new Set(["s02","s03a","s03b","s04","s05","s06","s07","s08","s08b","s08b_result","b1","b2","s08c","s08c2","s_summary"]);
+const BACK_SKIP = new Set(["s08b_result"]);   /* 八字结果弹窗：回退时跳过，直达生辰填写 */
+function syncTop(id){
+  const flow = PROG_FLOW[state.branch] || PROG_FLOW.A;
+  let idx = flow.indexOf(id);
+  if(idx < 0 && id === "s08b_result") idx = flow.indexOf("s08b");
+  const bar = $("#prog");
+  if(bar){
+    if(idx >= 0){ bar.classList.add("on"); bar.querySelector("i").style.width = Math.round((idx+1)/flow.length*100)+"%"; }
+    else { bar.classList.remove("on"); bar.querySelector("i").style.width = "0"; }
+  }
+  const bb = $("#backBtn");
+  if(bb) bb.hidden = !(BACK_OK.has(id) && (state._hist||[]).length > 0);
+}
+/* 回到上一问：跳过弹窗类中间页，并取消「改后回汇总」的挂起态 */
+function goBack(){
+  const h = state._hist || [];
+  while(h.length){
+    const t = h.pop();
+    if(!t || t === state.scene || BACK_SKIP.has(t)) continue;
+    state.editReturn = null;
+    go(t, {back:true});
+    return;
+  }
+}
+
+function go(id, opts){
+  opts = opts || {};
   const sc = SCENES[id];
+  if(!opts.back && sc && state.scene && state.scene !== id) (state._hist = state._hist || []).push(state.scene);
   state.scene = id;
   /* 落叶贯穿全程：切换场景不清空，由各自动画时长自然移除 */
   $("#ritualWrap").style.display="none";  // 非表演场景隐藏表演立绘层（表演阶段由 enterRitual 重新打开）
   if(!sc) return;
+  syncTop(id);
   /* #6 饱和度按场次递进 */
   if(SAT[id] !== undefined) document.documentElement.style.setProperty("--sat", SAT[id]+"%");
   if(sc.kind==="ritual"){ enterRitual(); return; }
@@ -645,6 +710,7 @@ function goHome(){
   state.editReturn=null;
   ["father","mother","mode","name_len","gender","name","result","birth","birthText","_birthDate","_birthHour","primaryTeacher","_carouselList","_teacherIdx","bazi"].forEach(k=>delete state[k]);
   state.branch="A";
+  state._hist=[];
   apiPromise = Promise.resolve();
   $("#actorWrap").style.display="";
   showActors([]);
@@ -652,6 +718,7 @@ function goHome(){
   go("brand");
 }
 $("#top").querySelector("b").onclick = goHome;
+$("#backBtn").onclick = goBack;
 
 function transitionTo(html, after){
   sceneEl.classList.add("out");
@@ -779,7 +846,7 @@ function renderBranch(sc){
       typeText(p, line, 38, ()=>{
         sceneEl.querySelectorAll(".btn[data-i]").forEach(btn=>{
           btn.disabled=false;
-          btn.onclick = ()=>{ const b = sc.branch[+btn.dataset.i]; if(b.set) Object.assign(state,b.set); go(b.next); };
+          btn.onclick = ()=>{ const b = sc.branch[+btn.dataset.i]; if(b.set) Object.assign(state,b.set); state._hist=[]; go(b.next); };  /* 定线后旧路径作废，回退只在本线内 */
         });
       });
     };
@@ -831,7 +898,8 @@ function renderAsk(sc){
     const btn = sceneEl.querySelector(".cLayer .btn:not(.skip)");
     const revealContent = ()=>{
       if(a.widget==="seg"){
-        let chosen = a.def;
+        /* 回退/重入时保留上次所选，不再被默认值覆盖 */
+        let chosen = (state[a.field]!==undefined && state[a.field]!==null && state[a.field]!=="") ? state[a.field] : a.def;
         if(chosen!==undefined){ state[a.field]=chosen; if(a.theme) setTheme(chosen); markSeg(); }
         sceneEl.querySelectorAll(".seg button").forEach(b=>{
           b.onclick = ()=>{ state[a.field]=b.dataset.v; if(a.theme) setTheme(b.dataset.v); markSeg(); if(btn.disabled) btn.disabled=false; };
@@ -854,6 +922,7 @@ function renderAsk(sc){
           }
         };
         const dateInput = sceneEl.querySelector('input[data-f="birthdate"]');
+        btn.disabled = !dateInput.value;   // 必须填了出生日期才可继续；回退重入时若已填则保持可用
         dateInput.oninput = dateInput.onchange = ()=>{ btn.disabled = !dateInput.value; };
         btn.onclick = ()=>{ commitBirth(); fetchBazi().then(()=>{
           // 填了 → 八字弹窗；A 线跳过则直接进主理，B 线直接进汇总
