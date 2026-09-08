@@ -4,6 +4,20 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>星命观测局 · 2.0</title>
+<!-- 社交分享卡片（Open Graph + Twitter） -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="星命观测局" />
+<meta property="og:description" content="为小星主，参一佳名 —— 八字喜用、五行数理、音律意象多维推演，为即将降临的小星主寻一个恰好的名号。" />
+<meta property="og:image" content="images/og-cover.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:url" content="" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="星命观测局" />
+<meta name="twitter:description" content="为小星主，参一佳名 —— 八字喜用、五行数理、音律意象多维推演，为即将降临的小星主寻一个恰好的名号。" />
+<meta name="description" content="为小星主，参一佳名 —— 星命观测局，多维推演恰好的名号。" />
+<!-- 部署上线时请把 og:url 与 og:image 改为线上绝对地址（例 https://yourdomain/v2/ 与 .../v2/images/og-cover.png） -->
 <style>
   @property --accent{syntax:'<color>';inherits:true;initial-value:#8a6fb0}
   @property --accent2{syntax:'<color>';inherits:true;initial-value:#6a4f97}
@@ -898,7 +912,7 @@ function renderScene(sc){
 }
 
 function renderBrand(sc){
-  sceneEl.innerHTML = '<div id="brand"><div class="logo">星命观测局</div><div class="sub">为小星主，参一名</div>'+
+  sceneEl.innerHTML = '<div id="brand"><div class="logo">星命观测局</div><div class="sub">为小星主，参一佳名</div>'+
     '<button class="btn" style="margin-top:26px;max-width:200px;margin-left:auto;margin-right:auto">进 入</button></div>';
   sceneEl.querySelector(".btn").onclick = ()=>go(sc.next);
 }
