@@ -255,8 +255,15 @@ def analyze_birth(year, month, day, hour):
             if i == 1 and j == 0: w *= 1.4   # 月令加权
             if _ten_god(dm_wx, zw) in ('self', 'support'): self_w += w
             else:                                                other_w += w
-    diff = self_w - other_w
-    strong = '旺' if diff > 0.3 else ('弱' if diff < -0.3 else '中和')
+    # 用「自党占比」而非「自党−异党差值」判定：
+    # 自党只占 5 类生克关系中的 2 类（同我/生我），异党占 3 类（我生/我克/克我），
+    # 因此差值的数学期望本就为负（3000 样本实测均值 −0.98），配 ±0.3 固定阈值会
+    # 系统性偏向「弱」（实测 弱59.7%/旺33.9%/中和仅6.3%）。
+    # 改用 ratio = 自党/(自党+异党)，阈值按 3000 样本分位校准（p35 / p65），
+    # 使判定分布回到 弱/中和/旺 ≈ 35%/30%/35%。
+    WEAK_RATIO, STRONG_RATIO = 0.399, 0.507
+    ratio = self_w / (self_w + other_w) if (self_w + other_w) else 0.5
+    strong = '旺' if ratio > STRONG_RATIO else ('弱' if ratio < WEAK_RATIO else '中和')
 
     # —— 扶抑用神：身弱喜生扶（比劫+印），身旺喜克泄耗（食伤+财+官杀），中和宜平和为贵 ——
     if strong == '旺':
@@ -278,6 +285,8 @@ def analyze_birth(year, month, day, hour):
         'zodiac_he': ''.join(sorted(_zodiac_friends(zodiac))), 'zodiac_fan': ''.join(sorted(_zodiac_foes(zodiac))),
         'day_master': gz[2][0], 'day_master_wx': dm_wx, 'strong': strong,
         'use_gods': need, 'diao_hou': dh, 'diao_hou_why': dh_why,
+        'self_score': round(self_w, 2), 'other_score': round(other_w, 2),
+        'ratio': round(ratio, 4),
     }
 
 # ---------- 姓氏校验与构造 ----------
