@@ -1107,12 +1107,12 @@ function callAPI(){
 }
 
 /* 单人表演分组：三组按序出场；每组随机取若干位（保证音律/字形等偏科老师稳定露面，不再随机被砍）。
-   组1 语文/音律/字形 → 随机2位；组2 字源/典故/意境 → 随机2位；组3 五行/生肖/八卦/数理/术数/占星 → 随机3位。
-   单人共 7 位，随后衔接不变的双人合参（DUOS 每组随机1套）。*/
+   组1 语文/音律/字形 → 随机2位；组2 字源/典故/意境 → 随机2位；组3 五行/生肖/八卦/数理/术数/占星 → 随机2位。
+   单人共 6 位，随后衔接不变的双人合参（DUOS 每组随机1套）。*/
 const SOLO_GROUPS = [
   {keys:["yuwen","yinlv","xingzi"], n:2},
   {keys:["ziyuan","diangu","yijing"], n:2},
-  {keys:["wuxing","shengxiao","bagua","shuli","shushu","zhanxing"], n:3}
+  {keys:["wuxing","shengxiao","bagua","shuli","shushu","zhanxing"], n:2}
 ];
 function enterRitual(){
   $("#actorWrap").style.display="none";   // 演出时隐藏全局立绘
@@ -1127,7 +1127,7 @@ function enterRitual(){
     perfSingles.push(...picked);
   });
   const pairs = shuffle(DUOS.slice());            // 双人合参走 DUOS 交叉互动台词（先不动）
-  const SEQ = perfSingles.concat(pairs.slice(0,-1));  // 单人固定7位 + 双人减1（衔接不变）
+  const SEQ = perfSingles.concat(pairs.slice(0,-2));  // 单人固定6位 + 双人再减1提速（取前4套中的前3）
   let i=0;
   /* 旋转大圆（orbit）沉到 #ritual 底部，不再与立绘/文字重叠；立绘在上、文字用对话泡在下。 */
   sceneEl.innerHTML = '<div id="ritual">'+
