@@ -305,6 +305,17 @@
     100%{opacity:0;transform:rotate(calc(var(--ang,0deg) + 360deg)) translateX(var(--R,110px)) scale(5)}
   }
 
+
+  /* 意境标签选择与自由期许 */
+  .tagGrid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0 6px;max-height:160px;overflow-y:auto}
+  .tagChip{border:1px solid var(--panel-line);background:rgba(255,255,255,.65);border-radius:18px;
+    padding:6px 14px;font-size:13.5px;color:var(--ink);cursor:pointer;transition:all .18s;user-select:none}
+  .tagChip.sel{background:linear-gradient(160deg,var(--accent),var(--accent2));color:#fff;
+    border-color:var(--accent);box-shadow:0 3px 10px var(--glow);transform:scale(1.04)}
+  .tagInput{width:100%;border:1px solid var(--panel-line);border-radius:12px;padding:10px 14px;
+    font-size:13.5px;background:rgba(255,255,255,.75);color:var(--ink);margin-top:10px;text-align:center;outline:none}
+  .tagInput:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
+
   /* 结果木牌 */
   #result{position:absolute;top:0;bottom:0;left:0;right:0;z-index:5;overflow-y:auto;
     max-width:440px;margin:0 auto;padding:8px 12px 20px;
@@ -505,28 +516,41 @@
 <script>
 "use strict";
 const CHAR = {
-  assistant:{name:"观测小助理", file:"/characters/char-assistant-1.png",
-             alts:["/characters/char-assistant-2.png","/characters/char-assistant-3.png","/characters/char-assistant-4.png","/characters/char-assistant-5.png"]},
-  ziyuan:{name:"字源老师", file:"/characters/char-ziyuan-1.png"},
-  yuwen:{name:"语文老师", file:"/characters/char-yuwen-1.png"},
-  zhanxing:{name:"占星老师", file:"/characters/char-zhanxing-1.png"},
-  bagua:{name:"八卦老师", file:"/characters/char-bagua-1.png"},
-  yijing:{name:"意境老师", file:"/characters/char-yijing-1.png"},
-  xingshi:{name:"星师", file:"/characters/char-xingshi-1.png"},
-  shengxiao:{name:"生肖老师", file:"/characters/char-shengxiao-1.png"},
-  shuli:{name:"数理老师", file:"/characters/char-shuli-1.png"},
-  wuxing:{name:"五行老师", file:"/characters/char-wuxing-1.png"},
-  yinlv:{name:"音律老师", file:"/characters/char-yinlv-1.png"},
-  diangu:{name:"典故老师", file:"/characters/char-diangu-1.png"},
-  shushu:{name:"术数老师", file:"/characters/char-shushu-2.png"},
-  xingzi:{name:"字形老师", file:"/characters/char-xingzi-1.png"},
+  assistant:{name:"观测小助理", file:"/characters/char-assistant-1.webp",
+             alts:["/characters/char-assistant-2.webp","/characters/char-assistant-3.webp","/characters/char-assistant-4.webp","/characters/char-assistant-5.webp"]},
+  ziyuan:{name:"字源老师", file:"/characters/char-ziyuan-1.webp"},
+  yuwen:{name:"语文老师", file:"/characters/char-yuwen-1.webp"},
+  zhanxing:{name:"占星老师", file:"/characters/char-zhanxing-1.webp"},
+  bagua:{name:"八卦老师", file:"/characters/char-bagua-1.webp"},
+  yijing:{name:"意境老师", file:"/characters/char-yijing-1.webp"},
+  xingshi:{name:"星师", file:"/characters/char-xingshi-1.webp"},
+  shengxiao:{name:"生肖老师", file:"/characters/char-shengxiao-1.webp"},
+  shuli:{name:"数理老师", file:"/characters/char-shuli-1.webp"},
+  wuxing:{name:"五行老师", file:"/characters/char-wuxing-1.webp"},
+  yinlv:{name:"音律老师", file:"/characters/char-yinlv-1.webp"},
+  diangu:{name:"典故老师", file:"/characters/char-diangu-1.webp"},
+  shushu:{name:"术数老师", file:"/characters/char-shushu-2.webp"},
+  xingzi:{name:"字形老师", file:"/characters/char-xingzi-1.webp"},
 };
 /* 小助理各场景立绘：进入首屏=现有(assistant-1)；分支选择=2；第一分支「说来惭愧」=4；第二分支「已有名字」=5 */
+
+function preloadActors(){
+  try{
+    const urls = [];
+    Object.values(CHAR).forEach(c => {
+      if(c.file) urls.push(c.file);
+      if(c.alts) urls.push(...c.alts);
+    });
+    urls.forEach(u => { const img = new Image(); img.src = u; });
+  }catch(e){}
+}
+preloadActors();
+
 const ASS_PORTRAIT = {
-  s01:"/characters/char-assistant-1.png",
-  s02:"/characters/char-assistant-2.png",
-  s03a:"/characters/char-assistant-4.png",
-  s03b:"/characters/char-assistant-5.png"
+  s01:"/characters/char-assistant-1.webp",
+  s02:"/characters/char-assistant-2.webp",
+  s03a:"/characters/char-assistant-4.webp",
+  s03b:"/characters/char-assistant-5.webp"
 };
 /* #3 需求：表演文案按现长度约一半重写，各师专注本主题 */
 const RITUAL = [
@@ -682,7 +706,10 @@ const SCENES = {
       ask:{widget:"birth", field:"birth", optional:true}, next:"s08c"},
   s08b_result:{kind:"ask", actor:"wuxing", step:"第二观测层 · 八字", lines:[
       "据此生辰，吾已推得命盘如下。"],
-      ask:{widget:"bazi", field:"bazi"}, next:"s08c"},
+      ask:{widget:"bazi", field:"bazi"}, next:"s08_tags"},
+  s08_tags:{kind:"ask", actor:"yijing", step:"第二观测层 · 寓意期许", lines:[
+      "小星主初临，长辈心中必有期许。请择一二心仪意象，亦可留下一句心愿（可选）："],
+      ask:{widget:"tags", field:"tags"}, next:"s08c"},
   s08c:{kind:"talk", actor:"xingshi", step:"主理 · 今日侧重（序）", lines:[
       "命名如调琴，诸般维度皆有其美。今日您最看重哪一格？"],
       next:"s08c2"},
@@ -692,7 +719,7 @@ const SCENES = {
   s10:{kind:"wait"},
 };
 
-const state = {scene:null, branch:"A", _birthHour:12};
+const state = {scene:null, branch:"A", _birthHour:12, tags:[], free_text:"", seed:undefined};
 let apiPromise = null;
 const $ = (s)=>document.querySelector(s);
 const sceneEl = $("#scene");
@@ -797,7 +824,7 @@ function proceed(sc){
 /* 生辰/八字弹窗「继续」：从汇总表「改」返回时回到汇总；否则 A 线回主理序(s08c)，B 线回汇总(s_summary) */
 function _returnTarget(){
   if(state.editReturn){ const t=state.editReturn; state.editReturn=null; return t; }
-  return state.branch==="B" ? "s_summary" : "s08c";
+  return state.branch==="B" ? "s_summary" : "s08_tags";
 }
 /* 点击左上"星命观测局"回到首页，重置整段流程 */
 function goHome(){
@@ -994,6 +1021,16 @@ function renderAsk(sc){
     } else {
       inner = '<div class="bubble"><p>八字尚在推算…</p></div>';
     }
+  } else if(a.widget==="tags"){
+    const TAGS_VOCAB = ['智慧','才华','健康','安宁','光明','品德','勇敢','温婉','灵秀','仁愛','喜悦','自由','俊逸','坚韧'];
+    state.tags = state.tags || [];
+    const chips = TAGS_VOCAB.map(t=>{
+      const sel = state.tags.includes(t) ? ' sel' : '';
+      return '<span class="tagChip'+sel+'" data-t="'+t+'">'+t+'</span>';
+    }).join("");
+    inner = '<div class="tagGrid">'+chips+'</div>'+
+      '<input class="tagInput" data-f="free_text" placeholder="自由期许（可选，如：希望孩子豁达开朗）" value="'+(state.free_text||"").replace(/"/g,'&quot;')+'" maxlength="40" />';
+    extraBtn = '<button class="btn ghost skip">诸师全面权衡（不限寓意）</button>';
   } else if(a.widget==="teacher"){
     inner = '<div class="teacherGrid">'+TEACHER_PICK.map(t=>'<button class="tcard" data-v="'+t.v+'"><span class="tn">'+t.name+'</span><span class="td">'+t.dim+'</span></button>').join("")+'</div>';
   } else {
@@ -1032,8 +1069,8 @@ function renderAsk(sc){
         btn.disabled = !dateInput.value;   // 必须填了出生日期才可继续；回退重入时若已填则保持可用
         dateInput.oninput = dateInput.onchange = ()=>{ btn.disabled = !dateInput.value; };
         btn.onclick = ()=>{ commitBirth(); fetchBazi().then(()=>{
-          // 填了 → 八字弹窗；A 线跳过则直接进主理，B 线直接进汇总
-          go(state.birth ? "s08b_result" : (state.branch==="B"?"s_summary":"s08c"));
+          // 填了 → 八字弹窗；A 线跳过则进寓意，B 线直接进汇总
+          go(state.birth ? "s08b_result" : (state.branch==="B"?"s_summary":"s08_tags"));
         }); };
         const skip = sceneEl.querySelector(".cLayer .skip");
         if(skip) skip.onclick = ()=>{ state.birth=null; state.bazi=null; state.birthText=""; state._birthDate=""; state._birthHour=12; go(_returnTarget()); };
@@ -1041,6 +1078,31 @@ function renderAsk(sc){
       } else if(a.widget==="bazi"){
         btn.disabled = false;
         btn.onclick = ()=>{ go(_returnTarget()); };
+        typeText(p, line, 35);
+      } else if(a.widget==="tags"){
+        btn.disabled = false;
+        sceneEl.querySelectorAll(".tagChip").forEach(c=>{
+          c.onclick = ()=>{
+            const t = c.dataset.t;
+            c.classList.toggle("sel");
+            if(c.classList.contains("sel")){
+              if(!state.tags.includes(t)) state.tags.push(t);
+            } else {
+              state.tags = state.tags.filter(x=>x!==t);
+            }
+          };
+        });
+        const inp = sceneEl.querySelector(".tagInput");
+        btn.onclick = ()=>{
+          if(inp) state.free_text = inp.value.trim();
+          proceed(sc);
+        };
+        const skip = sceneEl.querySelector(".cLayer .skip");
+        if(skip) skip.onclick = ()=>{
+          state.tags = [];
+          state.free_text = "";
+          proceed(sc);
+        };
         typeText(p, line, 35);
       } else {
         const ins = sceneEl.querySelectorAll("input[data-f]");
@@ -1072,6 +1134,7 @@ function renderSummary(sc){
        ["名随何方","mode", fmtMode(), "s05"], ["姓名字数","name_len", fmtLen(), "s07"],
        ["命格气韵","gender", fmtGender(), "s08"],
        ["生辰八字","birth", state.birthText||"", "s08b"],
+       ["寓意期许","tags", (state.tags&&state.tags.length?state.tags.join("、"):"诸师兼顾") + (state.free_text?" ("+state.free_text+")":""), "s08_tags"],
        ["主理侧重","primaryTeacher", fmtTeacher(), "s08c"]];
   let html = '<div class="bubble no-arrow"><span class="who">'+(sc.actor?CHAR[sc.actor].name:"")+'</span><p>请小星主过目所录，确认或改动。</p></div><div class="summary">';
   rows.forEach(r=>{
@@ -1103,7 +1166,7 @@ function callAPI(){
   }
   return fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({father:state.father||"", mother:state.mother||"", mode:state.mode||"F",
-      name_len:state.name_len||3, gender:state.gender||"U", tags:[], avoid:"", free_text:"", birth:state.birth||null, weights:w})}).then(r=>r.json());
+      name_len:state.name_len||3, gender:state.gender||"U", tags:state.tags||[], avoid:"", free_text:state.free_text||"", birth:state.birth||null, weights:w, seed:state.seed||undefined})}).then(r=>r.json());
 }
 
 /* 单人表演分组：三组按序出场；每组随机取若干位（保证音律/字形等偏科老师稳定露面，不再随机被砍）。
@@ -1374,8 +1437,25 @@ function renderResult(){
         '</div>'+
       '</div></div>';
   });
-  html += '<div id="resultFoot"><button class="btn ghost" onclick="location.reload()">重新起卦</button></div>';
+  html += '<div id="resultFoot">' +
+    '<button class="btn" id="refreshBtn" style="margin-bottom:10px">↻ 换一批名号</button>' +
+    '<button class="btn ghost" onclick="location.reload()">重新起卦</button>' +
+  '</div>';
   wrap.innerHTML = html; wrap.classList.add("show"); wrap.scrollTop=0;
+  const rf = wrap.querySelector("#refreshBtn");
+  if(rf){
+    rf.onclick = () => {
+      rf.disabled = true; rf.textContent = "星师重新推演中…";
+      state.seed = (state.seed || Math.floor(Math.random()*100000)) + 1;
+      callAPI().then(d => {
+        state.result = d;
+        renderResult();
+      }).catch(e => {
+        alert("推演中断：" + (e.message || e));
+        rf.disabled = false; rf.textContent = "↻ 换一批名号";
+      });
+    };
+  }
   wrap.querySelectorAll(".plate").forEach((p,i)=>{
     setTimeout(()=>p.classList.add("in"), 80*i+60);
     p.querySelector(".toggle").onclick = ()=>{
@@ -1512,7 +1592,7 @@ function exportNameImage(idx){
     y = wrapCN(ctx, n.starReview, pad+12, y, W-2*pad-12, lineH); y += 8;
   }
   ctx.fillStyle="rgba(255,220,170,.6)"; ctx.font="11px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillText("星命观测局 · 起名推演", pad, H-pad-14);
-  cv.toBlob(b=>{ if(!b) return; const a=document.createElement("a"); a.download="星名_"+n.name+".png"; a.href=URL.createObjectURL(b); a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }, "image/png");
+  cv.toBlob(b=>{ if(!b) return; const a=document.createElement("a"); a.download="星名_"+n.name+".webp"; a.href=URL.createObjectURL(b); a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }, "image/png");
 }
 
 /* 落叶：贯穿全程（首页与各步骤同屏飘落）。首页用多彩色板，内部步骤跟随主体色/饱和度 */

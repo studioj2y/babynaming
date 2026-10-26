@@ -62,8 +62,9 @@ async def gen(req: Request):
     avoid = [c for c in (body.get("avoid") or "") if c.strip()]
     birth = _birth_from(body)
     weights = body.get("weights")
+    seed = body.get("seed")
     try:
-        names, meta = generate(father, mother, mode, name_len, gender, birth, tags, avoid, weights=weights)
+        names, meta = generate(father, mother, mode, name_len, gender, birth, tags, avoid, weights=weights, seed=seed)
         return JSONResponse({"names": names, "meta": meta, "tags_used": sorted(set(tags))})
     except Exception as e:
         # 本地兜底：core 计算失败也返回示例名卡，保证前端流程可预览
@@ -131,10 +132,13 @@ async def star_review(req: Request):
     dims = body.get("dims") or {}
     bazi = body.get("bazi") or None
     primary = body.get("primary") or None
+    py = body.get("py") or None
+    pz = body.get("pz") or None
+    allusion_note = body.get("allusion_note") or None
     if not name:
         return JSONResponse({"error": "缺少名字"}, status_code=400)
     try:
-        text = star_review_ai(name, gender, zodiac, need, dims, bazi, primary)
+        text = star_review_ai(name, gender, zodiac, need, dims, bazi, primary, py, pz, allusion_note)
     except Exception as e:
         return JSONResponse({"error": "星师详解生成失败: " + str(e)}, status_code=400)
     if not text:

@@ -38,5 +38,6 @@ async def gen(req: Request):
     avoid = [c for c in (body.get("avoid") or "") if c.strip()]
     birth = _birth_from(body)
     weights = body.get("weights")
-    names, meta = generate(father, mother, mode, name_len, gender, birth, tags, avoid, weights=weights)
+    seed = body.get("seed")
+    names, meta = generate(father, mother, mode, name_len, gender, birth, tags, avoid, weights=weights, seed=seed)
     return JSONResponse({"names": names, "meta": meta, "tags_used": sorted(set(tags))})

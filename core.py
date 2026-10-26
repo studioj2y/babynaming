@@ -112,6 +112,14 @@ DEFAULT_WEIGHTS = {
  'wuxing':0.20,'zodiac':0.12,'pronounce':0.33,'meaning':0.15,'stroke':0.10,'gender':0.10
 }
 
+RADICAL_WX = {
+    '氵': '水', '冫': '水', '水': '水', '雨': '水', '鱼': '水', '舟': '水', '川': '水',
+    '木': '木', '艹': '木', '竹': '木', '禾': '木', '米': '木', '瓜': '木', '片': '木', '巾': '木',
+    '火': '火', '灬': '火', '日': '火', '光': '火', '心': '火', '忄': '火', '目': '火',
+    '土': '土', '山': '土', '石': '土', '田': '土', '阜': '土', '阝': '土', '广': '土', '厂': '土', '门': '土', '穴': '土',
+    '金': '金', '钅': '金', '刀': '金', '刂': '金', '王': '金', '玉': '金', '戈': '金', '辛': '金', '酉': '金', '矢': '金'
+}
+
 _CHARS = None
 _GOOD = None
 
@@ -119,7 +127,13 @@ def chars():
     global _CHARS
     if _CHARS is None:
         with open(os.path.join(DATA, 'chars.json'), encoding='utf-8') as f:
-            _CHARS = json.load(f)
+            raw = json.load(f)
+        # 补全字库中缺失的五行属性，杜绝前端展示「五行属NULL」
+        for k, v in raw.items():
+            if v.get('wx') in ('NULL', '-', '', None):
+                rad = v.get('radical', '')
+                v['wx'] = RADICAL_WX.get(rad, '土')
+        _CHARS = raw
     return _CHARS
 
 def good():
@@ -671,17 +685,45 @@ def sancai(grids):
     else:
         grade, tip = '半吉', '三才比和，气运平顺'
     return {'wx': (tw, rw, dw), 'grade': grade, 'text': tip, 'x': tw + '·' + rw + '·' + dw}
-def five_grids(strokes):
-    """天格/人格/地格/总格/外格 数理（单姓标准算法）。"""
-    n = len(strokes)
-    if n == 0:
+def five_grids(s_strokes, g_strokes=None):
+    """天格/人格/地格/总格/外格 数理（全面支持单姓、复姓/双姓，单名、双名与多字名）。"""
+    if g_strokes is None:
+        strokes = list(s_strokes or [])
+        if not strokes:
+            return {}, 60
+        s_strokes = strokes[:1]
+        g_strokes = strokes[1:]
+    else:
+        s_strokes = list(s_strokes or [])
+        g_strokes = list(g_strokes or [])
+
+    ns = len(s_strokes)
+    ng = len(g_strokes)
+    if ns == 0 and ng == 0:
         return {}, 60
-    tg = strokes[0] + 1                      # 天格：首字 +1
-    rg = strokes[0] + (strokes[1] if n > 1 else 0)   # 人格：首字+次字
-    rest = strokes[1:]
-    dg = sum(rest) + (1 if len(rest) == 1 else 0)    # 地格
-    zg = sum(strokes)                        # 总格
-    wg = zg - rg + 1                         # 外格
+
+    if ns <= 1:
+        # 单姓标准算法
+        s1 = s_strokes[0] if ns == 1 else 0
+        tg = s1 + 1
+        g1 = g_strokes[0] if ng >= 1 else 0
+        rg = s1 + g1
+        dg = sum(g_strokes) + (1 if ng == 1 else 0)
+        zg = s1 + sum(g_strokes)
+        wg = (zg - rg + 1) if ng >= 2 else 2
+    else:
+        # 复姓 / 父母双姓 (ns == 2) 标准算法
+        s1, s2 = s_strokes[0], s_strokes[1]
+        tg = s1 + s2
+        g1 = g_strokes[0] if ng >= 1 else 0
+        rg = s2 + g1
+        dg = sum(g_strokes) + (1 if ng == 1 else 0)
+        zg = s1 + s2 + sum(g_strokes)
+        if ng <= 1:
+            wg = s1 + 1
+        else:
+            wg = s1 + sum(g_strokes[1:])
+
     grids = {'天格': tg, '人格': rg, '地格': dg, '总格': zg, '外格': wg}
     score = round(sum(_grid_num(v) for v in grids.values()) / len(grids))
     return grids, score
@@ -1040,8 +1082,8 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
     s_wx = [ch.get(c, {}).get('wx', '土') for c in surname] if ch else []
     s_finals = [ch.get(c, {}).get('final', '') for c in surname] if ch else []
     finals = s_finals + given_finals
-    all_strokes = s_strokes + [(gi.get('stroke_kx') or gi['stroke']) for gi in given_info]
-    grids, grid_score = five_grids(all_strokes)
+    g_strokes = [(gi.get('stroke_kx') or gi['stroke']) for gi in given_info]
+    grids, grid_score = five_grids(s_strokes, g_strokes)
 
     hph = score_homophone(full_py)            # 谐音（不良读音）并入「音律」，由音律老师统管
     dims = {
@@ -1089,7 +1131,7 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
     o['dup_info'] = ('unique' if not any(c in HIGH_FREQ for c in given_chars) else 'common')
     return o
 
-def _diverse_top(ranked, size):
+def _diverse_top(ranked, size, rng=None):
     """分层轮换采样：按「(性别气韵 g, 主意象族)」分桶后轮流取，保证候选多样性。
 
     原实现直接取 base 排序的前 N 个。问题在于 base 同分者极多（无标签时仅 2~3 种
@@ -1107,6 +1149,9 @@ def _diverse_top(ranked, size):
         tkey = TAG_GROUP.get(ts[0], 'x') if ts else 'x'
         buckets.setdefault((gkey, tkey), []).append(x)
     keys = sorted(buckets, key=lambda k: -len(buckets[k]))
+    # 若传入 rng，打乱桶的轮转顺序微调，增强生成多样性
+    if rng is not None:
+        rng.shuffle(keys)
     out, i, seen = [], 0, set()
     while len(out) < size:
         added = False
@@ -1123,7 +1168,7 @@ def _diverse_top(ranked, size):
         i += 1
     return out
 
-def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12, weights=None):
+def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12, weights=None, seed=None):
     # BUG A 修复：只校验实际参与组姓的父/母，避免随父姓时母姓为空被误报"姓氏不能为空"
     if mode == 'M':
         serr = validate_surname(mother)
@@ -1200,17 +1245,21 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
         if mi:
             mother_echo_radical = mi['radical']
 
+    rng = random.Random(seed) if seed is not None else random.Random()
+
     def base(it, info):
-        s = 70
+        s = 70.0
         if query_tags and (set(it['t']) & query_tags):
-            s += 20
+            s += 20.0
         if gender in ('M', 'F') and it['g'] == gender:
-            s += 10
+            s += 10.0
         if has_birth and info['wx'] in need:
-            s += 12
+            s += 12.0
+        # 引入基于 rng 的微扰（±3.5），打破同分字的稳定偏好，让字库中大量同分好字均有机会露出
+        s += rng.uniform(-3.5, 3.5)
         return s
     ranked = sorted(pool, key=lambda x: base(x[1], x[2]), reverse=True)
-    top = _diverse_top(ranked, 40)          # 分层采样替代「取前 40」，候选不再同质
+    top = _diverse_top(ranked, 40, rng=rng)          # 分层采样替代「取前 40」，候选不再同质
     M = len(top)
     # 气韵多样化：男/女名候选字池里保留若干中性(U)字，使最终名也能出现「刚柔相济」组合，
     # 避免因为清一色同性别字导致气韵维度恒定（用户反馈：男孩气韵不应一直 100%）。
@@ -1240,7 +1289,8 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
                         w, s_py, s_tones, s_ini, mode, mother_echo_radical, tags)
         names.append(o)
 
-    names.sort(key=lambda x: -x['total'])
+    # 综合微量 tie-breaker 排序，避免完全相同的微弱同分死锁
+    names.sort(key=lambda x: -(x['total'] + rng.uniform(-0.25, 0.25)))
     bmeta = birth or {}
     meta = {'has_birth': has_birth, 'need': need, 'zodiac': zodiac,
             'gz': bmeta.get('gz'), 'day_master': bmeta.get('day_master'),

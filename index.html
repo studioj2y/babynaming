@@ -172,6 +172,7 @@
   <div class="top">
     <h1>星命观测局</h1>
     <p>为即将降临的小星主，推演一个恰好的名号</p>
+    <div style="margin-top:10px;"><a href="/v2/" style="display:inline-block;padding:6px 14px;background:linear-gradient(135deg,#ab6379,#8a4f63);color:#fff;border-radius:20px;font-size:12.5px;text-decoration:none;box-shadow:0 2px 8px rgba(171,99,121,.3);letter-spacing:1px">✦ 切换至 2.0 场景剧本版 ➔</a></div>
   </div>
   <div class="steps-dot" id="dots"><i class="on"></i><i></i><i></i><i></i></div>
 
@@ -248,8 +249,9 @@
 
   <!-- RESULTS -->
   <section id="results" class="hidden">
-    <div class="res-top">
+    <div class="res-top" style="display:flex;justify-content:space-between;align-items:center;">
       <button class="home-btn" onclick="goHome()" title="返回首页">← 返回首页</button>
+      <button class="btn prim" id="rerollBtn" style="padding:6px 14px;font-size:12.5px;border-radius:18px;" onclick="rerollNames()">↻ 换一批名号</button>
     </div>
     <div class="sum" id="summary"></div>
     <div id="list"></div>
@@ -357,7 +359,11 @@ function addRitualLine(txt, type){
   log.scrollTop = log.scrollHeight;  // 自动滚到最新一行
 }
 
-let state = {step:1, gender:'U', mode:'F', nameLen:3, order:[...ORDER_DEF], tags:new Set(), data:null, analyzeName:null};
+let state = {step:1, gender:'U', mode:'F', nameLen:3, order:[...ORDER_DEF], tags:new Set(), data:null, analyzeName:null, seed:undefined};
+function rerollNames(){
+  state.seed = (state.seed || Math.floor(Math.random()*10000)) + 1;
+  startRitual(false);
+}
 
 function surnameLen(){
   const f=document.getElementById('father').value.trim();
@@ -582,7 +588,7 @@ function startRitual(analyzeMode){
         }
         return {father, mother, mode:state.mode, name_len:state.nameLen,
           gender:state.gender, tags:[...state.tags], avoid:'',
-          free_text:document.getElementById('freeText').value.trim(), birth, weights:weightsFromOrder()};
+          free_text:document.getElementById('freeText').value.trim(), birth, weights:weightsFromOrder(), seed:state.seed};
       })();
   if(!payload){ if(genBtn) genBtn.disabled=false; ritualRunning=false; return; }
 
