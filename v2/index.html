@@ -216,7 +216,7 @@
   @keyframes logoIn{from{opacity:0;letter-spacing:.9em;filter:blur(6px)}to{opacity:1}}
   @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:.9;transform:none}}
 
-  /* 占算：立绘在上、文字在下；旋转大圆沉到最下、不再与立绘/文字重叠（#3 需求） */
+  /* 占算：立绘在上、文字在下；多层占算法阵与动效光环沉到最下，层次灵动不遮挡 */
   #ritual{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
     min-height:100%;gap:12px;text-align:center;padding-bottom:54px;overflow:hidden}
   .ritualStage{position:relative;z-index:1;width:100%;flex:1;min-height:0;
@@ -224,7 +224,7 @@
   .ritualActor{height:42vh;width:auto;max-width:95vw;object-fit:contain;opacity:0;  /* 锁定高度，宽度随比例自适应，消除高低差 */
     transform:translateY(34px) scale(1.1);
     filter:drop-shadow(0 0 20px var(--aura)) drop-shadow(0 0 46px var(--aura-soft)) drop-shadow(0 8px 16px rgba(70,50,100,.18))}
-  .ritualActor.show{animation:ritualEnter .5s var(--ease) both}
+  .ritualActor.show{animation:ritualEnter .5s var(--ease) both, ritualFloat 3.4s ease-in-out .5s infinite alternate}
   .ritualActor.leave{animation:ritualLeave .26s var(--ease) both}
   @keyframes ritualEnter{
     0%{opacity:0;transform:translateY(34px) scale(1.1)}
@@ -233,25 +233,74 @@
   @keyframes ritualLeave{
     0%{opacity:1;transform:translateY(0) scale(1)}
     100%{opacity:0;transform:translateY(34px) scale(1.1)}}
+  @keyframes ritualFloat{
+    0%{transform:translateY(0) scale(1);
+      filter:drop-shadow(0 0 20px var(--aura)) drop-shadow(0 0 46px var(--aura-soft)) drop-shadow(0 8px 16px rgba(70,50,100,.18))}
+    100%{transform:translateY(-6px) scale(1.015);
+      filter:drop-shadow(0 0 28px var(--aura)) drop-shadow(0 0 58px var(--glow)) drop-shadow(0 10px 22px rgba(70,50,100,.24))}
+  }
   .ritualActor.pair{height:42vh;max-width:46%;margin:0 -16px}  /* 双立绘再靠近一点(净交叠≈22px)；交叠处由前层(高 z-index+强发光)遮挡后层，形成前后交错站立 */
   .ritualActor.pair.front{z-index:2;   /* 前层：发光更强，交叠时遮挡后层边缘 */
     filter:drop-shadow(0 0 26px var(--aura)) drop-shadow(0 0 60px var(--aura-soft)) drop-shadow(0 10px 18px rgba(70,50,100,.22));}
+  .ritualActor.pair.front.show{animation:ritualEnter .5s var(--ease) both, ritualFloatFront 3.4s ease-in-out .5s infinite alternate}
+  @keyframes ritualFloatFront{
+    0%{transform:translateY(0) scale(1);
+      filter:drop-shadow(0 0 26px var(--aura)) drop-shadow(0 0 60px var(--aura-soft)) drop-shadow(0 10px 18px rgba(70,50,100,.22))}
+    100%{transform:translateY(-6px) scale(1.015);
+      filter:drop-shadow(0 0 34px var(--aura)) drop-shadow(0 0 72px var(--glow)) drop-shadow(0 12px 24px rgba(70,50,100,.28))}
+  }
   .ritualActor.pair.back{z-index:1;    /* 后层(用户指定 字源/数理 恒为后)：发光略弱，被前层遮挡 */
     filter:drop-shadow(0 0 16px var(--aura)) drop-shadow(0 0 36px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.14));}
+  .ritualActor.pair.back.show{animation:ritualEnter .5s var(--ease) both, ritualFloatBack 3.4s ease-in-out -.9s infinite alternate}
+  @keyframes ritualFloatBack{
+    0%{transform:translateY(0) scale(1);
+      filter:drop-shadow(0 0 16px var(--aura)) drop-shadow(0 0 36px var(--aura-soft)) drop-shadow(0 8px 14px rgba(70,50,100,.14))}
+    100%{transform:translateY(-5px) scale(1.01);
+      filter:drop-shadow(0 0 22px var(--aura)) drop-shadow(0 0 46px var(--glow)) drop-shadow(0 9px 18px rgba(70,50,100,.18))}
+  }
   #ritual .bubble{position:relative;z-index:2;max-width:30em;margin:0 auto 44px;text-align:left;   /* margin-bottom 把对话泡略抬高，远离底部 */
-    min-height:3.2em;transition:opacity .4s var(--ease)}
-  #ritual .bubble.fade{opacity:0}
-  #ritual .bubble .who{text-align:left}
-  /* 旋转光环：放到 #ritual 底部、降低不透明度、降低 z-index；不再压在立绘/文字上 */
-  .orbit{position:absolute;left:0;right:0;bottom:-50px;margin:0 auto;
-    width:230px;height:230px;border-radius:50%;
-    border:1px solid var(--panel-line);
-    background:conic-gradient(from 0deg,transparent,var(--glow),transparent);
-    animation:spin 14s linear infinite;box-shadow:0 0 50px var(--glow);
-    opacity:.35;z-index:0;pointer-events:none}
-  .orbit::after{content:"";position:absolute;inset:54px;border-radius:50%;
-    background:radial-gradient(circle,var(--accent),transparent 70%);opacity:.4}
+    min-height:3.2em;transition:opacity .28s var(--ease), transform .32s var(--ease);
+    transform:translateY(0)}
+  #ritual .bubble.fade{opacity:0;transform:translateY(8px)}
+  #ritual .bubble .who{text-align:left;display:inline-flex;align-items:center;gap:5px;
+    font-weight:600;letter-spacing:.06em;color:var(--accent);text-shadow:0 0 12px var(--glow)}
+  #ritual .bubble .who::before{content:"✦";font-size:11px;color:var(--accent);opacity:.9;
+    animation:starSpin 6s linear infinite;display:inline-block}
+  @keyframes starSpin{0%{transform:rotate(0deg) scale(1)}50%{transform:rotate(180deg) scale(1.2)}100%{transform:rotate(360deg) scale(1)}}
+
+  /* 占算法阵与动效光环：沉到 #ritual 底部，多层逆向旋转 + 呼吸光晕 + 浮动星屑 */
+  .ritualArray{position:absolute;left:0;right:0;bottom:-45px;margin:0 auto;
+    width:280px;height:280px;pointer-events:none;z-index:0;display:flex;align-items:center;justify-content:center}
+  .orbit{position:absolute;border-radius:50%;pointer-events:none}
+  .orbit.orbit-outer{width:260px;height:260px;border:1px dashed var(--panel-line);
+    background:conic-gradient(from 0deg,transparent 0%,var(--glow) 25%,transparent 50%,var(--glow) 75%,transparent 100%);
+    box-shadow:0 0 45px var(--glow);opacity:.38;animation:spin 18s linear infinite}
+  .orbit.orbit-inner{width:170px;height:170px;border:1px solid rgba(255,255,255,.32);
+    background:radial-gradient(circle,var(--accent) 0%,transparent 70%);
+    box-shadow:0 0 30px var(--glow);opacity:.42;animation:spinRev 12s linear infinite}
+  .orbit.orbit-inner::after{content:"";position:absolute;inset:28px;border-radius:50%;
+    border:1px dashed var(--accent);opacity:.5}
+  .orbitPulse{position:absolute;width:120px;height:120px;border-radius:50%;
+    border:1.5px solid var(--accent);box-shadow:0 0 20px var(--glow);
+    animation:ritualPulse 3.6s cubic-bezier(0.2,0.8,0.3,1) infinite;opacity:0}
   @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes spinRev{from{transform:rotate(360deg)}to{transform:rotate(0)}}
+  @keyframes ritualPulse{0%{transform:scale(.5);opacity:.75}100%{transform:scale(2.2);opacity:0}}
+
+  /* 星尘微粒浮空动效 */
+  .ritualSparks{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .spark{position:absolute;border-radius:50%;background:#fff;box-shadow:0 0 8px var(--glow);opacity:0}
+  .spark.s1{left:30%;bottom:25%;width:3px;height:3px;animation:sparkFloat 3.8s ease-in-out infinite}
+  .spark.s2{left:68%;bottom:30%;width:3.5px;height:3.5px;animation:sparkFloat 3.2s ease-in-out .9s infinite}
+  .spark.s3{left:48%;bottom:18%;width:2.5px;height:2.5px;animation:sparkFloat 4.2s ease-in-out 1.8s infinite}
+  .spark.s4{left:80%;bottom:35%;width:2px;height:2px;animation:sparkFloat 3.5s ease-in-out .5s infinite}
+  .spark.s5{left:20%;bottom:38%;width:3px;height:3px;animation:sparkFloat 4.5s ease-in-out 1.4s infinite}
+  @keyframes sparkFloat{
+    0%{opacity:0;transform:translateY(0) scale(.6)}
+    30%{opacity:.85;transform:translateY(-20px) scale(1.15)}
+    75%{opacity:.45;transform:translateY(-55px) scale(.8)}
+    100%{opacity:0;transform:translateY(-75px) scale(.3)}
+  }
 
   /* 静待揭晓（#2：内容包进 #waitWrap，margin:auto 居中且超高可滚动，保证「揭晓」按钮永远可达） */
   #waitWrap{width:100%;margin:auto;padding:12px 0;text-align:center}
@@ -1193,13 +1242,13 @@ function callAPI(){
       name_len:state.name_len||3, gender:state.gender||"U", tags:state.tags||[], avoid:"", free_text:state.free_text||"", birth:state.birth||null, weights:w, seed:state.seed||undefined})}).then(r=>r.json());
 }
 
-/* 单人表演分组：三组按序出场；每组随机取若干位（保证音律/字形等偏科老师稳定露面，不再随机被砍）。
-   组1 语文/音律/字形 → 随机2位；组2 字源/典故/意境 → 随机2位；组3 五行/生肖/八卦/数理/术数/占星 → 随机2位。
-   单人共 6 位，随后衔接不变的双人合参（DUOS 每组随机1套）。*/
+/* 单人表演分组：三组按序出场；单人由 6 位精简为 5 位（去冗提速）；主理老师若在组内则优先入选。
+   组1 语文/音律/字形 → 随机2位；组2 字源/典故/意境 → 随机2位；组3 玄学数理(五行/生肖/八卦/数理/术数/占星) → 随机1位。
+   单人共 5 位，随后衔接双人合参3套。*/
 const SOLO_GROUPS = [
   {keys:["yuwen","yinlv","xingzi"], n:2},
   {keys:["ziyuan","diangu","yijing"], n:2},
-  {keys:["wuxing","shengxiao","bagua","shuli","shushu","zhanxing"], n:2}
+  {keys:["wuxing","shengxiao","bagua","shuli","shushu","zhanxing"], n:1}
 ];
 function enterRitual(){
   $("#actorWrap").style.display="none";   // 演出时隐藏全局立绘
@@ -1207,18 +1256,36 @@ function enterRitual(){
   $("#step").textContent="占算";
   apiPromise = callAPI();
   apiPromise.then(d=>{ state.result=d; }).catch(e=>{ state.result={meta:{error:"推算中断："+e.message}}; });
-  /* 单人阶段：三组按序，每组内随机取 n 位 */
+  /* 单人阶段：三组按序，每组随机取 n 位（主理老师优先保底） */
   const perfSingles = [];
   SOLO_GROUPS.forEach(g=>{
-    const picked = shuffle(RITUAL.filter(r=>r.keys.length===1 && g.keys.includes(r.keys[0])).slice()).slice(0, g.n);
+    let pool = RITUAL.filter(r=>r.keys.length===1 && g.keys.includes(r.keys[0])).slice();
+    let picked = [];
+    if(state.primaryTeacher && g.keys.includes(state.primaryTeacher)){
+      const pri = pool.find(r=>r.keys[0]===state.primaryTeacher);
+      if(pri){
+        picked.push(pri);
+        pool = pool.filter(r=>r.keys[0]!==state.primaryTeacher);
+      }
+    }
+    const remain = shuffle(pool).slice(0, g.n - picked.length);
+    picked = picked.concat(remain);
     perfSingles.push(...picked);
   });
-  const pairs = shuffle(DUOS.slice());            // 双人合参走 DUOS 交叉互动台词（先不动）
-  const SEQ = perfSingles.concat(pairs.slice(0,-2));  // 单人固定6位 + 双人再减1提速（取前4套中的前3）
+  const pairs = shuffle(DUOS.slice());            // 双人合参走 DUOS 交叉互动台词
+  const SEQ = perfSingles.concat(pairs.slice(0,-2));  // 单人共5位（减1位去冗） + 双人合参3套
   let i=0;
-  /* 旋转大圆（orbit）沉到 #ritual 底部，不再与立绘/文字重叠；立绘在上、文字用对话泡在下。 */
+  /* 旋转占算法阵（ritualArray）沉到 #ritual 底部，多层逆向旋转+呼吸光脉冲+星尘浮尘；立绘在上、文字用对话泡在下。 */
   sceneEl.innerHTML = '<div id="ritual">'+
-    '<div class="orbit"></div>'+
+    '<div class="ritualArray">'+
+      '<div class="orbit orbit-outer"></div>'+
+      '<div class="orbit orbit-inner"></div>'+
+      '<div class="orbitPulse"></div>'+
+      '<div class="ritualSparks">'+
+        '<span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>'+
+        '<span class="spark s4"></span><span class="spark s5"></span>'+
+      '</div>'+
+    '</div>'+
     '<div class="ritualStage"></div>'+
     '<div class="bubble ritualBubble"><span class="who"></span><p></p></div></div>';
   const stage = $("#ritualWrap");   // 表演立绘渲染到 #stage 之外的滤镜层（满色）
@@ -1226,8 +1293,8 @@ function enterRitual(){
   const bubbleWho = bubble.querySelector(".who");
   const bubbleP = bubble.querySelector("p");
   const lineLen = (line)=> Array.isArray(line) ? line.join("").length : line.length;
-  const dwell = (line)=> Math.min(3740, Math.round((1700 + lineLen(line)*22) * 1.1));  // 每位停留 +10%
-  const STAR_DWELL = 2800;   // 星师总结停留（亦 +10%）
+  const dwell = (line)=> Math.min(3100, Math.round(1450 + lineLen(line)*20));  // 自然轻快留时，消除拖沓冗长
+  const STAR_DWELL = 2400;   // 星师总结停留
   state._revealed = false;
   function setActors(keys, onEntered){
     const list=(Array.isArray(keys)?keys:[keys]).filter(Boolean);
@@ -1237,8 +1304,16 @@ function enterRitual(){
       const duoBack = list.find(k=>DUO_BACK.has(k));
       const duoFront = duoBack ? list.find(k=>k!==duoBack) : (list[1]||list[0]);
       stage.innerHTML = list.map(k=>'<img class="ritualActor'+(list.length>1?' pair '+(k===duoFront?'front':'back'):'')+'" src="'+CHAR[k].file+'" alt="'+(CHAR[k].name||"")+'">').join("");
-      requestAnimationFrame(()=>{ stage.querySelectorAll(".ritualActor").forEach(a=>a.classList.add("show"));
-        setTimeout(()=>{ if(onEntered) onEntered(); }, 80); });   // 立绘一开始入场，文字即随之同频出现（不再等完全入场）；120→80ms 提前
+      requestAnimationFrame(()=>{ 
+        stage.querySelectorAll(".ritualActor").forEach(a=>a.classList.add("show"));
+        const pulse = sceneEl.querySelector(".orbitPulse");
+        if(pulse){
+          pulse.style.animation = "none";
+          pulse.offsetHeight;
+          pulse.style.animation = "";
+        }
+        setTimeout(()=>{ if(onEntered) onEntered(); }, 80); 
+      });   // 立绘一开始入场，文字即随之同频出现（不再等完全入场）；120→80ms 提前
     }, EXIT_MS);
   }
   function revealLine(who, html){
