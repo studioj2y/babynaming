@@ -63,8 +63,10 @@ async def gen(req: Request):
     birth = _birth_from(body)
     weights = body.get("weights")
     seed = body.get("seed")
+    pin_char = body.get("pin_char")
+    pin_pos = body.get("pin_pos")
     try:
-        names, meta = generate(father, mother, mode, name_len, gender, birth, tags, avoid, weights=weights, seed=seed)
+        names, meta = generate(father, mother, mode, name_len, gender, birth, tags, avoid, weights=weights, seed=seed, pin_char=pin_char, pin_pos=pin_pos)
         return JSONResponse({"names": names, "meta": meta, "tags_used": sorted(set(tags))})
     except Exception as e:
         # 本地兜底：core 计算失败也返回示例名卡，保证前端流程可预览

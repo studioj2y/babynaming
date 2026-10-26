@@ -1215,7 +1215,7 @@ def _diverse_top(ranked, size, rng=None):
         i += 1
     return out
 
-def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12, weights=None, seed=None):
+def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12, weights=None, seed=None, pin_char=None, pin_pos=None):
     # BUG A 修复：只校验实际参与组姓的父/母，避免随父姓时母姓为空被误报"姓氏不能为空"
     if mode == 'M':
         serr = validate_surname(mother)
@@ -1336,7 +1336,27 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
     s_ini = [p[2] for p in s_info]
 
     names = []
-    if given_len == 1:
+    p_c = (pin_char or '').strip()
+    if p_c:
+        p_info = ch.get(p_c) or {'strokes': 8, 'radical': '', 'py': '', 'wx': '木'}
+        p_it = next((it for it in gl if it['c'] == p_c), None) or {'c': p_c, 'g': 'U', 't': []}
+        pin_tuple = (p_c, p_it, p_info)
+        pos = int(pin_pos) if pin_pos is not None and str(pin_pos).strip().isdigit() else None
+        combos = []
+        if given_len == 1:
+            combos = [[pin_tuple]]
+        else:
+            for x in top:
+                if x[0] == p_c:
+                    continue
+                if pos == 0:
+                    combos.append([pin_tuple, x])
+                elif pos == 1:
+                    combos.append([x, pin_tuple])
+                else:
+                    combos.append([pin_tuple, x])
+                    combos.append([x, pin_tuple])
+    elif given_len == 1:
         combos = [[x] for x in top]
     else:
         combos = list(permutations(top, given_len))
@@ -1361,7 +1381,7 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
             'surname': surname, 'surname_note': surname_note, 'mode': mode,
             'pool_size': len(pool), 'surname': surname, 'mode': mode,
             'name_len': name_len, 'relaxed': relaxed, 'relax_reason': relax_reason}
-    out = _curate_diverse(names, topn)
+    out = _curate_diverse(names, topn, pin_char=p_c)
     if out:
         assigned = _assign_explain_variants(out, meta, mode)
         for i, o in enumerate(out):
@@ -1369,9 +1389,10 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
             o['rank_reason'] = build_rank_reason(o, out, i)
     return out, meta
 
-def _curate_diverse(names, out_n):
+def _curate_diverse(names, out_n, pin_char=None):
     """精选：保留差异明显者，筛掉过于接近的（同字重排 / 同音 / 三字仅差一字 / 二字共用一字）。"""
     kept = []
+    p_c = (pin_char or '').strip()
     for o in names[:200]:
         gc = o['given_chars']
         gcset = frozenset(gc)
@@ -1383,8 +1404,14 @@ def _curate_diverse(names, out_n):
             if k['py_str'].replace(' ', '') == py:
                 dup = True; break
             gl = len(gc)
-            if gl >= 2 and len(gcset & frozenset(k['given_chars'])) >= gl - 1:
-                dup = True; break
+            common_chars = gcset & frozenset(k['given_chars'])
+            if p_c and p_c in common_chars:
+                common_chars = common_chars - {p_c}
+                if gl >= 3 and len(common_chars) >= gl - 2:
+                    dup = True; break
+            else:
+                if gl >= 2 and len(common_chars) >= gl - 1:
+                    dup = True; break
         if not dup:
             kept.append(o)
         if len(kept) >= out_n:

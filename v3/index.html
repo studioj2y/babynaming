@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>星命观测局 · V3 名韵工坊 (Name Studio)</title>
+<style>
+  :root {
+    --bg: #0b0e17;
+    --bg-grad: radial-gradient(circle at 50% 10%, #171d31 0%, #0c0f19 65%, #07090f 100%);
+    --panel: rgba(26, 33, 53, 0.65);
+    --panel-border: rgba(140, 165, 215, 0.22);
+    --panel-hover: rgba(35, 45, 72, 0.82);
+    --accent: #e5b974;
+    --accent-glow: rgba(229, 185, 116, 0.32);
+    --accent-cyan: #6ed8c7;
+    --cyan-glow: rgba(110, 216, 199, 0.28);
+    --text: #f0f4fc;
+    --text-soft: #a2b1cc;
+    --text-dim: #6c7c99;
+    --card-bg: rgba(20, 26, 43, 0.75);
+    --gold-grad: linear-gradient(135deg, #f7d794, #e5b974 60%, #c4974f 100%);
+    --cyan-grad: linear-gradient(135deg, #8cf0df, #6ed8c7 60%, #46b7a5 100%);
+    --purple-grad: linear-gradient(135deg, #c7a4ff, #9f75e8 60%, #764db8 100%);
+    --radius: 16px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; padding: 0; min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--text); background: var(--bg); background-image: var(--bg-grad);
+    background-attachment: fixed; overflow-x: hidden;
+  }
+  /* 背景星幕粒子 */
+  #starsCanvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+  /* 顶栏 */
+  .topBar {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; background: rgba(11, 14, 23, 0.82); backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .brand .logoStar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--gold-grad); display: flex; align-items: center; justify-content: center;
+    color: #121624; font-weight: 900; font-size: 14px; box-shadow: 0 0 16px var(--accent-glow);
+  }
+  .brand .title { font-size: 16px; font-weight: 700; letter-spacing: 0.08em; color: #fff; }
+  .brand .badge {
+    font-size: 10px; padding: 2px 7px; border-radius: 10px;
+    background: rgba(229,185,116,0.18); color: var(--accent); border: 1px solid rgba(229,185,116,0.35);
+  }
+  .topActions { display: flex; align-items: center; gap: 8px; }
+  .pillBtn {
+    padding: 6px 13px; font-size: 12px; border-radius: 20px;
+    background: rgba(255,255,255,0.08); border: 1px solid var(--panel-border);
+    color: var(--text-soft); text-decoration: none; cursor: pointer; transition: all .2s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .pillBtn:hover { background: rgba(255,255,255,0.14); color: #fff; border-color: var(--accent); }
+  .pillBtn.fav { color: #f7a8b8; border-color: rgba(247,168,184,0.3); }
+
+  /* 主工作区容器 */
+  .wrap {
+    position: relative; z-index: 1; max-width: 1180px; margin: 0 auto;
+    padding: 20px 16px 80px; display: flex; flex-direction: column; gap: 24px;
+  }
+
+  /* 顶部引言 */
+  .heroIntro { text-align: center; margin: 8px 0 4px; }
+  .heroIntro h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.12em; color: #fff; }
+  .heroIntro p { margin: 6px 0 0; font-size: 13px; color: var(--text-soft); letter-spacing: 0.05em; }
+
+  /* 工坊控制台（配置栏） */
+  .controlDeck {
+    background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: var(--radius); padding: 18px 20px; backdrop-filter: blur(12px);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+  }
+  .deckRow { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .fieldItem { display: flex; flex-direction: column; gap: 6px; }
+  .fieldLabel { font-size: 12px; color: var(--text-soft); font-weight: 500; }
+  .textInput {
+    background: rgba(14, 18, 30, 0.8); border: 1px solid var(--panel-border);
+    border-radius: 10px; padding: 8px 12px; font-size: 14px; color: #fff;
+    outline: none; transition: border-color .2s; width: 110px;
+  }
+  .textInput:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+  .segGroup { display: inline-flex; background: rgba(14, 18, 30, 0.8); border-radius: 10px; padding: 3px; border: 1px solid var(--panel-border); }
+  .segGroup button {
+    background: transparent; border: none; color: var(--text-soft); font-size: 13px;
+    padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: all .18s;
+  }
+  .segGroup button.active { background: var(--accent); color: #121624; font-weight: 600; box-shadow: 0 2px 8px var(--accent-glow); }
+
+  /* 定字槽位（Pin Slot） */
+  .pinDeck {
+    margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(140, 165, 215, 0.18);
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  }
+  .pinToggle {
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    font-size: 13px; color: var(--accent); font-weight: 600; user-select: none;
+  }
+  .pinInputWrap { display: flex; align-items: center; gap: 8px; }
+  .quickChips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .quickChip {
+    font-size: 12px; padding: 3px 9px; border-radius: 12px;
+    background: rgba(255,255,255,0.06); border: 1px solid var(--panel-border);
+    color: var(--text-soft); cursor: pointer; transition: all .15s;
+  }
+  .quickChip:hover { background: rgba(229,185,116,0.18); color: var(--accent); border-color: var(--accent); }
+
+  /* 灵感推演大按钮 */
+  .genBtnWrap { margin-left: auto; }
+  .magicBtn {
+    background: var(--gold-grad); border: none; border-radius: 12px;
+    padding: 10px 24px; font-size: 14px; font-weight: 700; color: #121624;
+    cursor: pointer; box-shadow: 0 4px 20px var(--accent-glow); transition: all .2s;
+    display: inline-flex; align-items: center; gap: 6px; letter-spacing: 0.06em;
+  }
+  .magicBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--accent-glow); filter: brightness(1.08); }
+  .magicBtn:active { transform: translateY(0); }
+
+  /* 主工坊分栏（中台核心） */
+  .studioGrid {
+    display: grid; grid-template-columns: 1fr 340px; gap: 20px;
+  }
+  @media (max-width: 900px) {
+    .studioGrid { grid-template-columns: 1fr; }
+  }
+
+  /* 核心雕琢鼎（Crafting Altar） */
+  .altarCard {
+    background: var(--panel); border: 1.5px solid var(--panel-border);
+    border-radius: var(--radius); padding: 24px; backdrop-filter: blur(14px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.4); position: relative; overflow: hidden;
+  }
+  .altarHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .altarTitle { font-size: 14px; color: var(--accent); font-weight: 600; letter-spacing: 0.08em; display: flex; align-items: center; gap: 6px; }
+  .scorePill {
+    padding: 4px 12px; border-radius: 20px; background: rgba(229,185,116,0.15);
+    border: 1px solid rgba(229,185,116,0.3); color: var(--accent); font-size: 13px; font-weight: 700;
+  }
+
+  /* 汉字展示与互动插槽 */
+  .charSlots {
+    display: flex; justify-content: center; gap: 16px; margin: 18px 0 24px;
+  }
+  .charSlot {
+    display: flex; flex-direction: column; align-items: center;
+    background: rgba(14, 18, 30, 0.7); border: 1.5px solid var(--panel-border);
+    border-radius: 16px; padding: 16px 14px 12px; min-width: 96px;
+    position: relative; transition: all .25s var(--ease); cursor: pointer;
+  }
+  .charSlot:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+  .charSlot.surname { border-style: dashed; opacity: .88; cursor: default; }
+  .charSlot.surname:hover { transform: none; border-color: var(--panel-border); }
+  .charHanzi {
+    font-size: 44px; font-weight: 800; line-height: 1.1; color: #fff;
+    text-shadow: 0 2px 14px var(--accent-glow); margin-bottom: 6px;
+    font-family: "PingFang SC", "Songti SC", "Noto Serif SC", serif;
+  }
+  .charPy { font-size: 13px; color: var(--accent-cyan); font-weight: 600; }
+  .charTone { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .charMeta { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+  .swapTrigger {
+    margin-top: 10px; padding: 4px 10px; font-size: 11px; border-radius: 12px;
+    background: rgba(229,185,116,0.14); border: 1px solid rgba(229,185,116,0.28);
+    color: var(--accent); transition: all .15s;
+  }
+  .charSlot:hover .swapTrigger { background: var(--accent); color: #121624; font-weight: 600; }
+
+  /* 换字下弹盘（Smart Swap Tray） */
+  .swapTray {
+    background: rgba(14, 19, 32, 0.95); border: 1px solid var(--accent);
+    border-radius: 14px; padding: 14px; margin-top: 8px; margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; animation: popIn .2s var(--ease);
+  }
+  .swapTray.show { display: block; }
+  @keyframes popIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+  .trayHeader { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-soft); margin-bottom: 10px; }
+  .trayTabs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .trayTab {
+    font-size: 11.5px; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+    background: rgba(255,255,255,0.06); color: var(--text-soft); border: 1px solid transparent;
+  }
+  .trayTab.active { background: rgba(110,216,199,0.18); color: var(--accent-cyan); border-color: rgba(110,216,199,0.35); font-weight: 600; }
+  .trayGrid { display: flex; flex-wrap: wrap; gap: 7px; max-height: 140px; overflow-y: auto; }
+  .trayItem {
+    width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 17px; background: rgba(255,255,255,0.06); border: 1px solid var(--panel-border);
+    color: #fff; cursor: pointer; transition: all .15s;
+  }
+  .trayItem:hover { background: var(--accent); color: #121624; font-weight: 700; transform: scale(1.1); }
+  .trayCustom { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+  .trayInput { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 10px; color: #fff; font-size: 13px; }
+
+  /* 音律波形与朗读条 */
+  .toneBar {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    background: rgba(11, 15, 26, 0.7); border-radius: 12px; padding: 12px 16px; margin: 16px 0;
+    border: 1px solid rgba(140, 165, 215, 0.14);
+  }
+  .toneWave { display: flex; align-items: center; gap: 10px; }
+  .toneBadge { font-size: 12px; padding: 3px 8px; border-radius: 8px; background: rgba(110,216,199,0.14); color: var(--accent-cyan); }
+  .toneText { font-size: 12.5px; color: var(--text-soft); }
+  .speakBtn {
+    background: rgba(255,255,255,0.08); border: 1px solid var(--panel-border); border-radius: 20px;
+    padding: 6px 14px; font-size: 12.5px; color: #fff; cursor: pointer; transition: all .2s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .speakBtn:hover { background: var(--accent); color: #121624; font-weight: 600; border-color: var(--accent); }
+
+  /* 现代社交第一印象画像 */
+  .personaBox {
+    background: linear-gradient(135deg, rgba(229,185,116,0.1), rgba(110,216,199,0.06));
+    border: 1px solid rgba(229,185,116,0.25); border-radius: 12px; padding: 12px 16px; margin-top: 14px;
+  }
+  .personaTag { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .personaDesc { font-size: 12.5px; color: var(--text-soft); line-height: 1.55; }
+
+  /* 右侧边栏：六维雷达 + 诸师智囊团 */
+  .sideCol { display: flex; flex-direction: column; gap: 20px; }
+  .radarCard {
+    background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: var(--radius); padding: 16px; backdrop-filter: blur(12px);
+    text-align: center;
+  }
+  .cardHead { font-size: 13px; font-weight: 600; color: var(--text-soft); margin-bottom: 8px; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: space-between; }
+  #radarCanvas { width: 100%; height: 210px; max-width: 290px; margin: 0 auto; display: block; }
+
+  /* 诸师智囊团 */
+  .councilCard {
+    background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: var(--radius); padding: 16px; backdrop-filter: blur(12px);
+  }
+  .mentorPills { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; }
+  .mentorPill {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: rgba(14, 18, 30, 0.7); border: 1px solid var(--panel-border);
+    border-radius: 12px; padding: 8px 6px; min-width: 54px; cursor: pointer; transition: all .18s;
+  }
+  .mentorPill.active { border-color: var(--accent); background: rgba(229,185,116,0.12); transform: scale(1.04); }
+  .mentorAvatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; object-position: top; border: 1px solid var(--panel-border); }
+  .mentorName { font-size: 11px; color: var(--text-soft); }
+  .mentorPill.active .mentorName { color: var(--accent); font-weight: 600; }
+  .mentorBubble {
+    margin-top: 10px; background: rgba(11, 15, 26, 0.85); border: 1px solid rgba(140, 165, 215, 0.2);
+    border-radius: 12px; padding: 12px 14px; font-size: 12.5px; color: var(--text);
+    line-height: 1.6; position: relative; animation: fadeIn .2s var(--ease);
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .mentorBubble::before {
+    content: ""; position: absolute; top: -6px; left: 24px; width: 10px; height: 10px;
+    background: rgba(11, 15, 26, 0.85); border-left: 1px solid rgba(140, 165, 215, 0.2);
+    border-top: 1px solid rgba(140, 165, 215, 0.2); transform: rotate(45deg);
+  }
+
+  /* 灵感候选流（Candidate Stream） */
+  .streamSection { margin-top: 8px; }
+  .streamHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .streamTitle { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+  .candGrid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;
+  }
+  .candCard {
+    background: var(--card-bg); border: 1px solid var(--panel-border);
+    border-radius: 14px; padding: 14px 16px; cursor: pointer; transition: all .2s var(--ease);
+    display: flex; flex-direction: column; gap: 8px; position: relative;
+  }
+  .candCard:hover {
+    border-color: var(--accent); transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3); background: rgba(30, 38, 62, 0.8);
+  }
+  .candCard.active {
+    border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow);
+    background: rgba(35, 45, 74, 0.9);
+  }
+  .candTop { display: flex; align-items: center; justify-content: space-between; }
+  .candName { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: 0.05em; font-family: "PingFang SC", "Songti SC", serif; }
+  .candScore { font-size: 12.5px; color: var(--accent); font-weight: 700; }
+  .candPy { font-size: 12px; color: var(--accent-cyan); }
+  .candNote { font-size: 11.5px; color: var(--text-soft); line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .candActions { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .candFavBtn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; padding: 2px 6px; transition: all .15s; }
+  .candFavBtn:hover, .candFavBtn.fav { color: #f7a8b8; transform: scale(1.15); }
+  .loadTip { font-size: 11px; color: var(--text-dim); }
+
+  /* 收藏夹浮层弹窗 */
+  .modal {
+    position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.72); backdrop-filter: blur(8px); padding: 16px;
+  }
+  .modal.show { display: flex; }
+  .modalCard {
+    background: #141b2c; border: 1.5px solid var(--panel-border); border-radius: 18px;
+    width: 100%; max-width: 480px; max-height: 80vh; display: flex; flex-direction: column;
+    padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .modalHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .modalHead h3 { margin: 0; font-size: 16px; color: #fff; }
+  .closeBtn { background: none; border: none; color: var(--text-soft); font-size: 20px; cursor: pointer; }
+  .modalList { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+  /* 动画辅助 */
+  .morphing { animation: morphFlash .35s var(--ease); }
+  @keyframes morphFlash {
+    0% { transform: scale(0.96); filter: brightness(1.3); }
+    100% { transform: scale(1); filter: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="starsCanvas"></canvas>
+
+<!-- 顶栏 -->
+<header class="topBar">
+  <div class="brand" onclick="location.reload()">
+    <div class="logoStar">✦</div>
+    <div class="title">星命观测局</div>
+    <div class="badge">V3 名韵工坊</div>
+  </div>
+  <div class="topActions">
+    <button class="pillBtn fav" id="favDrawerBtn" type="button">❤️ 灵感收藏 (<span id="favCount">0</span>)</button>
+    <a class="pillBtn" href="/v2/">🎭 场景模式 (V2)</a>
+    <a class="pillBtn" href="/">📜 极简表单 (V1)</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- 标题导引 -->
+  <div class="heroIntro">
+    <h1>名 韵 工 坊 · 灵 感 雕 琢</h1>
+    <p>自由定字推演 · 智囊随行评点 · 现代社交气质雷达 · 多方言试听</p>
+  </div>
+
+  <!-- 工坊控制台（配置栏） -->
+  <section class="controlDeck">
+    <div class="deckRow">
+      <div class="fieldItem">
+        <label class="fieldLabel">父亲姓氏</label>
+        <input class="textInput" id="fatherInput" type="text" maxlength="2" placeholder="如 李" value="林" />
+      </div>
+      <div class="fieldItem">
+        <label class="fieldLabel">母亲姓氏 (选填)</label>
+        <input class="textInput" id="motherInput" type="text" maxlength="2" placeholder="如 王" value="" />
+      </div>
+      <div class="fieldItem">
+        <label class="fieldLabel">命名归属</label>
+        <div class="segGroup" id="modeSeg">
+          <button type="button" class="active" data-v="F">随父姓</button>
+          <button type="button" data-v="M">随母姓</button>
+          <button type="button" data-v="B">双姓并尊</button>
+        </div>
+      </div>
+      <div class="fieldItem">
+        <label class="fieldLabel">小星主性别</label>
+        <div class="segGroup" id="genderSeg">
+          <button type="button" class="active" data-v="U">不限</button>
+          <button type="button" data-v="M">男孩 ♂</button>
+          <button type="button" data-v="F">女孩 ♀</button>
+        </div>
+      </div>
+      <div class="fieldItem">
+        <label class="fieldLabel">全名字数</label>
+        <div class="segGroup" id="lenSeg">
+          <button type="button" class="active" data-v="3">三字名</button>
+          <button type="button" data-v="2">两字名</button>
+        </div>
+      </div>
+
+      <div class="genBtnWrap">
+        <button class="magicBtn" id="genBtn" type="button">
+          <span>✦ 启动灵感推演 ✦</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 定字槽位（Pin Slot & Clan Generation） -->
+    <div class="pinDeck">
+      <label class="pinToggle">
+        <input type="checkbox" id="pinCheck" />
+        <span>🌟 定字衍生配名（辈分字 / 偏好字）</span>
+      </label>
+      <div class="pinInputWrap" id="pinBox" style="display:none;">
+        <input class="textInput" id="pinCharInput" type="text" maxlength="1" placeholder="如 清" style="width:70px;text-align:center;font-weight:700;" />
+        <div class="segGroup" id="pinPosSeg">
+          <button type="button" class="active" data-v="0">固定在首字</button>
+          <button type="button" data-v="1">固定在末字</button>
+          <button type="button" data-v="any">任意位置</button>
+        </div>
+        <div class="quickChips">
+          <span style="font-size:11.5px;color:var(--text-dim);">快捷选：</span>
+          <span class="quickChip" onclick="setQuickPin('清')">清</span>
+          <span class="quickChip" onclick="setQuickPin('知')">知</span>
+          <span class="quickChip" onclick="setQuickPin('安')">安</span>
+          <span class="quickChip" onclick="setQuickPin('语')">语</span>
+          <span class="quickChip" onclick="setQuickPin('晨')">晨</span>
+          <span class="quickChip" onclick="setQuickPin('若')">若</span>
+          <span class="quickChip" onclick="setQuickPin('景')">景</span>
+          <span class="quickChip" onclick="setQuickPin('澈')">澈</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 中台工作区分栏 -->
+  <div class="studioGrid">
+    <!-- 左栏：名韵雕琢主舞台 -->
+    <div class="altarCard" id="altarCard">
+      <div class="altarHeader">
+        <div class="altarTitle">✦ 当前雕琢名卡 · 灵感主舞台</div>
+        <div class="scorePill" id="altarScore">综合评分 88.0</div>
+      </div>
+
+      <!-- 汉字展示与互动换字插槽 -->
+      <div class="charSlots" id="charSlots">
+        <!-- 动态注入汉字卡片 -->
+      </div>
+
+      <!-- 换字智能抽屉（Smart Swap Tray） -->
+      <div class="swapTray" id="swapTray">
+        <div class="trayHeader">
+          <span id="trayTitle">正在置换第 2 字：选择或输入替代汉字</span>
+          <button class="closeBtn" style="font-size:14px;" onclick="closeSwapTray()">✕ 收起</button>
+        </div>
+        <div class="trayTabs">
+          <div class="trayTab active" onclick="switchTrayTab('ping')">🌟 平声顺口</div>
+          <div class="trayTab" onclick="switchTrayTab('ze')">🌿 去声有骨</div>
+          <div class="trayTab" onclick="switchTrayTab('ya')">📜 经典雅字</div>
+          <div class="trayTab" onclick="switchTrayTab('water')">💧 清润水木</div>
+        </div>
+        <div class="trayGrid" id="trayGrid">
+          <!-- 动态注入推荐备选字 -->
+        </div>
+        <div class="trayCustom">
+          <input class="trayInput" id="customCharInput" type="text" maxlength="1" placeholder="输入任意心仪汉字现场推演..." />
+          <button class="pillBtn" type="button" onclick="applyCustomChar()">替换并测评</button>
+        </div>
+      </div>
+
+      <!-- 音律波形与朗读试听条 -->
+      <div class="toneBar">
+        <div class="toneWave">
+          <span class="toneBadge" id="toneBadge">平仄起伏 · 平平平</span>
+          <span class="toneText" id="toneText">声调连续平稳，唤来温润清亮</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="speakBtn" type="button" onclick="speakCurrentName()">
+            <span>🔊 朗读试听</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 现代社交第一印象画像 -->
+      <div class="personaBox">
+        <div class="personaTag" id="personaTag">✦ 现代社交画像：【清润书卷】</div>
+        <div class="personaDesc" id="personaDesc">给人温和谦逊、言念君子、思维清晰的学者与知性气质。</div>
+      </div>
+    </div>
+
+    <!-- 右栏：现代六维雷达 + 智囊团随行评点 -->
+    <div class="sideCol">
+      <!-- 六维雷达卡 -->
+      <div class="radarCard">
+        <div class="cardHead">
+          <span>六维现代气质图谱</span>
+          <span style="font-size:11px;color:var(--accent);">无断崖玄学 · 美学加权</span>
+        </div>
+        <canvas id="radarCanvas" width="290" height="210"></canvas>
+      </div>
+
+      <!-- 诸师首席智囊团 -->
+      <div class="councilCard">
+        <div class="cardHead">
+          <span>诸师随行评点</span>
+          <span style="font-size:11px;color:var(--text-dim);">点击名师切看详解</span>
+        </div>
+        <div class="mentorPills">
+          <div class="mentorPill active" data-m="yinlv" onclick="selectMentor('yinlv')">
+            <img class="mentorAvatar" src="/characters/char-yinlv-1.webp" alt="音律" />
+            <span class="mentorName">音律</span>
+          </div>
+          <div class="mentorPill" data-m="xingzi" onclick="selectMentor('xingzi')">
+            <img class="mentorAvatar" src="/characters/char-xingzi-1.webp" alt="字形" />
+            <span class="mentorName">字形</span>
+          </div>
+          <div class="mentorPill" data-m="yijing" onclick="selectMentor('yijing')">
+            <img class="mentorAvatar" src="/characters/char-yijing-1.webp" alt="意境" />
+            <span class="mentorName">意境</span>
+          </div>
+          <div class="mentorPill" data-m="diangu" onclick="selectMentor('diangu')">
+            <img class="mentorAvatar" src="/characters/char-diangu-1.webp" alt="典故" />
+            <span class="mentorName">典故</span>
+          </div>
+          <div class="mentorPill" data-m="ziyuan" onclick="selectMentor('ziyuan')">
+            <img class="mentorAvatar" src="/characters/char-ziyuan-1.webp" alt="字源" />
+            <span class="mentorName">字源</span>
+          </div>
+        </div>
+        <div class="mentorBubble" id="mentorBubble">
+          <!-- 动态评点内容 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 灵感候选流（Candidate Stream） -->
+  <section class="streamSection">
+    <div class="streamHeader">
+      <div class="streamTitle">
+        <span>✦ 灵感候选流</span>
+        <span style="font-size:12px;color:var(--text-dim);font-weight:400;">点击任意名卡切入工坊雕琢鼎</span>
+      </div>
+    </div>
+    <div class="candGrid" id="candGrid">
+      <!-- 动态候选卡片 -->
+    </div>
+  </section>
+</main>
+
+<!-- 收藏夹弹窗 -->
+<div class="modal" id="favModal">
+  <div class="modalCard">
+    <div class="modalHead">
+      <h3>❤️ 灵感收藏夹</h3>
+      <button class="closeBtn" onclick="closeFavModal()">✕</button>
+    </div>
+    <div class="modalList" id="favList">
+      <!-- 动态收藏项目 -->
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- 状态存储 ---------- */
+const state = {
+  father: "林",
+  mother: "",
+  mode: "F",
+  gender: "U",
+  name_len: 3,
+  pin: false,
+  pin_char: "",
+  pin_pos: 0,
+  candidates: [],
+  currentName: null,
+  activeMentor: "yinlv",
+  swapTargetIdx: 1,  // 0 为首个名，1 为第二个名
+  favs: []
+};
+
+/* 常用优雅字库分类库（用于换字盘） */
+const SWAP_POOLS = {
+  ping: ["清","安","晨","初","言","南","知","恩","舟","寻","然","宣","星","希","书","文","云","恒","平"],
+  ze: ["澈","远","翊","曜","煦","越","瀚","正","灿","赫","乐","硕","佑","沐","沛","若","畅","敬"],
+  ya: ["霖","玥","芷","芸","汐","岚","沅","忻","妍","妤","苒","昊","昕","昀","炜","曦","璟","琛","恺","烨"],
+  water: ["涵","沐","沛","潇","漪","瀚","润","澈","淳","溯","澜","深","泽","洲","源","浩","洋","澄"]
+};
+
+/* 老师名册与头像 */
+const MENTORS = {
+  yinlv: { name:"音律老师", title:"声韵平仄主管", file:"/characters/char-yinlv-1.webp" },
+  xingzi: { name:"字形老师", title:"间架风骨主管", file:"/characters/char-xingzi-1.webp" },
+  yijing: { name:"意境老师", title:"诗情风雅主管", file:"/characters/char-yijing-1.webp" },
+  diangu: { name:"典故老师", title:"经史子集主管", file:"/characters/char-diangu-1.webp" },
+  ziyuan: { name:"字源老师", title:"六书本义主管", file:"/characters/char-ziyuan-1.webp" }
+};
+
+/* ---------- 初始化 ---------- */
+window.addEventListener("DOMContentLoaded", () => {
+  initBackgroundStars();
+  loadFavs();
+  bindControls();
+  triggerGenerate();
+});
+
+/* 背景动态星幕 */
+function initBackgroundStars() {
+  const c = document.getElementById("starsCanvas");
+  if (!c) return;
+  const ctx = c.getContext("2d");
+  let w = c.width = window.innerWidth;
+  let h = c.height = window.innerHeight;
+  window.addEventListener("resize", () => { w = c.width = window.innerWidth; h = c.height = window.innerHeight; });
+  const stars = Array.from({length: 65}, () => ({
+    x: Math.random() * w, y: Math.random() * h,
+    r: Math.random() * 1.5 + 0.4,
+    op: Math.random() * 0.7 + 0.2,
+    sp: Math.random() * 0.012 + 0.004
+  }));
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    stars.forEach(s => {
+      s.op += s.sp;
+      if (s.op > 0.85 || s.op < 0.2) s.sp = -s.sp;
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(220, 235, 255, ${Math.max(0, s.op)})`;
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+/* 控件事件绑定 */
+function bindControls() {
+  // 模式切换
+  bindSeg("modeSeg", v => { state.mode = v; });
+  bindSeg("genderSeg", v => { state.gender = v; });
+  bindSeg("lenSeg", v => { state.name_len = parseInt(v); });
+  bindSeg("pinPosSeg", v => { state.pin_pos = v === "any" ? null : parseInt(v); });
+
+  // 定字复选框
+  const pinCheck = document.getElementById("pinCheck");
+  const pinBox = document.getElementById("pinBox");
+  pinCheck.addEventListener("change", (e) => {
+    state.pin = e.target.checked;
+    pinBox.style.display = state.pin ? "flex" : "none";
+  });
+
+  // 生成大按钮
+  document.getElementById("genBtn").addEventListener("click", triggerGenerate);
+
+  // 收藏抽屉
+  document.getElementById("favDrawerBtn").addEventListener("click", openFavModal);
+}
+
+function bindSeg(id, cb) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      el.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      cb(btn.getAttribute("data-v"));
+    });
+  });
+}
+
+function setQuickPin(char) {
+  const inp = document.getElementById("pinCharInput");
+  inp.value = char;
+  state.pin_char = char;
+  triggerGenerate();
+}
+
+/* ---------- 核心推演接口调用 ---------- */
+function triggerGenerate() {
+  state.father = document.getElementById("fatherInput").value.trim() || "林";
+  state.mother = document.getElementById("motherInput").value.trim();
+  state.pin_char = document.getElementById("pinCharInput").value.trim();
+
+  const payload = {
+    father: state.father,
+    mother: state.mother,
+    mode: state.mode,
+    name_len: state.name_len,
+    gender: state.gender,
+    tags: ["清雅","好读"],
+    pin_char: state.pin ? state.pin_char : undefined,
+    pin_pos: state.pin ? state.pin_pos : undefined
+  };
+
+  const btn = document.getElementById("genBtn");
+  btn.style.opacity = ".6";
+  btn.querySelector("span").textContent = "✦ 推演星宿中…";
+
+  fetch("/api/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.style.opacity = "1";
+    btn.querySelector("span").textContent = "✦ 启动灵感推演 ✦";
+    if (data.names && data.names.length) {
+      state.candidates = data.names;
+      loadActiveName(data.names[0]);
+      renderStream(data.names);
+    }
+  })
+  .catch(err => {
+    btn.style.opacity = "1";
+    btn.querySelector("span").textContent = "✦ 启动灵感推演 ✦";
+    console.error("生成失败:", err);
+  });
+}
+
+/* ---------- 装载雕琢鼎名卡 ---------- */
+function loadActiveName(n) {
+  if (!n) return;
+  state.currentName = n;
+  const altar = document.getElementById("altarCard");
+  altar.classList.remove("morphing");
+  void altar.offsetWidth;
+  altar.classList.add("morphing");
+
+  // 综合得分
+  document.getElementById("altarScore").textContent = "综合评分 " + (n.total || 88.0);
+
+  // 汉字卡插槽
+  renderCharSlots(n);
+
+  // 音律条
+  const pz = n.pz || "平平平";
+  document.getElementById("toneBadge").textContent = "平仄起伏 · " + pz;
+  document.getElementById("toneText").textContent = n.tone_note || "平仄相协，读来清亮悦耳，朗朗上口。";
+
+  // 社交第一印象画像
+  updatePersona(n);
+
+  // 渲染现代六维雷达
+  renderRadar(n);
+
+  // 更新诸师评点
+  updateMentorCommentary();
+
+  // 高亮候选流中对应卡片
+  document.querySelectorAll(".candCard").forEach(c => {
+    if (c.getAttribute("data-name") === n.name) c.classList.add("active");
+    else c.classList.remove("active");
+  });
+}
+
+/* 渲染大汉字互动插槽 */
+function renderCharSlots(n) {
+  const box = document.getElementById("charSlots");
+  box.innerHTML = "";
+
+  const surname = n.surname || (state.mode === "M" ? state.mother : state.father) || "林";
+  const given = n.given || n.name.replace(surname, "");
+  const pyList = n.py || [surname, ...given.split("")];
+  const tones = n.tones || [1, 1, 1];
+
+  // 姓氏槽位
+  const surSlot = document.createElement("div");
+  surSlot.className = "charSlot surname";
+  surSlot.innerHTML = `
+    <div class="charHanzi">${surname}</div>
+    <div class="charPy">${pyList[0] || ""}</div>
+    <div class="charTone">姓氏本源</div>
+    <div class="charMeta">血脉根基</div>
+  `;
+  box.appendChild(surSlot);
+
+  // 名字槽位
+  const chars = given.split("");
+  chars.forEach((c, idx) => {
+    const slot = document.createElement("div");
+    slot.className = "charSlot";
+    const py = pyList[idx + 1] || "";
+    const t = tones[idx + 1] || 1;
+    const toneCn = t === 1 ? "阴平" : t === 2 ? "阳平" : t === 3 ? "上声" : "去声";
+    slot.innerHTML = `
+      <div class="charHanzi">${c}</div>
+      <div class="charPy">${py}</div>
+      <div class="charTone">${toneCn}</div>
+      <div class="charMeta">第 ${idx+1} 字</div>
+      <div class="swapTrigger">换字 ▾</div>
+    `;
+    slot.onclick = () => openSwapTray(idx, c);
+    box.appendChild(slot);
+  });
+}
+
+/* 换字下弹盘 */
+function openSwapTray(idx, currentChar) {
+  state.swapTargetIdx = idx;
+  const tray = document.getElementById("swapTray");
+  tray.classList.add("show");
+  document.getElementById("trayTitle").textContent = `正在为「${currentChar}」寻找更加悦耳称心的替代字：`;
+  switchTrayTab("ping");
+}
+
+function closeSwapTray() {
+  document.getElementById("swapTray").classList.remove("show");
+}
+
+function switchTrayTab(tab) {
+  document.querySelectorAll(".trayTab").forEach(t => t.classList.remove("active"));
+  const clicked = event ? event.currentTarget : null;
+  if (clicked) clicked.classList.add("active");
+
+  const list = SWAP_POOLS[tab] || SWAP_POOLS.ping;
+  const grid = document.getElementById("trayGrid");
+  grid.innerHTML = "";
+  list.forEach(c => {
+    const it = document.createElement("div");
+    it.className = "trayItem";
+    it.textContent = c;
+    it.onclick = () => applyCharSwap(c);
+    grid.appendChild(it);
+  });
+}
+
+function applyCustomChar() {
+  const inp = document.getElementById("customCharInput");
+  const c = inp.value.trim();
+  if (c) applyCharSwap(c);
+}
+
+function applyCharSwap(newChar) {
+  if (!state.currentName) return;
+  const surname = state.currentName.surname || state.father || "林";
+  const givenChars = (state.currentName.given || "").split("");
+  if (state.swapTargetIdx < givenChars.length) {
+    givenChars[state.swapTargetIdx] = newChar;
+  }
+  const newFullName = surname + givenChars.join("");
+
+  // 调用分析接口重新实时推演
+  fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: newFullName,
+      gender: state.gender,
+      father: state.father,
+      mother: state.mother,
+      mode: state.mode
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.names && d.names.length) {
+      loadActiveName(d.names[0]);
+      closeSwapTray();
+    }
+  })
+  .catch(e => console.error("换字分析失败:", e));
+}
+
+/* 朗读当前名字 (Web Speech API) */
+function speakCurrentName() {
+  if (!state.currentName) return;
+  const name = state.currentName.name;
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(name);
+    u.lang = "zh-CN";
+    u.rate = 0.85;
+    window.speechSynthesis.speak(u);
+  }
+}
+
+/* 现代社交第一印象画像计算 */
+function updatePersona(n) {
+  const dims = n.dims || {};
+  const p = dims.pronounce || 80;
+  const m = dims.meaning || 85;
+  const s = dims.stroke || 80;
+
+  let tag = "【清润书卷】";
+  let desc = "给人温和谦逊、言念君子、思维清晰的学者知性气质。";
+
+  if (p >= 88 && m >= 88) {
+    tag = "【朗朗清风】";
+    desc = "名字朗朗上口、意蕴开阔明达，在校园与职场初次见面极易让人记住并产生天然信任。";
+  } else if (m >= 90) {
+    tag = "【文质彬彬】";
+    desc = "典故深远、气度沉稳，富有书香名门底蕴，端正内敛而不落俗套。";
+  } else if (p >= 88) {
+    tag = "【晨曦明达】";
+    desc = "声韵跌宕起伏，发音爽朗无阻滞，给人热情阳光、富有决断力与活力的第一印象。";
+  } else if (s >= 88) {
+    tag = "【卓尔立身】";
+    desc = "笔画搭配极为稳当挺拔，落笔签署极具风骨，给人沉着独立、做事可靠的印象。";
+  }
+
+  document.getElementById("personaTag").textContent = "✦ 现代社交画像：" + tag;
+  document.getElementById("personaDesc").textContent = desc;
+}
+
+/* 现代六维气质雷达 Canvas 渲染 */
+function renderRadar(n) {
+  const c = document.getElementById("radarCanvas");
+  if (!c) return;
+  const ctx = c.getContext("2d");
+  const W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W / 2, cy = H / 2 + 6;
+  const R = 72;
+  const labels = ["清雅度", "朗朗度", "辨识度", "风骨感", "温暖度", "时代感"];
+  const dims = n.dims || {};
+
+  // 基于各维度的映射转换
+  const values = [
+    Math.min(98, Math.max(70, dims.meaning || 88)),
+    Math.min(98, Math.max(70, dims.pronounce || 85)),
+    Math.min(96, Math.max(72, (n.common_bonus ? 88 : 82))),
+    Math.min(98, Math.max(70, dims.stroke || 84)),
+    Math.min(98, Math.max(70, dims.gender === "U" ? 88 : (dims.wuxing || 86))),
+    Math.min(96, Math.max(75, 90))
+  ];
+
+  const N = labels.length;
+  const angleStep = (Math.PI * 2) / N;
+
+  // 绘制同心雷达网格
+  for (let l = 1; l <= 4; l++) {
+    ctx.beginPath();
+    ctx.strokeStyle = "rgba(140, 165, 215, 0.16)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < N; i++) {
+      const a = i * angleStep - Math.PI / 2;
+      const r = (R * l) / 4;
+      const x = cx + r * Math.cos(a);
+      const y = cy + r * Math.sin(a);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  // 绘制轴线与标签
+  ctx.font = "11px sans-serif";
+  ctx.fillStyle = "#8ea1c4";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i < N; i++) {
+    const a = i * angleStep - Math.PI / 2;
+    ctx.beginPath();
+    ctx.strokeStyle = "rgba(140, 165, 215, 0.22)";
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + R * Math.cos(a), cy + R * Math.sin(a));
+    ctx.stroke();
+
+    // 标签文字
+    const lx = cx + (R + 18) * Math.cos(a);
+    const ly = cy + (R + 15) * Math.sin(a);
+    ctx.fillText(labels[i], lx, ly);
+  }
+
+  // 绘制数据多边形
+  ctx.beginPath();
+  for (let i = 0; i < N; i++) {
+    const a = i * angleStep - Math.PI / 2;
+    const ratio = Math.max(0.4, (values[i] - 40) / 60);
+    const r = R * ratio;
+    const x = cx + r * Math.cos(a);
+    const y = cy + r * Math.sin(a);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = "rgba(229, 185, 116, 0.28)";
+  ctx.fill();
+  ctx.strokeStyle = "#e5b974";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 绘制顶点光斑
+  for (let i = 0; i < N; i++) {
+    const a = i * angleStep - Math.PI / 2;
+    const ratio = Math.max(0.4, (values[i] - 40) / 60);
+    const r = R * ratio;
+    const x = cx + r * Math.cos(a);
+    const y = cy + r * Math.sin(a);
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+  }
+}
+
+/* 智囊团名师切换 */
+function selectMentor(mKey) {
+  state.activeMentor = mKey;
+  document.querySelectorAll(".mentorPill").forEach(p => {
+    if (p.getAttribute("data-m") === mKey) p.classList.add("active");
+    else p.classList.remove("active");
+  });
+  updateMentorCommentary();
+}
+
+function updateMentorCommentary() {
+  if (!state.currentName) return;
+  const n = state.currentName;
+  const bubble = document.getElementById("mentorBubble");
+  const m = state.activeMentor;
+
+  let text = "";
+  if (m === "yinlv") {
+    text = `<b>音律老师：</b>当前声韵为「${n.pz || '平平平'}」，发音波形平顺不逆阻。${n.tone_note ? n.tone_note : '读来如琴瑟和鸣，尾音悠长而明晰。'}`;
+  } else if (m === "xingzi") {
+    text = `<b>字形老师：</b>名中各字间架舒展，笔画疏密适中，无论是在试卷抬头签名还是印鉴篆刻，落笔皆重心稳健、气象端正。`;
+  } else if (m === "yijing") {
+    text = `<b>意境老师：</b>字面有如清风拂翠、星汉微澜，给人以开阔、纯净、自如的遐想空间，是极耐细品的好意境。`;
+  } else if (m === "diangu") {
+    text = n.allusion_note
+      ? `<b>典故老师：</b>本名典出名篇：${n.allusion_note}。语出经典，自带温厚底蕴。`
+      : `<b>典故老师：</b>字义通达，各字在古代诗词典籍中均多有雅致引用，言之有物，不落俗套。`;
+  } else if (m === "ziyuan") {
+    text = `<b>字源老师：</b>从六书造字追溯，各字字根端正，本义纯善无负面偏旁，五行生克相辅相成，根基安稳。`;
+  }
+
+  bubble.innerHTML = text;
+}
+
+/* 渲染灵感候选流列表 */
+function renderStream(list) {
+  const grid = document.getElementById("candGrid");
+  grid.innerHTML = "";
+  list.forEach(n => {
+    const card = document.createElement("div");
+    card.className = "candCard" + (state.currentName && state.currentName.name === n.name ? " active" : "");
+    card.setAttribute("data-name", n.name);
+
+    const isFav = state.favs.some(f => f.name === n.name);
+
+    card.innerHTML = `
+      <div class="candTop">
+        <span class="candName">${n.name}</span>
+        <span class="candScore">综合 ${n.total}</span>
+      </div>
+      <div class="candPy">${(n.py || []).join(" ")} · ${n.pz || "平平平"}</div>
+      <div class="candNote">${n.allusion_note ? n.allusion_note : (n.tone_note || "清雅好读，意境自如")}</div>
+      <div class="candActions">
+        <span class="loadTip">点击载入雕琢鼎</span>
+        <button class="candFavBtn ${isFav?'fav':''}" type="button" onclick="toggleFav(event, '${n.name}')">
+          ${isFav ? '❤️' : '🤍'}
+        </button>
+      </div>
+    `;
+    card.onclick = (e) => {
+      if (e.target.closest(".candFavBtn")) return;
+      loadActiveName(n);
+    };
+    grid.appendChild(card);
+  });
+}
+
+/* ---------- 收藏夹逻辑 ---------- */
+const FAV_KEY = "v3_fav_names";
+function loadFavs() {
+  try {
+    state.favs = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+  } catch(e) { state.favs = []; }
+  updateFavCount();
+}
+
+function saveFavs() {
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(state.favs)); } catch(e){}
+  updateFavCount();
+}
+
+function updateFavCount() {
+  document.getElementById("favCount").textContent = state.favs.length;
+}
+
+function toggleFav(e, name) {
+  e.stopPropagation();
+  const idx = state.favs.findIndex(f => f.name === name);
+  if (idx >= 0) {
+    state.favs.splice(idx, 1);
+  } else {
+    const found = state.candidates.find(c => c.name === name) || state.currentName;
+    if (found) state.favs.push(found);
+  }
+  saveFavs();
+  if (state.candidates.length) renderStream(state.candidates);
+}
+
+function openFavModal() {
+  const modal = document.getElementById("favModal");
+  const list = document.getElementById("favList");
+  list.innerHTML = "";
+  if (!state.favs.length) {
+    list.innerHTML = "<div style='color:var(--text-dim);text-align:center;padding:30px 0;'>暂无收藏，点击候选卡片右下角 ❤️ 即可收藏。</div>";
+  } else {
+    state.favs.forEach(f => {
+      const it = document.createElement("div");
+      it.style.cssText = "display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.06);padding:10px 14px;border-radius:10px;cursor:pointer;";
+      it.innerHTML = `
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#fff;">${f.name} <span style="font-size:12px;color:var(--accent);">综合 ${f.total}</span></div>
+          <div style="font-size:11.5px;color:var(--text-soft);">${(f.py||[]).join(" ")}</div>
+        </div>
+        <button class="pillBtn" style="color:#f7a8b8;" onclick="removeFav('${f.name}')">移除</button>
+      `;
+      it.onclick = (e) => {
+        if (e.target.tagName === "BUTTON") return;
+        loadActiveName(f);
+        closeFavModal();
+      };
+      list.appendChild(it);
+    });
+  }
+  modal.classList.add("show");
+}
+
+function closeFavModal() {
+  document.getElementById("favModal").classList.remove("show");
+}
+
+function removeFav(name) {
+  state.favs = state.favs.filter(f => f.name !== name);
+  saveFavs();
+  openFavModal();
+  if (state.candidates.length) renderStream(state.candidates);
+}
+</script>
+</body>
+</html>

@@ -39,5 +39,7 @@ async def gen(req: Request):
     birth = _birth_from(body)
     weights = body.get("weights")
     seed = body.get("seed")
-    names, meta = generate(father, mother, mode, name_len, gender, birth, tags, avoid, weights=weights, seed=seed)
+    pin_char = body.get("pin_char")
+    pin_pos = body.get("pin_pos")
+    names, meta = generate(father, mother, mode, name_len, gender, birth, tags, avoid, weights=weights, seed=seed, pin_char=pin_char, pin_pos=pin_pos)
     return JSONResponse({"names": names, "meta": meta, "tags_used": sorted(set(tags))})
