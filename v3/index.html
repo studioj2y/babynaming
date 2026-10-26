@@ -747,6 +747,22 @@
         </div>
 
         <div class="sealRow">
+          <span class="sealRowLabel">界格章法</span>
+          <div class="sealBtnGroup" id="sealGridGroup">
+            <button class="sealChoiceBtn active" type="button" data-val="none" onclick="setSealOption('grid', 'none')">🌌 浑然无格 (推荐·字完满)</button>
+            <button class="sealChoiceBtn" type="button" data-val="cross" onclick="setSealOption('grid', 'cross')">⊞ 金石田字 (避字界格)</button>
+          </div>
+        </div>
+
+        <div class="sealRow" id="sealLayout2Row" style="display:none;">
+          <span class="sealRowLabel">二字印式</span>
+          <div class="sealBtnGroup" id="sealLayout2Group">
+            <button class="sealChoiceBtn active" type="button" data-val="full" onclick="setSealOption('layout2', 'full')">四字加「之印」</button>
+            <button class="sealChoiceBtn" type="button" data-val="direct" onclick="setSealOption('layout2', 'direct')">纯双字并列</button>
+          </div>
+        </div>
+
+        <div class="sealRow">
           <span class="sealRowLabel">印式形制</span>
           <div class="sealBtnGroup" id="sealShapeGroup">
             <button class="sealChoiceBtn active" type="button" data-val="square" onclick="setSealOption('shape', 'square')">⬛ 方正官印</button>
@@ -757,8 +773,8 @@
         <div class="sealRow">
           <span class="sealRowLabel">金石风化</span>
           <div class="sealBtnGroup" id="sealWeatherGroup">
-            <button class="sealChoiceBtn active" type="button" data-val="antique" onclick="setSealOption('weathering', 'antique')">🪨 秦汉斑驳 (残刃沙眼)</button>
-            <button class="sealChoiceBtn" type="button" data-val="smooth" onclick="setSealOption('weathering', 'smooth')">✨ 传世温润</button>
+            <button class="sealChoiceBtn active" type="button" data-val="antique" onclick="setSealOption('weathering', 'antique')">🪨 秦汉古意 (边残字整)</button>
+            <button class="sealChoiceBtn" type="button" data-val="smooth" onclick="setSealOption('weathering', 'smooth')">✨ 传世温润 (全吉无损)</button>
           </div>
         </div>
 
@@ -854,8 +870,9 @@ const state = {
     shape: "square",
     weathering: "antique",
     bg: "paper",
-    grid: "cross",
-    variant: 0
+    grid: "none",
+    variant: 0,
+    layout2: "full"
   },
   favs: [],
   pollVotes: {},
@@ -1501,7 +1518,7 @@ function getSealFontStack(styleKey) {
 }
 
 function setSealOption(cat, val) {
-  if (!state.seal) state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "cross", variant: 0 };
+  if (!state.seal) state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "none", variant: 0 };
   state.seal[cat] = val;
   if (cat === "ink") state.sealType = val;
   updateSealControlsUI();
@@ -1509,7 +1526,7 @@ function setSealOption(cat, val) {
 }
 
 function reRollSeal() {
-  if (!state.seal) state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "cross", variant: 0 };
+  if (!state.seal) state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "none", variant: 0 };
   state.seal.variant = (state.seal.variant || 0) + 1;
   if (state.currentName) drawSeal(state.currentName.name);
 }
@@ -1520,6 +1537,8 @@ function updateSealControlsUI() {
   const groups = [
     { id: "sealFontGroup", val: s.font },
     { id: "sealInkGroup", val: s.ink },
+    { id: "sealGridGroup", val: s.grid || "none" },
+    { id: "sealLayout2Group", val: s.layout2 || "full" },
     { id: "sealShapeGroup", val: s.shape },
     { id: "sealWeatherGroup", val: s.weathering },
     { id: "sealBgGroup", val: s.bg }
@@ -1535,12 +1554,18 @@ function updateSealControlsUI() {
       }
     });
   });
+
+  // 二字名专属选项显示控制
+  const l2Row = document.getElementById("sealLayout2Row");
+  if (l2Row) {
+    l2Row.style.display = (state.currentName && state.currentName.name && state.currentName.name.length === 2) ? "flex" : "none";
+  }
 }
 
 function openSealModal() {
   if (!state.currentName) return;
   if (!state.seal) {
-    state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "cross", variant: 0 };
+    state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "none", variant: 0 };
   }
   updateSealControlsUI();
   drawSeal(state.currentName.name);
@@ -1553,11 +1578,30 @@ function openSealModal() {
 }
 
 function toggleSealType() {
-  if (!state.seal) state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "cross", variant: 0 };
+  if (!state.seal) state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "none", variant: 0 };
   state.seal.ink = state.seal.ink === "bai" ? "zhu" : "bai";
   state.sealType = state.seal.ink;
   updateSealControlsUI();
   if (state.currentName) drawSeal(state.currentName.name);
+}
+
+// 核心自适应字号测量函数：保证字字完整，神完气足，绝无切字与碰撞
+function fitSealFontSize(ctx, chars, maxW, maxH, baseSize, fontFace) {
+  let size = baseSize;
+  while (size > 44) {
+    ctx.font = `bold ${size}px ${fontFace}`;
+    let ok = true;
+    for (const ch of chars) {
+      const m = ctx.measureText(ch);
+      if (m.width > maxW || size * 1.05 > maxH) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) return size;
+    size -= 2;
+  }
+  return size;
 }
 
 function drawSeal(name) {
@@ -1570,7 +1614,7 @@ function drawSeal(name) {
   ctx.clearRect(0, 0, S, S);
 
   if (!state.seal) {
-    state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "cross", variant: 0 };
+    state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "none", variant: 0, layout2: "full" };
   }
   const opt = state.seal;
   const fontStyle = opt.font || "ancient";
@@ -1578,13 +1622,14 @@ function drawSeal(name) {
   const shape = opt.shape || "square"; // "square" | "round"
   const weathering = opt.weathering || "antique"; // "antique" | "smooth"
   const bg = opt.bg || "paper"; // "paper" | "transparent"
-  const grid = opt.grid || "cross";
+  const grid = opt.grid || "none"; // 默认 "none" 浑然无格（神完气足）
   const variant = opt.variant || 0;
+  const layout2 = opt.layout2 || "full";
   const isRound = (shape === "round");
 
-  const rng = createSeededRandom(`${name}_${fontStyle}_${inkType}_${shape}_${weathering}_${grid}_${variant}`);
+  const rng = createSeededRandom(`${name}_${fontStyle}_${inkType}_${shape}_${weathering}_${grid}_${variant}_${layout2}`);
 
-  // 1. 宣纸底衬与草木微纤维
+  // 1. 宣纸底衬与手工微纤维
   const paperTone = "#faf6ed";
   if (bg === "paper") {
     const pGrad = ctx.createLinearGradient(0, 0, S, S);
@@ -1609,7 +1654,7 @@ function drawSeal(name) {
     }
   }
 
-  // 2. 八宝朱砂印泥色彩层次（模拟手工钤印受力与朱砂沉淀）
+  // 2. 八宝朱砂印泥色彩层次
   const inkGrad = ctx.createRadialGradient(
     S * 0.44, S * 0.40, S * 0.1,
     S * 0.50, S * 0.50, S * 0.68
@@ -1619,96 +1664,87 @@ function drawSeal(name) {
   inkGrad.addColorStop(0.70, "#941515"); // 沉敛金石红
   inkGrad.addColorStop(1.00, "#750e0e"); // 边缘自然氧化微暗
 
-  // 3. 四字布局（传统汉印右起竖读：右上→右下→左上→左下，2字读：名0名1之印）
-  let c1, c2, c3, c4;
-  if (name.length === 2) {
-    c1 = name[0]; c2 = name[1]; c3 = "之"; c4 = "印";
+  // 3. 文字提取与排布逻辑（传统汉印右起竖排，名全吉顺读）
+  let isDirect2 = (name.length === 2 && layout2 === "direct");
+  let charList = [];
+  if (isDirect2) {
+    charList = [name[0], name[1]];
+  } else if (name.length === 2) {
+    // 2字顺读：右上[0], 右下[1], 左上"之", 左下"印" -> 陆沉之印
+    charList = [name[0], name[1], "之", "印"];
   } else if (name.length === 3) {
-    c1 = name[0]; c2 = name[1]; c3 = name[2]; c4 = "印";
+    // 3字顺读：右上[0], 右下[1], 左上[2], 左下"印" -> 陆知夏印
+    charList = [name[0], name[1], name[2], "印"];
   } else {
-    c1 = name[0]; c2 = name[1]; c3 = name[2]; c4 = name[3] || "印";
+    charList = [name[0], name[1], name[2], name[3] || "印"];
   }
 
-  // 4. 金石残边生成器（模拟刀刻风化与崩角）
-  function drawChiseledRect(x, y, w, h, jitter, allowBreak) {
-    const pts = [];
-    const segs = 18;
-    // Top
-    for (let i = 0; i <= segs; i++) {
-      const px = x + (w * i) / segs;
-      let py = y + (rng() - 0.5) * jitter;
-      if (weathering === "antique" && rng() < 0.08) py += (rng() > 0.5 ? 1 : -1) * (2 + rng() * 4);
-      pts.push([px, py]);
-    }
-    // Right
-    for (let i = 1; i <= segs; i++) {
-      let px = x + w + (rng() - 0.5) * jitter;
-      const py = y + (h * i) / segs;
-      if (weathering === "antique" && rng() < 0.08) px += (rng() > 0.5 ? 1 : -1) * (2 + rng() * 4);
-      pts.push([px, py]);
-    }
-    // Bottom
-    for (let i = 1; i <= segs; i++) {
-      const px = x + w - (w * i) / segs;
-      let py = y + h + (rng() - 0.5) * jitter;
-      if (weathering === "antique" && rng() < 0.08) py += (rng() > 0.5 ? 1 : -1) * (2 + rng() * 4);
-      pts.push([px, py]);
-    }
-    // Left
-    for (let i = 1; i < segs; i++) {
-      let px = x + (rng() - 0.5) * jitter;
-      const py = y + h - (h * i) / segs;
-      if (weathering === "antique" && rng() < 0.08) px += (rng() > 0.5 ? 1 : -1) * (2 + rng() * 4);
-      pts.push([px, py]);
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) {
-      ctx.lineTo(pts[i][0], pts[i][1]);
-    }
-    ctx.closePath();
-  }
-
-  const pad = 36;
+  // 4. 印面尺寸与外框生成器
+  const pad = 34;
   const boxW = S - pad * 2;
   const boxH = S - pad * 2;
   const rx = S / 2, ry = S / 2;
-  const rad = 168;
+  const rad = 172;
 
-  // 渗透羽化与阴影（模拟宣纸毛细咬墨效果）
+  function drawChiseledRect(x, y, w, h, jitter) {
+    const pts = [];
+    const segs = 18;
+    for (let i = 0; i <= segs; i++) {
+      const px = x + (w * i) / segs;
+      let py = y + (rng() - 0.5) * jitter;
+      if (weathering === "antique" && rng() < 0.08) py += (rng() > 0.5 ? 1 : -1) * (1.5 + rng() * 3);
+      pts.push([px, py]);
+    }
+    for (let i = 1; i <= segs; i++) {
+      let px = x + w + (rng() - 0.5) * jitter;
+      const py = y + (h * i) / segs;
+      if (weathering === "antique" && rng() < 0.08) px += (rng() > 0.5 ? 1 : -1) * (1.5 + rng() * 3);
+      pts.push([px, py]);
+    }
+    for (let i = 1; i <= segs; i++) {
+      const px = x + w - (w * i) / segs;
+      let py = y + h + (rng() - 0.5) * jitter;
+      if (weathering === "antique" && rng() < 0.08) py += (rng() > 0.5 ? 1 : -1) * (1.5 + rng() * 3);
+      pts.push([px, py]);
+    }
+    for (let i = 1; i < segs; i++) {
+      let px = x + (rng() - 0.5) * jitter;
+      const py = y + h - (h * i) / segs;
+      if (weathering === "antique" && rng() < 0.08) px += (rng() > 0.5 ? 1 : -1) * (1.5 + rng() * 3);
+      pts.push([px, py]);
+    }
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+  }
+
+  // 渗透羽化与外框渲染
   ctx.save();
   ctx.shadowColor = "rgba(168, 28, 28, 0.42)";
   ctx.shadowBlur = weathering === "antique" ? 4 : 2;
 
   if (!isRound) {
-    if (inkType === "bai") { // 汉印白文（满红底白字）
-      drawChiseledRect(pad, pad, boxW, boxH, weathering === "antique" ? 2.5 : 1.2, true);
+    if (inkType === "bai") {
+      drawChiseledRect(pad, pad, boxW, boxH, weathering === "antique" ? 2.0 : 1.0);
       ctx.fillStyle = inkGrad;
       ctx.fill();
-
       ctx.strokeStyle = inkGrad;
-      ctx.lineWidth = 14;
+      ctx.lineWidth = 10;
       ctx.stroke();
-    } else { // 朱文（白底红线）
-      drawChiseledRect(pad, pad, boxW, boxH, weathering === "antique" ? 2.2 : 1.0, false);
+    } else {
+      drawChiseledRect(pad, pad, boxW, boxH, weathering === "antique" ? 1.8 : 0.8);
       ctx.strokeStyle = inkGrad;
-      ctx.lineWidth = inkType === "kuanzhu" ? 22 : 10;
+      ctx.lineWidth = inkType === "kuanzhu" ? 20 : 8;
       ctx.stroke();
-
-      if (inkType === "zhu") {
-        drawChiseledRect(pad + 14, pad + 14, boxW - 28, boxH - 28, 1.2, false);
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      }
     }
   } else {
     ctx.beginPath();
     const segs = 64;
     for (let i = 0; i <= segs; i++) {
       const a = (i * Math.PI * 2) / segs;
-      let r = rad + (rng() - 0.5) * (weathering === "antique" ? 2.8 : 1.4);
-      if (weathering === "antique" && rng() < 0.08) r -= 3 + rng() * 4;
+      let r = rad + (rng() - 0.5) * (weathering === "antique" ? 2.2 : 1.0);
+      if (weathering === "antique" && rng() < 0.06) r -= 2 + rng() * 3;
       const x = rx + Math.cos(a) * r;
       const y = ry + Math.sin(a) * r;
       if (i === 0) ctx.moveTo(x, y);
@@ -1720,74 +1756,121 @@ function drawSeal(name) {
       ctx.fillStyle = inkGrad;
       ctx.fill();
       ctx.strokeStyle = inkGrad;
-      ctx.lineWidth = 12;
+      ctx.lineWidth = 10;
       ctx.stroke();
     } else {
       ctx.strokeStyle = inkGrad;
-      ctx.lineWidth = inkType === "kuanzhu" ? 20 : 10;
+      ctx.lineWidth = inkType === "kuanzhu" ? 18 : 8;
       ctx.stroke();
-
-      if (inkType === "zhu") {
-        ctx.beginPath();
-        ctx.arc(rx, ry, rad - 14, 0, Math.PI * 2);
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      }
     }
   }
   ctx.restore();
 
-  // 严格印面裁剪（保证圆印与方印的界格、字形、沙眼严丝合缝）
-  ctx.save();
-  ctx.beginPath();
-  if (isRound) {
-    ctx.arc(rx, ry, rad - 2, 0, Math.PI * 2);
-  } else {
-    ctx.rect(pad, pad, boxW, boxH);
-  }
-  ctx.clip();
+  // 5. 【核心】：印面沙眼与金石崩刀先于文字绘制！（石可古残，字必完整，决不可在字上打洞破字）
+  if (inkType === "bai") {
+    ctx.save();
+    ctx.fillStyle = paperTone;
+    const pitCount = weathering === "antique" ? 100 : 40;
+    for (let i = 0; i < pitCount; i++) {
+      const px = pad + 15 + rng() * (boxW - 30);
+      const py = pad + 15 + rng() * (boxH - 30);
+      if (isRound) {
+        const d = Math.hypot(px - rx, py - ry);
+        if (d > rad - 12) continue;
+      }
+      const pr = 0.4 + rng() * (weathering === "antique" ? 1.4 : 0.9);
+      ctx.beginPath();
+      ctx.ellipse(px, py, pr, pr * (0.6 + rng() * 0.8), rng() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-  // 5. 十字/田字残损界格
-  if (grid === "cross") {
+    // 崩角仅施加于印章极外边沿（离边框 6px 之内），绝不侵扰印心与文字
+    if (weathering === "antique") {
+      for (let i = 0; i < 4; i++) {
+        const edge = Math.floor(rng() * 4);
+        let bx, by;
+        if (edge === 0) { bx = pad + rng() * boxW; by = pad + rng() * 4; }
+        else if (edge === 1) { bx = pad + boxW - rng() * 4; by = pad + rng() * boxH; }
+        else if (edge === 2) { bx = pad + rng() * boxW; by = pad + boxH - rng() * 4; }
+        else { bx = pad + rng() * 4; by = pad + rng() * boxH; }
+        ctx.beginPath();
+        ctx.arc(bx, by, 2 + rng() * 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  // 6. 十字界格（仅在用户主动开启时绘制，并做宽展留白避让）
+  if (grid === "cross" && !isDirect2) {
     ctx.save();
     ctx.strokeStyle = inkType === "bai" ? paperTone : inkGrad;
-    ctx.lineWidth = inkType === "bai" ? 4.5 : 3.5;
-    if (bg === "transparent" && inkType === "bai") {
-      ctx.globalCompositeOperation = "destination-out";
-    }
+    ctx.lineWidth = inkType === "bai" ? 3.5 : 2.5;
 
-    const startY = isRound ? ry - rad + 8 : pad + 15;
-    const endY = isRound ? ry + rad - 8 : S - pad - 15;
-    const startX = isRound ? rx - rad + 8 : pad + 15;
-    const endX = isRound ? rx + rad - 8 : S - pad - 15;
+    const startY = isRound ? ry - rad + 14 : pad + 12;
+    const endY = isRound ? ry + rad - 14 : S - pad - 12;
+    const startX = isRound ? rx - rad + 14 : pad + 12;
+    const endX = isRound ? rx + rad - 14 : S - pad - 12;
 
-    // 垂直界格
     ctx.beginPath();
-    const cx = S / 2;
-    for (let y = startY; y <= endY; y += 12) {
-      const jx = cx + (rng() - 0.5) * (weathering === "antique" ? 2.0 : 1.0);
-      if (y === startY) ctx.moveTo(jx, y);
-      else ctx.lineTo(jx, y);
-    }
-    ctx.stroke();
-
-    // 水平界格
-    ctx.beginPath();
-    const cy = S / 2;
-    for (let x = startX; x <= endX; x += 12) {
-      const jy = cy + (rng() - 0.5) * (weathering === "antique" ? 2.0 : 1.0);
-      if (x === startX) ctx.moveTo(x, jy);
-      else ctx.lineTo(x, jy);
-    }
+    ctx.moveTo(S / 2, startY);
+    ctx.lineTo(S / 2, endY);
+    ctx.moveTo(startX, S / 2);
+    ctx.lineTo(endX, S / 2);
     ctx.stroke();
     ctx.restore();
   }
 
-  // 6. 印文绘制（运用古字字库与微刀刻抖动）
+  // 7. 【核心】：印文绘制（字形绝对安全保护区与自适应缩放）
   ctx.save();
   const fontFace = getSealFontStack(fontStyle);
-  const fontSize = isRound ? 98 : 116;
-  ctx.font = `bold ${fontSize}px ${fontFace}`;
+
+  let maxW, maxH, baseSize;
+  let pos = [];
+
+  if (isDirect2) {
+    // 纯双字并列直排（右[0]，左[1]）
+    maxW = 105;
+    maxH = 220;
+    baseSize = 125;
+    const optSize = fitSealFontSize(ctx, charList, maxW, maxH, baseSize, fontFace);
+    ctx.font = `bold ${optSize}px ${fontFace}`;
+    pos = [
+      { char: charList[0], x: rx + 75, y: ry },
+      { char: charList[1], x: rx - 75, y: ry }
+    ];
+  } else if (!isRound) {
+    // 方印四字排布：安全留白 28px+
+    maxW = 124;
+    maxH = 126;
+    baseSize = 92;
+    const optSize = fitSealFontSize(ctx, charList, maxW, maxH, baseSize, fontFace);
+    ctx.font = `bold ${optSize}px ${fontFace}`;
+    const offX = 0.225;
+    const offY = 0.225;
+    pos = [
+      { char: charList[0], x: rx + S * offX, y: ry - S * offY }, // 右上
+      { char: charList[1], x: rx + S * offX, y: ry + S * offY }, // 右下
+      { char: charList[2], x: rx - S * offX, y: ry - S * offY }, // 左上
+      { char: charList[3], x: rx - S * offX, y: ry + S * offY }, // 左下
+    ];
+  } else {
+    // 圆印安全聚拢区：绝不切脚切头
+    maxW = 86;
+    maxH = 86;
+    baseSize = 74;
+    const optSize = fitSealFontSize(ctx, charList, maxW, maxH, baseSize, fontFace);
+    ctx.font = `bold ${optSize}px ${fontFace}`;
+    const offX = 0.165;
+    const offY = 0.165;
+    pos = [
+      { char: charList[0], x: rx + S * offX, y: ry - S * offY }, // 右上
+      { char: charList[1], x: rx + S * offX, y: ry + S * offY }, // 右下
+      { char: charList[2], x: rx - S * offX, y: ry - S * offY }, // 左上
+      { char: charList[3], x: rx - S * offX, y: ry + S * offY }, // 左下
+    ];
+  }
+
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
@@ -1797,62 +1880,21 @@ function drawSeal(name) {
   }
   ctx.fillStyle = textColor;
 
-  // 四字传统汉印坐标（圆印自然聚拢）
-  const offX = isRound ? 0.20 : 0.23;
-  const offY = isRound ? 0.21 : 0.22;
-  const pos = [
-    { char: c1, x: rx + S * offX, y: ry - S * offY }, // 右上
-    { char: c2, x: rx + S * offX, y: ry + S * offY }, // 右下
-    { char: c3, x: rx - S * offX, y: ry - S * offY }, // 左上
-    { char: c4, x: rx - S * offX, y: ry + S * offY }, // 左下
-  ];
-
   pos.forEach(p => {
+    // 渲染完整的文字笔画
     ctx.fillText(p.char, p.x, p.y);
+
+    // 传世/金石微润墨：仅在字身周围增加柔和微渗透光影，绝不镂空或切损文字
     if (weathering === "antique") {
       ctx.save();
-      ctx.globalAlpha = 0.35;
-      ctx.fillText(p.char, p.x + (rng() - 0.5) * 1.5, p.y + (rng() - 0.5) * 1.5);
+      ctx.globalAlpha = 0.25;
+      ctx.fillText(p.char, p.x + (rng() - 0.5) * 1.0, p.y + (rng() - 0.5) * 1.0);
       ctx.restore();
     }
   });
   ctx.restore();
 
-  // 7. 印面沙眼、气孔、崩口与飞白 (Micro Pitting & Stone Flaking)
-  ctx.save();
-  const pitColor = inkType === "bai" ? paperTone : "rgba(160, 20, 20, 0.25)";
-  if (bg === "transparent" && inkType === "bai") {
-    ctx.globalCompositeOperation = "destination-out";
-  }
-  ctx.fillStyle = pitColor;
-
-  const pitCount = weathering === "antique" ? 160 : 70;
-  for (let i = 0; i < pitCount; i++) {
-    const px = pad + 10 + rng() * (boxW - 20);
-    const py = pad + 10 + rng() * (boxH - 20);
-    const pr = 0.5 + rng() * (weathering === "antique" ? 2.2 : 1.2);
-    ctx.beginPath();
-    ctx.ellipse(px, py, pr, pr * (0.6 + rng() * 0.8), rng() * Math.PI, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // 金石崩角与刀刻断痕 (3-6 处小崩口)
-  if (weathering === "antique") {
-    for (let i = 0; i < 5; i++) {
-      const bx = pad + rng() * boxW;
-      const by = pad + (rng() > 0.5 ? 0 : boxH);
-      const br = 2.5 + rng() * 4.5;
-      ctx.beginPath();
-      ctx.arc(bx, by, br, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  ctx.restore();
-
-  // 结束裁剪
-  ctx.restore();
-
-  // 8. 宣纸钤印立体压痕光影 (Emboss/Deboss Edge Impression)
+  // 8. 宣纸钤印立体压痕光影（印外微影，绝不覆盖印面）
   if (bg === "paper") {
     ctx.save();
     if (isRound) {
@@ -1864,7 +1906,7 @@ function drawSeal(name) {
 
       ctx.beginPath();
       ctx.arc(rx, ry, rad + 1.5, 0.25 * Math.PI, 0.95 * Math.PI);
-      ctx.strokeStyle = "rgba(120, 100, 80, 0.25)";
+      ctx.strokeStyle = "rgba(120, 100, 80, 0.22)";
       ctx.lineWidth = 1.5;
       ctx.stroke();
     } else {
@@ -1878,7 +1920,7 @@ function drawSeal(name) {
       ctx.moveTo(pad - 2, pad + boxH + 3);
       ctx.lineTo(pad + boxW + 3, pad + boxH + 3);
       ctx.lineTo(pad + boxW + 3, pad - 2);
-      ctx.strokeStyle = "rgba(120, 100, 80, 0.25)";
+      ctx.strokeStyle = "rgba(120, 100, 80, 0.22)";
       ctx.lineWidth = 1.2;
       ctx.stroke();
     }
