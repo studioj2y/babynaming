@@ -1,236 +1,290 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark" data-gender="U">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>星命观测局 · V3 名韵工坊 (Name Studio)</title>
 <style>
   :root {
-    --bg: #0b0e17;
-    --bg-grad: radial-gradient(circle at 50% 10%, #171d31 0%, #0c0f19 65%, #07090f 100%);
-    --panel: rgba(26, 33, 53, 0.65);
-    --panel-border: rgba(140, 165, 215, 0.22);
-    --panel-hover: rgba(35, 45, 72, 0.82);
-    --accent: #e5b974;
-    --accent-glow: rgba(229, 185, 116, 0.32);
-    --accent-cyan: #6ed8c7;
-    --cyan-glow: rgba(110, 216, 199, 0.28);
-    --text: #f0f4fc;
-    --text-soft: #a2b1cc;
-    --text-dim: #6c7c99;
-    --card-bg: rgba(20, 26, 43, 0.75);
-    --gold-grad: linear-gradient(135deg, #f7d794, #e5b974 60%, #c4974f 100%);
-    --cyan-grad: linear-gradient(135deg, #8cf0df, #6ed8c7 60%, #46b7a5 100%);
-    --purple-grad: linear-gradient(135deg, #c7a4ff, #9f75e8 60%, #764db8 100%);
+    --theme-t: .35s;
     --radius: 16px;
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
+
+  /* 深色主题（琉璃星渊） */
+  html[data-theme="dark"] {
+    --bg: #0b0e17;
+    --bg-grad: radial-gradient(circle at 50% 10%, #171d31 0%, #0c0f19 65%, #07090f 100%);
+    --panel: rgba(26, 33, 53, 0.68);
+    --panel-border: rgba(140, 165, 215, 0.22);
+    --panel-hover: rgba(35, 45, 72, 0.85);
+    --card-bg: rgba(20, 26, 43, 0.78);
+    --text: #f0f4fc;
+    --text-soft: #a2b1cc;
+    --text-dim: #6c7c99;
+    --input-bg: rgba(14, 18, 30, 0.85);
+    --modal-bg: #141b2c;
+    --radar-grid: rgba(140, 165, 215, 0.16);
+    --radar-label: #8ea1c4;
+  }
+
+  /* 浅色主题（霁蓝月白 / 宣纸清风） */
+  html[data-theme="light"] {
+    --bg: #f4f7fc;
+    --bg-grad: radial-gradient(circle at 50% 8%, #ffffff 0%, #eef3fb 60%, #e2eaf5 100%);
+    --panel: rgba(255, 255, 255, 0.82);
+    --panel-border: rgba(160, 185, 225, 0.38);
+    --panel-hover: rgba(255, 255, 255, 0.95);
+    --card-bg: rgba(255, 255, 255, 0.92);
+    --text: #1b2438;
+    --text-soft: #556685;
+    --text-dim: #8899b5;
+    --input-bg: rgba(245, 248, 255, 0.9);
+    --modal-bg: #ffffff;
+    --radar-grid: rgba(90, 120, 180, 0.18);
+    --radar-label: #4a5c80;
+  }
+
+  /* 性别微调色彩（中性金 / 男宝蓝 / 女宝粉） */
+  html[data-gender="U"] {
+    --accent: #e5b974;
+    --accent-glow: rgba(229, 185, 116, 0.32);
+    --accent-sec: #6ed8c7;
+    --grad: linear-gradient(135deg, #f7d794, #e5b974 60%, #c4974f 100%);
+  }
+  html[data-theme="light"][data-gender="U"] {
+    --accent: #c48f3b;
+    --accent-glow: rgba(196, 143, 59, 0.28);
+    --accent-sec: #3fa394;
+    --grad: linear-gradient(135deg, #dfa951, #c48f3b 60%, #a27226 100%);
+  }
+
+  html[data-gender="M"] {
+    --accent: #5e9cf3;
+    --accent-glow: rgba(94, 156, 243, 0.32);
+    --accent-sec: #5ce0c6;
+    --grad: linear-gradient(135deg, #82b6ff, #5e9cf3 60%, #3f79cb 100%);
+  }
+  html[data-theme="light"][data-gender="M"] {
+    --accent: #3a7bd5;
+    --accent-glow: rgba(58, 123, 213, 0.26);
+    --accent-sec: #2fa58e;
+    --grad: linear-gradient(135deg, #5394ee, #3a7bd5 60%, #265ba8 100%);
+  }
+
+  html[data-gender="F"] {
+    --accent: #e06c95;
+    --accent-glow: rgba(224, 108, 149, 0.32);
+    --accent-sec: #f3a8b8;
+    --grad: linear-gradient(135deg, #f796b7, #e06c95 60%, #b84c72 100%);
+  }
+  html[data-theme="light"][data-gender="F"] {
+    --accent: #cc4d79;
+    --accent-glow: rgba(204, 77, 121, 0.26);
+    --accent-sec: #da7b94;
+    --grad: linear-gradient(135deg, #e46892, #cc4d79 60%, #a8325a 100%);
+  }
+
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0; padding: 0; min-height: 100vh;
     font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     color: var(--text); background: var(--bg); background-image: var(--bg-grad);
     background-attachment: fixed; overflow-x: hidden;
+    transition: background-color var(--theme-t), color var(--theme-t);
   }
-  /* 背景星幕粒子 */
   #starsCanvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
   /* 顶栏 */
   .topBar {
     position: sticky; top: 0; z-index: 100;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 20px; background: rgba(11, 14, 23, 0.82); backdrop-filter: blur(16px);
+    padding: 12px 20px; background: rgba(11, 14, 23, 0.85); backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--panel-border);
+    transition: background-color var(--theme-t), border-color var(--theme-t);
   }
+  html[data-theme="light"] .topBar { background: rgba(255, 255, 255, 0.88); }
   .brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
   .brand .logoStar {
     width: 28px; height: 28px; border-radius: 50%;
-    background: var(--gold-grad); display: flex; align-items: center; justify-content: center;
-    color: #121624; font-weight: 900; font-size: 14px; box-shadow: 0 0 16px var(--accent-glow);
+    background: var(--grad); display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 900; font-size: 14px; box-shadow: 0 0 16px var(--accent-glow);
   }
-  .brand .title { font-size: 16px; font-weight: 700; letter-spacing: 0.08em; color: #fff; }
+  .brand .title { font-size: 16px; font-weight: 700; letter-spacing: 0.08em; color: var(--text); }
   .brand .badge {
     font-size: 10px; padding: 2px 7px; border-radius: 10px;
-    background: rgba(229,185,116,0.18); color: var(--accent); border: 1px solid rgba(229,185,116,0.35);
+    background: rgba(229,185,116,0.18); color: var(--accent); border: 1px solid var(--accent);
   }
-  .topActions { display: flex; align-items: center; gap: 8px; }
+  .topActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .pillBtn {
-    padding: 6px 13px; font-size: 12px; border-radius: 20px;
+    padding: 6px 12px; font-size: 12px; border-radius: 20px;
     background: rgba(255,255,255,0.08); border: 1px solid var(--panel-border);
-    color: var(--text-soft); text-decoration: none; cursor: pointer; transition: all .2s;
+    color: var(--text); text-decoration: none; cursor: pointer; transition: all .2s;
     display: inline-flex; align-items: center; gap: 5px;
   }
-  .pillBtn:hover { background: rgba(255,255,255,0.14); color: #fff; border-color: var(--accent); }
-  .pillBtn.fav { color: #f7a8b8; border-color: rgba(247,168,184,0.3); }
+  html[data-theme="light"] .pillBtn { background: rgba(0,0,0,0.04); }
+  .pillBtn:hover { background: var(--panel-hover); border-color: var(--accent); color: var(--accent); }
+  .pillBtn.fav { color: #f7a8b8; border-color: rgba(247,168,184,0.35); }
+  .pillBtn.poll { color: var(--accent); border-color: var(--accent); font-weight: 600; }
 
-  /* 主工作区容器 */
+  /* 容器 */
   .wrap {
     position: relative; z-index: 1; max-width: 1180px; margin: 0 auto;
-    padding: 20px 16px 80px; display: flex; flex-direction: column; gap: 24px;
+    padding: 16px 16px 80px; display: flex; flex-direction: column; gap: 20px;
   }
+  .heroIntro { text-align: center; margin: 6px 0 2px; }
+  .heroIntro h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.12em; color: var(--text); }
+  .heroIntro p { margin: 6px 0 0; font-size: 13px; color: var(--text-soft); }
 
-  /* 顶部引言 */
-  .heroIntro { text-align: center; margin: 8px 0 4px; }
-  .heroIntro h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.12em; color: #fff; }
-  .heroIntro p { margin: 6px 0 0; font-size: 13px; color: var(--text-soft); letter-spacing: 0.05em; }
-
-  /* 工坊控制台（配置栏） */
+  /* 控制台 */
   .controlDeck {
     background: var(--panel); border: 1px solid var(--panel-border);
-    border-radius: var(--radius); padding: 18px 20px; backdrop-filter: blur(12px);
-    box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+    border-radius: var(--radius); padding: 18px 20px; backdrop-filter: blur(14px);
+    box-shadow: 0 10px 32px rgba(0,0,0,0.18);
   }
   .deckRow { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
   .fieldItem { display: flex; flex-direction: column; gap: 6px; }
   .fieldLabel { font-size: 12px; color: var(--text-soft); font-weight: 500; }
   .textInput {
-    background: rgba(14, 18, 30, 0.8); border: 1px solid var(--panel-border);
-    border-radius: 10px; padding: 8px 12px; font-size: 14px; color: #fff;
-    outline: none; transition: border-color .2s; width: 110px;
+    background: var(--input-bg); border: 1px solid var(--panel-border);
+    border-radius: 10px; padding: 8px 12px; font-size: 14px; color: var(--text);
+    outline: none; transition: border-color .2s; width: 105px;
   }
   .textInput:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
-  .segGroup { display: inline-flex; background: rgba(14, 18, 30, 0.8); border-radius: 10px; padding: 3px; border: 1px solid var(--panel-border); }
+  .segGroup { display: inline-flex; background: var(--input-bg); border-radius: 10px; padding: 3px; border: 1px solid var(--panel-border); }
   .segGroup button {
     background: transparent; border: none; color: var(--text-soft); font-size: 13px;
     padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: all .18s;
   }
-  .segGroup button.active { background: var(--accent); color: #121624; font-weight: 600; box-shadow: 0 2px 8px var(--accent-glow); }
+  .segGroup button.active { background: var(--accent); color: #fff; font-weight: 600; box-shadow: 0 2px 8px var(--accent-glow); }
 
-  /* 定字槽位（Pin Slot） */
+  /* 定字槽位 */
   .pinDeck {
-    margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(140, 165, 215, 0.18);
+    margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--panel-border);
     display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
   }
   .pinToggle {
     display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
     font-size: 13px; color: var(--accent); font-weight: 600; user-select: none;
   }
-  .pinInputWrap { display: flex; align-items: center; gap: 8px; }
+  .pinInputWrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .quickChips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .quickChip {
     font-size: 12px; padding: 3px 9px; border-radius: 12px;
-    background: rgba(255,255,255,0.06); border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.08); border: 1px solid var(--panel-border);
     color: var(--text-soft); cursor: pointer; transition: all .15s;
   }
-  .quickChip:hover { background: rgba(229,185,116,0.18); color: var(--accent); border-color: var(--accent); }
+  html[data-theme="light"] .quickChip { background: rgba(0,0,0,0.04); }
+  .quickChip:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-  /* 灵感推演大按钮 */
+  /* 大按钮 */
   .genBtnWrap { margin-left: auto; }
   .magicBtn {
-    background: var(--gold-grad); border: none; border-radius: 12px;
-    padding: 10px 24px; font-size: 14px; font-weight: 700; color: #121624;
-    cursor: pointer; box-shadow: 0 4px 20px var(--accent-glow); transition: all .2s;
+    background: var(--grad); border: none; border-radius: 12px;
+    padding: 10px 22px; font-size: 14px; font-weight: 700; color: #fff;
+    cursor: pointer; box-shadow: 0 4px 18px var(--accent-glow); transition: all .2s;
     display: inline-flex; align-items: center; gap: 6px; letter-spacing: 0.06em;
   }
-  .magicBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--accent-glow); filter: brightness(1.08); }
-  .magicBtn:active { transform: translateY(0); }
+  .magicBtn:hover { transform: translateY(-2px); filter: brightness(1.08); }
 
-  /* 主工坊分栏（中台核心） */
-  .studioGrid {
-    display: grid; grid-template-columns: 1fr 340px; gap: 20px;
-  }
-  @media (max-width: 900px) {
-    .studioGrid { grid-template-columns: 1fr; }
-  }
+  /* 核心工坊主栅格 */
+  .studioGrid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+  @media (max-width: 900px) { .studioGrid { grid-template-columns: 1fr; } }
 
-  /* 核心雕琢鼎（Crafting Altar） */
+  /* 雕琢主舞台 */
   .altarCard {
     background: var(--panel); border: 1.5px solid var(--panel-border);
-    border-radius: var(--radius); padding: 24px; backdrop-filter: blur(14px);
-    box-shadow: 0 16px 48px rgba(0,0,0,0.4); position: relative; overflow: hidden;
+    border-radius: var(--radius); padding: 22px; backdrop-filter: blur(14px);
+    box-shadow: 0 14px 44px rgba(0,0,0,0.18); position: relative;
   }
-  .altarHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-  .altarTitle { font-size: 14px; color: var(--accent); font-weight: 600; letter-spacing: 0.08em; display: flex; align-items: center; gap: 6px; }
+  .altarHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .altarTitle { font-size: 14px; color: var(--accent); font-weight: 700; letter-spacing: 0.08em; display: flex; align-items: center; gap: 6px; }
+  .altarActions { display: flex; align-items: center; gap: 8px; }
   .scorePill {
-    padding: 4px 12px; border-radius: 20px; background: rgba(229,185,116,0.15);
-    border: 1px solid rgba(229,185,116,0.3); color: var(--accent); font-size: 13px; font-weight: 700;
+    padding: 4px 12px; border-radius: 20px; background: rgba(229,185,116,0.16);
+    border: 1px solid var(--accent); color: var(--accent); font-size: 13px; font-weight: 700;
   }
 
-  /* 汉字展示与互动插槽 */
-  .charSlots {
-    display: flex; justify-content: center; gap: 16px; margin: 18px 0 24px;
-  }
+  /* 汉字互动卡插槽 */
+  .charSlots { display: flex; justify-content: center; gap: 16px; margin: 18px 0 22px; flex-wrap: wrap; }
   .charSlot {
     display: flex; flex-direction: column; align-items: center;
-    background: rgba(14, 18, 30, 0.7); border: 1.5px solid var(--panel-border);
-    border-radius: 16px; padding: 16px 14px 12px; min-width: 96px;
-    position: relative; transition: all .25s var(--ease); cursor: pointer;
+    background: var(--card-bg); border: 1.5px solid var(--panel-border);
+    border-radius: 16px; padding: 16px 14px 12px; min-width: 94px;
+    position: relative; transition: all .22s var(--ease); cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
   }
-  .charSlot:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+  .charSlot:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 8px 24px var(--accent-glow); }
   .charSlot.surname { border-style: dashed; opacity: .88; cursor: default; }
   .charSlot.surname:hover { transform: none; border-color: var(--panel-border); }
   .charHanzi {
-    font-size: 44px; font-weight: 800; line-height: 1.1; color: #fff;
+    font-size: 44px; font-weight: 800; line-height: 1.1; color: var(--text);
     text-shadow: 0 2px 14px var(--accent-glow); margin-bottom: 6px;
     font-family: "PingFang SC", "Songti SC", "Noto Serif SC", serif;
   }
-  .charPy { font-size: 13px; color: var(--accent-cyan); font-weight: 600; }
+  .charPy { font-size: 13px; color: var(--accent); font-weight: 700; }
   .charTone { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
   .charMeta { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
   .swapTrigger {
     margin-top: 10px; padding: 4px 10px; font-size: 11px; border-radius: 12px;
-    background: rgba(229,185,116,0.14); border: 1px solid rgba(229,185,116,0.28);
-    color: var(--accent); transition: all .15s;
+    background: rgba(229,185,116,0.16); border: 1px solid var(--accent);
+    color: var(--accent); transition: all .15s; font-weight: 600;
   }
-  .charSlot:hover .swapTrigger { background: var(--accent); color: #121624; font-weight: 600; }
+  .charSlot:hover .swapTrigger { background: var(--accent); color: #fff; }
 
-  /* 换字下弹盘（Smart Swap Tray） */
+  /* 换字下弹盘 */
   .swapTray {
-    background: rgba(14, 19, 32, 0.95); border: 1px solid var(--accent);
+    background: var(--card-bg); border: 1.5px solid var(--accent);
     border-radius: 14px; padding: 14px; margin-top: 8px; margin-bottom: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; animation: popIn .2s var(--ease);
+    box-shadow: 0 10px 32px rgba(0,0,0,0.25); display: none;
   }
-  .swapTray.show { display: block; }
+  .swapTray.show { display: block; animation: popIn .2s var(--ease); }
   @keyframes popIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
   .trayHeader { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-soft); margin-bottom: 10px; }
-  .trayTabs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .trayTabs { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   .trayTab {
     font-size: 11.5px; padding: 4px 10px; border-radius: 12px; cursor: pointer;
-    background: rgba(255,255,255,0.06); color: var(--text-soft); border: 1px solid transparent;
+    background: rgba(255,255,255,0.08); color: var(--text-soft); border: 1px solid transparent;
   }
-  .trayTab.active { background: rgba(110,216,199,0.18); color: var(--accent-cyan); border-color: rgba(110,216,199,0.35); font-weight: 600; }
+  html[data-theme="light"] .trayTab { background: rgba(0,0,0,0.05); }
+  .trayTab.active { background: var(--accent); color: #fff; font-weight: 600; }
   .trayGrid { display: flex; flex-wrap: wrap; gap: 7px; max-height: 140px; overflow-y: auto; }
   .trayItem {
     width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
     font-size: 17px; background: rgba(255,255,255,0.06); border: 1px solid var(--panel-border);
-    color: #fff; cursor: pointer; transition: all .15s;
+    color: var(--text); cursor: pointer; transition: all .15s;
   }
-  .trayItem:hover { background: var(--accent); color: #121624; font-weight: 700; transform: scale(1.1); }
+  html[data-theme="light"] .trayItem { background: rgba(0,0,0,0.03); }
+  .trayItem:hover { background: var(--accent); color: #fff; font-weight: 700; transform: scale(1.1); }
   .trayCustom { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
-  .trayInput { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 10px; color: #fff; font-size: 13px; }
+  .trayInput { flex: 1; background: var(--input-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 10px; color: var(--text); font-size: 13px; }
 
-  /* 音律波形与朗读条 */
+  /* 音律波形与发音栏 */
   .toneBar {
     display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
-    background: rgba(11, 15, 26, 0.7); border-radius: 12px; padding: 12px 16px; margin: 16px 0;
-    border: 1px solid rgba(140, 165, 215, 0.14);
+    background: var(--input-bg); border-radius: 12px; padding: 12px 16px; margin: 16px 0;
+    border: 1px solid var(--panel-border);
   }
   .toneWave { display: flex; align-items: center; gap: 10px; }
-  .toneBadge { font-size: 12px; padding: 3px 8px; border-radius: 8px; background: rgba(110,216,199,0.14); color: var(--accent-cyan); }
+  .toneBadge { font-size: 12px; padding: 3px 8px; border-radius: 8px; background: rgba(110,216,199,0.18); color: var(--accent-sec); font-weight: 600; }
   .toneText { font-size: 12.5px; color: var(--text-soft); }
-  .speakBtn {
-    background: rgba(255,255,255,0.08); border: 1px solid var(--panel-border); border-radius: 20px;
-    padding: 6px 14px; font-size: 12.5px; color: #fff; cursor: pointer; transition: all .2s;
-    display: inline-flex; align-items: center; gap: 5px;
-  }
-  .speakBtn:hover { background: var(--accent); color: #121624; font-weight: 600; border-color: var(--accent); }
 
-  /* 现代社交第一印象画像 */
+  /* 现代社交画像 */
   .personaBox {
-    background: linear-gradient(135deg, rgba(229,185,116,0.1), rgba(110,216,199,0.06));
-    border: 1px solid rgba(229,185,116,0.25); border-radius: 12px; padding: 12px 16px; margin-top: 14px;
+    background: linear-gradient(135deg, rgba(229,185,116,0.12), rgba(110,216,199,0.08));
+    border: 1px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin-top: 14px;
   }
   .personaTag { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
   .personaDesc { font-size: 12.5px; color: var(--text-soft); line-height: 1.55; }
 
-  /* 右侧边栏：六维雷达 + 诸师智囊团 */
+  /* 右栏：六维雷达 + 智囊团 */
   .sideCol { display: flex; flex-direction: column; gap: 20px; }
   .radarCard {
     background: var(--panel); border: 1px solid var(--panel-border);
     border-radius: var(--radius); padding: 16px; backdrop-filter: blur(12px);
     text-align: center;
   }
-  .cardHead { font-size: 13px; font-weight: 600; color: var(--text-soft); margin-bottom: 8px; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: space-between; }
+  .cardHead { font-size: 13px; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: space-between; }
   #radarCanvas { width: 100%; height: 210px; max-width: 290px; margin: 0 auto; display: block; }
 
   /* 诸师智囊团 */
@@ -241,75 +295,97 @@
   .mentorPills { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; }
   .mentorPill {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
-    background: rgba(14, 18, 30, 0.7); border: 1px solid var(--panel-border);
-    border-radius: 12px; padding: 8px 6px; min-width: 54px; cursor: pointer; transition: all .18s;
+    background: var(--input-bg); border: 1px solid var(--panel-border);
+    border-radius: 12px; padding: 8px 6px; min-width: 52px; cursor: pointer; transition: all .18s;
   }
-  .mentorPill.active { border-color: var(--accent); background: rgba(229,185,116,0.12); transform: scale(1.04); }
+  .mentorPill.active { border-color: var(--accent); background: rgba(229,185,116,0.18); transform: scale(1.05); }
   .mentorAvatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; object-position: top; border: 1px solid var(--panel-border); }
   .mentorName { font-size: 11px; color: var(--text-soft); }
-  .mentorPill.active .mentorName { color: var(--accent); font-weight: 600; }
+  .mentorPill.active .mentorName { color: var(--accent); font-weight: 700; }
   .mentorBubble {
-    margin-top: 10px; background: rgba(11, 15, 26, 0.85); border: 1px solid rgba(140, 165, 215, 0.2);
+    margin-top: 10px; background: var(--input-bg); border: 1px solid var(--panel-border);
     border-radius: 12px; padding: 12px 14px; font-size: 12.5px; color: var(--text);
-    line-height: 1.6; position: relative; animation: fadeIn .2s var(--ease);
+    line-height: 1.6; position: relative;
   }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
   .mentorBubble::before {
     content: ""; position: absolute; top: -6px; left: 24px; width: 10px; height: 10px;
-    background: rgba(11, 15, 26, 0.85); border-left: 1px solid rgba(140, 165, 215, 0.2);
-    border-top: 1px solid rgba(140, 165, 215, 0.2); transform: rotate(45deg);
+    background: var(--input-bg); border-left: 1px solid var(--panel-border);
+    border-top: 1px solid var(--panel-border); transform: rotate(45deg);
   }
 
-  /* 灵感候选流（Candidate Stream） */
+  /* 候选流 */
   .streamSection { margin-top: 8px; }
   .streamHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .streamTitle { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
-  .candGrid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;
-  }
+  .streamTitle { font-size: 16px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .candGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
   .candCard {
     background: var(--card-bg); border: 1px solid var(--panel-border);
     border-radius: 14px; padding: 14px 16px; cursor: pointer; transition: all .2s var(--ease);
     display: flex; flex-direction: column; gap: 8px; position: relative;
   }
-  .candCard:hover {
-    border-color: var(--accent); transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3); background: rgba(30, 38, 62, 0.8);
-  }
-  .candCard.active {
-    border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow);
-    background: rgba(35, 45, 74, 0.9);
-  }
+  .candCard:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 24px var(--accent-glow); }
+  .candCard.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
   .candTop { display: flex; align-items: center; justify-content: space-between; }
-  .candName { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: 0.05em; font-family: "PingFang SC", "Songti SC", serif; }
+  .candName { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: 0.05em; font-family: "PingFang SC", "Songti SC", serif; }
   .candScore { font-size: 12.5px; color: var(--accent); font-weight: 700; }
-  .candPy { font-size: 12px; color: var(--accent-cyan); }
+  .candPy { font-size: 12px; color: var(--accent-sec); }
   .candNote { font-size: 11.5px; color: var(--text-soft); line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .candActions { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .candActions { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--panel-border); }
   .candFavBtn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; padding: 2px 6px; transition: all .15s; }
   .candFavBtn:hover, .candFavBtn.fav { color: #f7a8b8; transform: scale(1.15); }
   .loadTip { font-size: 11px; color: var(--text-dim); }
 
-  /* 收藏夹浮层弹窗 */
+  /* 弹窗通用 */
   .modal {
     position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center;
     background: rgba(0,0,0,0.72); backdrop-filter: blur(8px); padding: 16px;
   }
   .modal.show { display: flex; }
   .modalCard {
-    background: #141b2c; border: 1.5px solid var(--panel-border); border-radius: 18px;
-    width: 100%; max-width: 480px; max-height: 80vh; display: flex; flex-direction: column;
-    padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    background: var(--modal-bg); border: 1.5px solid var(--panel-border); border-radius: 18px;
+    width: 100%; max-width: 500px; max-height: 85vh; display: flex; flex-direction: column;
+    padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); overflow-y: auto;
   }
   .modalHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .modalHead h3 { margin: 0; font-size: 16px; color: #fff; }
+  .modalHead h3 { margin: 0; font-size: 16px; color: var(--text); }
   .closeBtn { background: none; border: none; color: var(--text-soft); font-size: 20px; cursor: pointer; }
-  .modalList { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+  /* 专属印鉴弹窗样式 */
+  .sealStage { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0; gap: 14px; }
+  #sealCanvas { border-radius: 12px; box-shadow: 0 8px 30px rgba(180,38,38,0.35); }
+  .sealDesc { font-size: 12px; color: var(--text-soft); text-align: center; line-height: 1.5; }
+  .sealTools { display: flex; gap: 10px; justify-content: center; }
+
+  /* 典藏海报弹窗样式 */
+  .posterStage { display: flex; flex-direction: column; align-items: center; padding: 10px 0; gap: 14px; }
+  #posterCanvas { width: 100%; max-width: 340px; height: auto; border-radius: 12px; box-shadow: 0 12px 36px rgba(0,0,0,0.4); }
+
+  /* 家庭评选弹窗样式 */
+  .pollList { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+  .pollCard {
+    background: var(--input-bg); border: 1px solid var(--panel-border);
+    border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .pollTop { display: flex; align-items: center; justify-content: space-between; }
+  .pollName { font-size: 17px; font-weight: 700; color: var(--text); }
+  .pollVotes { font-size: 12px; color: var(--accent); font-weight: 700; }
+  .pollProgress { height: 6px; background: rgba(0,0,0,0.15); border-radius: 4px; overflow: hidden; }
+  .pollProgressBar { height: 100%; background: var(--grad); width: 0%; transition: width .3s var(--ease); }
+  .voteBtns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .voteBtn {
+    font-size: 11px; padding: 3px 9px; border-radius: 14px; border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.06); color: var(--text-soft); cursor: pointer; transition: all .15s;
+  }
+  .voteBtn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .blessBox { margin-top: 12px; border-top: 1px dashed var(--panel-border); padding-top: 12px; }
+  .blessInputRow { display: flex; gap: 8px; margin-top: 8px; }
+  .blessList { display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; margin-top: 8px; }
+  .blessItem { font-size: 12px; color: var(--text-soft); background: rgba(0,0,0,0.08); padding: 5px 10px; border-radius: 8px; }
 
   /* 动画辅助 */
   .morphing { animation: morphFlash .35s var(--ease); }
   @keyframes morphFlash {
-    0% { transform: scale(0.96); filter: brightness(1.3); }
+    0% { transform: scale(0.96); filter: brightness(1.25); }
     100% { transform: scale(1); filter: none; }
   }
 </style>
@@ -325,20 +401,21 @@
     <div class="badge">V3 名韵工坊</div>
   </div>
   <div class="topActions">
-    <button class="pillBtn fav" id="favDrawerBtn" type="button">❤️ 灵感收藏 (<span id="favCount">0</span>)</button>
-    <a class="pillBtn" href="/v2/">🎭 场景模式 (V2)</a>
-    <a class="pillBtn" href="/">📜 极简表单 (V1)</a>
+    <button class="pillBtn" id="themeBtn" type="button" onclick="toggleTheme()">☀️ 浅色模式</button>
+    <button class="pillBtn poll" type="button" onclick="openPollModal()">👨‍👩‍👧 家人评选</button>
+    <button class="pillBtn fav" id="favDrawerBtn" type="button">❤️ 收藏 (<span id="favCount">0</span>)</button>
+    <a class="pillBtn" href="/v2/">🎭 V2场景</a>
+    <a class="pillBtn" href="/">📜 V1简约</a>
   </div>
 </header>
 
 <main class="wrap">
-  <!-- 标题导引 -->
   <div class="heroIntro">
     <h1>名 韵 工 坊 · 灵 感 雕 琢</h1>
-    <p>自由定字推演 · 智囊随行评点 · 现代社交气质雷达 · 多方言试听</p>
+    <p>深浅双色 · 性别色彩微调 · 专属印鉴 · 命书绘卷 · 亲属互动票箱</p>
   </div>
 
-  <!-- 工坊控制台（配置栏） -->
+  <!-- 工坊控制台 -->
   <section class="controlDeck">
     <div class="deckRow">
       <div class="fieldItem">
@@ -360,7 +437,7 @@
       <div class="fieldItem">
         <label class="fieldLabel">小星主性别</label>
         <div class="segGroup" id="genderSeg">
-          <button type="button" class="active" data-v="U">不限</button>
+          <button type="button" class="active" data-v="U">不限 ✦</button>
           <button type="button" data-v="M">男孩 ♂</button>
           <button type="button" data-v="F">女孩 ♀</button>
         </div>
@@ -380,7 +457,7 @@
       </div>
     </div>
 
-    <!-- 定字槽位（Pin Slot & Clan Generation） -->
+    <!-- 定字槽位 -->
     <div class="pinDeck">
       <label class="pinToggle">
         <input type="checkbox" id="pinCheck" />
@@ -408,21 +485,23 @@
     </div>
   </section>
 
-  <!-- 中台工作区分栏 -->
+  <!-- 中台主栅格 -->
   <div class="studioGrid">
-    <!-- 左栏：名韵雕琢主舞台 -->
+    <!-- 左栏：雕琢鼎主舞台 -->
     <div class="altarCard" id="altarCard">
       <div class="altarHeader">
         <div class="altarTitle">✦ 当前雕琢名卡 · 灵感主舞台</div>
-        <div class="scorePill" id="altarScore">综合评分 88.0</div>
+        <div class="altarActions">
+          <button class="pillBtn" type="button" onclick="openSealModal()">🈴 专属印鉴</button>
+          <button class="pillBtn" type="button" onclick="openPosterModal()">📜 命书绘卷</button>
+          <div class="scorePill" id="altarScore">综合 88.0</div>
+        </div>
       </div>
 
-      <!-- 汉字展示与互动换字插槽 -->
-      <div class="charSlots" id="charSlots">
-        <!-- 动态注入汉字卡片 -->
-      </div>
+      <!-- 汉字插槽 -->
+      <div class="charSlots" id="charSlots"></div>
 
-      <!-- 换字智能抽屉（Smart Swap Tray） -->
+      <!-- 换字智能抽屉 -->
       <div class="swapTray" id="swapTray">
         <div class="trayHeader">
           <span id="trayTitle">正在置换第 2 字：选择或输入替代汉字</span>
@@ -434,38 +513,35 @@
           <div class="trayTab" onclick="switchTrayTab('ya')">📜 经典雅字</div>
           <div class="trayTab" onclick="switchTrayTab('water')">💧 清润水木</div>
         </div>
-        <div class="trayGrid" id="trayGrid">
-          <!-- 动态注入推荐备选字 -->
-        </div>
+        <div class="trayGrid" id="trayGrid"></div>
         <div class="trayCustom">
           <input class="trayInput" id="customCharInput" type="text" maxlength="1" placeholder="输入任意心仪汉字现场推演..." />
           <button class="pillBtn" type="button" onclick="applyCustomChar()">替换并测评</button>
         </div>
       </div>
 
-      <!-- 音律波形与朗读试听条 -->
+      <!-- 音律与试听 -->
       <div class="toneBar">
         <div class="toneWave">
           <span class="toneBadge" id="toneBadge">平仄起伏 · 平平平</span>
           <span class="toneText" id="toneText">声调连续平稳，唤来温润清亮</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <button class="speakBtn" type="button" onclick="speakCurrentName()">
+          <button class="pillBtn" type="button" onclick="speakCurrentName()">
             <span>🔊 朗读试听</span>
           </button>
         </div>
       </div>
 
-      <!-- 现代社交第一印象画像 -->
+      <!-- 现代社交画像 -->
       <div class="personaBox">
         <div class="personaTag" id="personaTag">✦ 现代社交画像：【清润书卷】</div>
-        <div class="personaDesc" id="personaDesc">给人温和谦逊、言念君子、思维清晰的学者与知性气质。</div>
+        <div class="personaDesc" id="personaDesc">给人温和谦逊、言念君子、思维清晰的学者知性气质。</div>
       </div>
     </div>
 
     <!-- 右栏：现代六维雷达 + 智囊团随行评点 -->
     <div class="sideCol">
-      <!-- 六维雷达卡 -->
       <div class="radarCard">
         <div class="cardHead">
           <span>六维现代气质图谱</span>
@@ -474,7 +550,6 @@
         <canvas id="radarCanvas" width="290" height="210"></canvas>
       </div>
 
-      <!-- 诸师首席智囊团 -->
       <div class="councilCard">
         <div class="cardHead">
           <span>诸师随行评点</span>
@@ -502,43 +577,95 @@
             <span class="mentorName">字源</span>
           </div>
         </div>
-        <div class="mentorBubble" id="mentorBubble">
-          <!-- 动态评点内容 -->
-        </div>
+        <div class="mentorBubble" id="mentorBubble"></div>
       </div>
     </div>
   </div>
 
-  <!-- 灵感候选流（Candidate Stream） -->
+  <!-- 灵感候选流 -->
   <section class="streamSection">
     <div class="streamHeader">
       <div class="streamTitle">
         <span>✦ 灵感候选流</span>
-        <span style="font-size:12px;color:var(--text-dim);font-weight:400;">点击任意名卡切入工坊雕琢鼎</span>
+        <span style="font-size:12px;color:var(--text-dim);font-weight:400;">点击任意名卡切入主舞台雕琢</span>
       </div>
     </div>
-    <div class="candGrid" id="candGrid">
-      <!-- 动态候选卡片 -->
-    </div>
+    <div class="candGrid" id="candGrid"></div>
   </section>
 </main>
+
+<!-- 专属金石印鉴弹窗 -->
+<div class="modal" id="sealModal">
+  <div class="modalCard">
+    <div class="modalHead">
+      <h3>🈴 小星主专属金石印鉴</h3>
+      <button class="closeBtn" onclick="closeModal('sealModal')">✕</button>
+    </div>
+    <div class="sealStage">
+      <canvas id="sealCanvas" width="220" height="220"></canvas>
+      <div class="sealDesc">汲取秦汉古玺风韵 · 朱文印泥质感 · 可用作头像与手账图章</div>
+      <div class="sealTools">
+        <button class="pillBtn" type="button" onclick="toggleSealType()">切换阳文/阴文</button>
+        <button class="pillBtn" style="background:var(--accent);color:#fff;" type="button" onclick="downloadSeal()">💾 保存高清透明印章</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 典藏命书绘卷海报弹窗 -->
+<div class="modal" id="posterModal">
+  <div class="modalCard" style="max-width:440px;">
+    <div class="modalHead">
+      <h3>📜 小星主典藏命书绘卷</h3>
+      <button class="closeBtn" onclick="closeModal('posterModal')">✕</button>
+    </div>
+    <div class="posterStage">
+      <canvas id="posterCanvas" width="600" height="920"></canvas>
+      <div class="sealTools" style="margin-top:8px;">
+        <button class="pillBtn" style="background:var(--accent);color:#fff;padding:8px 20px;" type="button" onclick="downloadPoster()">💾 保存高清长图海报</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 家庭亲属互动票箱弹窗 -->
+<div class="modal" id="pollModal">
+  <div class="modalCard" style="max-width:540px;">
+    <div class="modalHead">
+      <h3>👨‍👩‍👧 家庭亲属评选票箱</h3>
+      <button class="closeBtn" onclick="closeModal('pollModal')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-soft);margin-bottom:12px;">长辈亲友点赞喜好，实时统票，把起名变成温馨的家庭互动。</div>
+    <div class="pollList" id="pollList"></div>
+    <div class="sealTools" style="margin-bottom:10px;">
+      <button class="pillBtn poll" type="button" onclick="copyPollLink()">📋 复制家庭评选专属链接</button>
+    </div>
+    <div class="blessBox">
+      <div style="font-size:13px;font-weight:700;color:var(--text);">长辈寄语墙：</div>
+      <div class="blessInputRow">
+        <input class="textInput" id="blessInput" style="flex:1;" placeholder="写下一句给宝宝的家庭期许..." />
+        <button class="pillBtn" type="button" onclick="addBlessing()">发送寄语</button>
+      </div>
+      <div class="blessList" id="blessList"></div>
+    </div>
+  </div>
+</div>
 
 <!-- 收藏夹弹窗 -->
 <div class="modal" id="favModal">
   <div class="modalCard">
     <div class="modalHead">
       <h3>❤️ 灵感收藏夹</h3>
-      <button class="closeBtn" onclick="closeFavModal()">✕</button>
+      <button class="closeBtn" onclick="closeModal('favModal')">✕</button>
     </div>
-    <div class="modalList" id="favList">
-      <!-- 动态收藏项目 -->
-    </div>
+    <div class="modalList" id="favList"></div>
   </div>
 </div>
 
 <script>
 /* ---------- 状态存储 ---------- */
 const state = {
+  theme: "dark",
   father: "林",
   mother: "",
   mode: "F",
@@ -550,11 +677,16 @@ const state = {
   candidates: [],
   currentName: null,
   activeMentor: "yinlv",
-  swapTargetIdx: 1,  // 0 为首个名，1 为第二个名
-  favs: []
+  swapTargetIdx: 1,
+  sealType: "zhu", // 'zhu' 朱文(红线白底) 或 'bai' 白文(红底白字)
+  favs: [],
+  pollVotes: {},
+  blessings: [
+    { sender: "爷爷", text: "希望宝宝一生清朗平安，知书达理。" },
+    { sender: "妈妈", text: "健康快乐成长，做自己喜欢的事情！" }
+  ]
 };
 
-/* 常用优雅字库分类库（用于换字盘） */
 const SWAP_POOLS = {
   ping: ["清","安","晨","初","言","南","知","恩","舟","寻","然","宣","星","希","书","文","云","恒","平"],
   ze: ["澈","远","翊","曜","煦","越","瀚","正","灿","赫","乐","硕","佑","沐","沛","若","畅","敬"],
@@ -562,24 +694,44 @@ const SWAP_POOLS = {
   water: ["涵","沐","沛","潇","漪","瀚","润","澈","淳","溯","澜","深","泽","洲","源","浩","洋","澄"]
 };
 
-/* 老师名册与头像 */
-const MENTORS = {
-  yinlv: { name:"音律老师", title:"声韵平仄主管", file:"/characters/char-yinlv-1.webp" },
-  xingzi: { name:"字形老师", title:"间架风骨主管", file:"/characters/char-xingzi-1.webp" },
-  yijing: { name:"意境老师", title:"诗情风雅主管", file:"/characters/char-yijing-1.webp" },
-  diangu: { name:"典故老师", title:"经史子集主管", file:"/characters/char-diangu-1.webp" },
-  ziyuan: { name:"字源老师", title:"六书本义主管", file:"/characters/char-ziyuan-1.webp" }
-};
-
 /* ---------- 初始化 ---------- */
 window.addEventListener("DOMContentLoaded", () => {
+  initTheme();
   initBackgroundStars();
   loadFavs();
+  loadPollVotes();
   bindControls();
+  checkUrlPollParam();
   triggerGenerate();
 });
 
-/* 背景动态星幕 */
+/* 主题与性别色彩切换 */
+function initTheme() {
+  const saved = localStorage.getItem("v3_theme") || "dark";
+  setThemeMode(saved);
+}
+
+function toggleTheme() {
+  const next = state.theme === "dark" ? "light" : "dark";
+  setThemeMode(next);
+}
+
+function setThemeMode(m) {
+  state.theme = m;
+  document.documentElement.setAttribute("data-theme", m);
+  localStorage.setItem("v3_theme", m);
+  const btn = document.getElementById("themeBtn");
+  if (btn) btn.textContent = m === "dark" ? "☀️ 浅色模式" : "🌙 深色模式";
+  if (state.currentName) renderRadar(state.currentName);
+}
+
+function applyGenderTheme(g) {
+  state.gender = g;
+  document.documentElement.setAttribute("data-gender", g);
+  if (state.currentName) renderRadar(state.currentName);
+}
+
+/* 动态背景星幕 */
 function initBackgroundStars() {
   const c = document.getElementById("starsCanvas");
   if (!c) return;
@@ -595,14 +747,16 @@ function initBackgroundStars() {
   }));
   function draw() {
     ctx.clearRect(0, 0, w, h);
-    stars.forEach(s => {
-      s.op += s.sp;
-      if (s.op > 0.85 || s.op < 0.2) s.sp = -s.sp;
-      ctx.beginPath();
-      ctx.fillStyle = `rgba(220, 235, 255, ${Math.max(0, s.op)})`;
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fill();
-    });
+    if (state.theme === "dark") {
+      stars.forEach(s => {
+        s.op += s.sp;
+        if (s.op > 0.85 || s.op < 0.2) s.sp = -s.sp;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(220, 235, 255, ${Math.max(0, s.op)})`;
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
     requestAnimationFrame(draw);
   }
   draw();
@@ -610,13 +764,11 @@ function initBackgroundStars() {
 
 /* 控件事件绑定 */
 function bindControls() {
-  // 模式切换
   bindSeg("modeSeg", v => { state.mode = v; });
-  bindSeg("genderSeg", v => { state.gender = v; });
+  bindSeg("genderSeg", v => { applyGenderTheme(v); });
   bindSeg("lenSeg", v => { state.name_len = parseInt(v); });
   bindSeg("pinPosSeg", v => { state.pin_pos = v === "any" ? null : parseInt(v); });
 
-  // 定字复选框
   const pinCheck = document.getElementById("pinCheck");
   const pinBox = document.getElementById("pinBox");
   pinCheck.addEventListener("change", (e) => {
@@ -624,10 +776,7 @@ function bindControls() {
     pinBox.style.display = state.pin ? "flex" : "none";
   });
 
-  // 生成大按钮
   document.getElementById("genBtn").addEventListener("click", triggerGenerate);
-
-  // 收藏抽屉
   document.getElementById("favDrawerBtn").addEventListener("click", openFavModal);
 }
 
@@ -650,7 +799,7 @@ function setQuickPin(char) {
   triggerGenerate();
 }
 
-/* ---------- 核心推演接口调用 ---------- */
+/* 核心推演生成 */
 function triggerGenerate() {
   state.father = document.getElementById("fatherInput").value.trim() || "林";
   state.mother = document.getElementById("motherInput").value.trim();
@@ -693,7 +842,7 @@ function triggerGenerate() {
   });
 }
 
-/* ---------- 装载雕琢鼎名卡 ---------- */
+/* 装载当前雕琢名卡 */
 function loadActiveName(n) {
   if (!n) return;
   state.currentName = n;
@@ -702,34 +851,24 @@ function loadActiveName(n) {
   void altar.offsetWidth;
   altar.classList.add("morphing");
 
-  // 综合得分
-  document.getElementById("altarScore").textContent = "综合评分 " + (n.total || 88.0);
-
-  // 汉字卡插槽
+  document.getElementById("altarScore").textContent = "综合 " + (n.total || 88.0);
   renderCharSlots(n);
 
-  // 音律条
   const pz = n.pz || "平平平";
   document.getElementById("toneBadge").textContent = "平仄起伏 · " + pz;
   document.getElementById("toneText").textContent = n.tone_note || "平仄相协，读来清亮悦耳，朗朗上口。";
 
-  // 社交第一印象画像
   updatePersona(n);
-
-  // 渲染现代六维雷达
   renderRadar(n);
-
-  // 更新诸师评点
   updateMentorCommentary();
 
-  // 高亮候选流中对应卡片
   document.querySelectorAll(".candCard").forEach(c => {
     if (c.getAttribute("data-name") === n.name) c.classList.add("active");
     else c.classList.remove("active");
   });
 }
 
-/* 渲染大汉字互动插槽 */
+/* 渲染大汉字卡插槽 */
 function renderCharSlots(n) {
   const box = document.getElementById("charSlots");
   box.innerHTML = "";
@@ -739,7 +878,6 @@ function renderCharSlots(n) {
   const pyList = n.py || [surname, ...given.split("")];
   const tones = n.tones || [1, 1, 1];
 
-  // 姓氏槽位
   const surSlot = document.createElement("div");
   surSlot.className = "charSlot surname";
   surSlot.innerHTML = `
@@ -750,7 +888,6 @@ function renderCharSlots(n) {
   `;
   box.appendChild(surSlot);
 
-  // 名字槽位
   const chars = given.split("");
   chars.forEach((c, idx) => {
     const slot = document.createElement("div");
@@ -770,12 +907,11 @@ function renderCharSlots(n) {
   });
 }
 
-/* 换字下弹盘 */
 function openSwapTray(idx, currentChar) {
   state.swapTargetIdx = idx;
   const tray = document.getElementById("swapTray");
   tray.classList.add("show");
-  document.getElementById("trayTitle").textContent = `正在为「${currentChar}」寻找更加悦耳称心的替代字：`;
+  document.getElementById("trayTitle").textContent = `正在为「${currentChar}」寻找更称心的替代字：`;
   switchTrayTab("ping");
 }
 
@@ -815,7 +951,6 @@ function applyCharSwap(newChar) {
   }
   const newFullName = surname + givenChars.join("");
 
-  // 调用分析接口重新实时推演
   fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -837,7 +972,6 @@ function applyCharSwap(newChar) {
   .catch(e => console.error("换字分析失败:", e));
 }
 
-/* 朗读当前名字 (Web Speech API) */
 function speakCurrentName() {
   if (!state.currentName) return;
   const name = state.currentName.name;
@@ -850,7 +984,6 @@ function speakCurrentName() {
   }
 }
 
-/* 现代社交第一印象画像计算 */
 function updatePersona(n) {
   const dims = n.dims || {};
   const p = dims.pronounce || 80;
@@ -878,7 +1011,6 @@ function updatePersona(n) {
   document.getElementById("personaDesc").textContent = desc;
 }
 
-/* 现代六维气质雷达 Canvas 渲染 */
 function renderRadar(n) {
   const c = document.getElementById("radarCanvas");
   if (!c) return;
@@ -891,23 +1023,25 @@ function renderRadar(n) {
   const labels = ["清雅度", "朗朗度", "辨识度", "风骨感", "温暖度", "时代感"];
   const dims = n.dims || {};
 
-  // 基于各维度的映射转换
   const values = [
     Math.min(98, Math.max(70, dims.meaning || 88)),
     Math.min(98, Math.max(70, dims.pronounce || 85)),
     Math.min(96, Math.max(72, (n.common_bonus ? 88 : 82))),
     Math.min(98, Math.max(70, dims.stroke || 84)),
-    Math.min(98, Math.max(70, dims.gender === "U" ? 88 : (dims.wuxing || 86))),
+    Math.min(98, Math.max(70, state.gender === "U" ? 88 : (dims.wuxing || 86))),
     Math.min(96, Math.max(75, 90))
   ];
 
   const N = labels.length;
   const angleStep = (Math.PI * 2) / N;
 
-  // 绘制同心雷达网格
+  const isDark = state.theme === "dark";
+  const gridColor = isDark ? "rgba(140, 165, 215, 0.16)" : "rgba(100, 130, 190, 0.2)";
+  const labelColor = isDark ? "#8ea1c4" : "#4a5d80";
+
   for (let l = 1; l <= 4; l++) {
     ctx.beginPath();
-    ctx.strokeStyle = "rgba(140, 165, 215, 0.16)";
+    ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
     for (let i = 0; i < N; i++) {
       const a = i * angleStep - Math.PI / 2;
@@ -921,26 +1055,23 @@ function renderRadar(n) {
     ctx.stroke();
   }
 
-  // 绘制轴线与标签
   ctx.font = "11px sans-serif";
-  ctx.fillStyle = "#8ea1c4";
+  ctx.fillStyle = labelColor;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   for (let i = 0; i < N; i++) {
     const a = i * angleStep - Math.PI / 2;
     ctx.beginPath();
-    ctx.strokeStyle = "rgba(140, 165, 215, 0.22)";
+    ctx.strokeStyle = gridColor;
     ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + R * Math.cos(a), cy + R * Math.sin(a));
+    ctx.lineTo(cx + R * Math.cos(a), ctx + R * Math.sin(a));
     ctx.stroke();
 
-    // 标签文字
     const lx = cx + (R + 18) * Math.cos(a);
     const ly = cy + (R + 15) * Math.sin(a);
     ctx.fillText(labels[i], lx, ly);
   }
 
-  // 绘制数据多边形
   ctx.beginPath();
   for (let i = 0; i < N; i++) {
     const a = i * angleStep - Math.PI / 2;
@@ -952,13 +1083,19 @@ function renderRadar(n) {
     else ctx.lineTo(x, y);
   }
   ctx.closePath();
-  ctx.fillStyle = "rgba(229, 185, 116, 0.28)";
+
+  // 性别主题雷达着色
+  let fillRgba = "rgba(229, 185, 116, 0.28)";
+  let strokeHex = "#e5b974";
+  if (state.gender === "M") { fillRgba = "rgba(94, 156, 243, 0.28)"; strokeHex = "#5e9cf3"; }
+  else if (state.gender === "F") { fillRgba = "rgba(224, 108, 149, 0.28)"; strokeHex = "#e06c95"; }
+
+  ctx.fillStyle = fillRgba;
   ctx.fill();
-  ctx.strokeStyle = "#e5b974";
+  ctx.strokeStyle = strokeHex;
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // 绘制顶点光斑
   for (let i = 0; i < N; i++) {
     const a = i * angleStep - Math.PI / 2;
     const ratio = Math.max(0.4, (values[i] - 40) / 60);
@@ -967,12 +1104,11 @@ function renderRadar(n) {
     const y = cy + r * Math.sin(a);
     ctx.beginPath();
     ctx.arc(x, y, 3, 0, Math.PI * 2);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = strokeHex;
     ctx.fill();
   }
 }
 
-/* 智囊团名师切换 */
 function selectMentor(mKey) {
   state.activeMentor = mKey;
   document.querySelectorAll(".mentorPill").forEach(p => {
@@ -1006,7 +1142,6 @@ function updateMentorCommentary() {
   bubble.innerHTML = text;
 }
 
-/* 渲染灵感候选流列表 */
 function renderStream(list) {
   const grid = document.getElementById("candGrid");
   grid.innerHTML = "";
@@ -1025,7 +1160,7 @@ function renderStream(list) {
       <div class="candPy">${(n.py || []).join(" ")} · ${n.pz || "平平平"}</div>
       <div class="candNote">${n.allusion_note ? n.allusion_note : (n.tone_note || "清雅好读，意境自如")}</div>
       <div class="candActions">
-        <span class="loadTip">点击载入雕琢鼎</span>
+        <span class="loadTip">点击载入雕琢主舞台</span>
         <button class="candFavBtn ${isFav?'fav':''}" type="button" onclick="toggleFav(event, '${n.name}')">
           ${isFav ? '❤️' : '🤍'}
         </button>
@@ -1037,6 +1172,352 @@ function renderStream(list) {
     };
     grid.appendChild(card);
   });
+}
+
+/* ---------- 专属金石印鉴生成器 ---------- */
+function openSealModal() {
+  if (!state.currentName) return;
+  drawSeal(state.currentName.name);
+  openModal("sealModal");
+}
+
+function toggleSealType() {
+  state.sealType = state.sealType === "zhu" ? "bai" : "zhu";
+  if (state.currentName) drawSeal(state.currentName.name);
+}
+
+function drawSeal(name) {
+  const c = document.getElementById("sealCanvas");
+  if (!c) return;
+  const ctx = c.getContext("2d");
+  const S = 220;
+  ctx.clearRect(0, 0, S, S);
+
+  // 四字布局（传统汉印右起竖读：右上→右下→左上→左下）
+  let c1, c2, c3, c4;
+  if (name.length === 2) {
+    c1 = name[0]; c2 = "之"; c3 = name[1]; c4 = "印";
+  } else if (name.length === 3) {
+    c1 = name[0]; c2 = name[1]; c3 = name[2]; c4 = "印";
+  } else {
+    c1 = name[0]; c2 = name[1]; c3 = name[2]; c4 = name[3] || "印";
+  }
+
+  const red = "#b82626";
+  const white = "#fcf9f2";
+
+  if (state.sealType === "zhu") { // 朱文（白底红字红框）
+    ctx.fillStyle = white;
+    ctx.fillRect(0, 0, S, S);
+
+    // 双重边框
+    ctx.strokeStyle = red;
+    ctx.lineWidth = 9;
+    ctx.strokeRect(8, 8, S - 16, S - 16);
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(17, 17, S - 34, S - 34);
+
+    // 中间十字分割细线
+    ctx.beginPath();
+    ctx.moveTo(S / 2, 17); ctx.lineTo(S / 2, S - 17);
+    ctx.moveTo(17, S / 2); ctx.lineTo(S - 17, S / 2);
+    ctx.stroke();
+
+    ctx.fillStyle = red;
+  } else { // 白文（红底白字）
+    ctx.fillStyle = red;
+    ctx.fillRect(0, 0, S, S);
+
+    ctx.strokeStyle = white;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(10, 10, S - 20, S - 20);
+
+    ctx.fillStyle = white;
+  }
+
+  // 绘制篆体/大字印文
+  ctx.font = "bold 64px 'Songti SC', 'Noto Serif SC', 'Hiragino Mincho ProN', serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // 右上
+  ctx.fillText(c1, S * 0.73, S * 0.30);
+  // 右下
+  ctx.fillText(c2, S * 0.73, S * 0.72);
+  // 左上
+  ctx.fillText(c3, S * 0.28, S * 0.30);
+  // 左下
+  ctx.fillText(c4, S * 0.28, S * 0.72);
+}
+
+function downloadSeal() {
+  const c = document.getElementById("sealCanvas");
+  if (!c) return;
+  const link = document.createElement("a");
+  link.download = `${(state.currentName ? state.currentName.name : '小星主')}_金石印鉴.png`;
+  link.href = c.toDataURL("image/png");
+  link.click();
+}
+
+/* ---------- 典藏命书绘卷海报生成器 ---------- */
+function openPosterModal() {
+  if (!state.currentName) return;
+  drawPoster(state.currentName);
+  openModal("posterModal");
+}
+
+function drawPoster(n) {
+  const c = document.getElementById("posterCanvas");
+  if (!c) return;
+  const ctx = c.getContext("2d");
+  const W = 600, H = 920;
+  ctx.clearRect(0, 0, W, H);
+
+  // 1. 底纹宣纸/夜空背景
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  if (state.theme === "dark") {
+    grad.addColorStop(0, "#131828");
+    grad.addColorStop(0.5, "#0e1320");
+    grad.addColorStop(1, "#080b14");
+  } else {
+    grad.addColorStop(0, "#fdfbf7");
+    grad.addColorStop(0.5, "#f7f3ea");
+    grad.addColorStop(1, "#eee7dc");
+  }
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 典雅回纹边框
+  const borderCol = state.theme === "dark" ? "rgba(229,185,116,0.3)" : "rgba(180,140,80,0.35)";
+  ctx.strokeStyle = borderCol;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(24, 24, W - 48, H - 48);
+  ctx.lineWidth = 1;
+  ctx.strokeRect(30, 30, W - 60, H - 60);
+
+  // 2. 标题卷轴徽章
+  const gold = state.theme === "dark" ? "#e5b974" : "#a87428";
+  const mainText = state.theme === "dark" ? "#f2f5fd" : "#242a38";
+  const subText = state.theme === "dark" ? "#9eb0cc" : "#62708c";
+
+  ctx.font = "bold 15px 'PingFang SC', sans-serif";
+  ctx.fillStyle = gold;
+  ctx.textAlign = "center";
+  ctx.fillText("✦ 星 命 观 测 局 · 小 星 主 命 书 绘 卷 ✦", W / 2, 72);
+
+  // 3. 父母寄语
+  ctx.font = "13px 'PingFang SC', sans-serif";
+  ctx.fillStyle = subText;
+  const surnameText = `父姓【${state.father}】${state.mother ? ' 母姓【' + state.mother + '】' : ''} · 遵天地之和`;
+  ctx.fillText(surnameText, W / 2, 102);
+
+  // 4. 书法大字名
+  ctx.font = "800 68px 'Songti SC', 'Noto Serif SC', serif";
+  ctx.fillStyle = mainText;
+  ctx.fillText(n.name, W / 2, 185);
+
+  // 拼音声韵
+  ctx.font = "600 16px sans-serif";
+  ctx.fillStyle = gold;
+  ctx.fillText(`${(n.py || []).join(" ")}  ·  ${n.pz || "平平平"}`, W / 2, 222);
+
+  // 5. 典故出处
+  const allusion = n.allusion_note || "语出名篇，如切如磋，如琢如磨";
+  ctx.font = "italic 15px 'Songti SC', serif";
+  ctx.fillStyle = state.theme === "dark" ? "#b5d4c8" : "#2f7560";
+  ctx.fillText(`📜 ${allusion}`, W / 2, 265);
+
+  // 6. 社交画像标签
+  ctx.font = "bold 15px 'PingFang SC', sans-serif";
+  ctx.fillStyle = gold;
+  ctx.fillText("✦ 现代社交第一印象画像 ✦", W / 2, 310);
+  ctx.font = "14px 'PingFang SC', sans-serif";
+  ctx.fillStyle = subText;
+  ctx.fillText("温和谦逊 · 言念君子 · 进退从容 · 朗朗有风骨", W / 2, 335);
+
+  // 7. 绘制雷达图
+  const rx = W / 2, ry = 480, R = 85;
+  const labels = ["清雅度", "朗朗度", "辨识度", "风骨感", "温暖度", "时代感"];
+  const N = labels.length;
+  const angleStep = (Math.PI * 2) / N;
+
+  ctx.strokeStyle = state.theme === "dark" ? "rgba(140, 165, 215, 0.2)" : "rgba(100, 130, 190, 0.25)";
+  for (let l = 1; l <= 4; l++) {
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const a = i * angleStep - Math.PI / 2;
+      const r = (R * l) / 4;
+      const x = rx + r * Math.cos(a);
+      const y = ry + r * Math.sin(a);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  // 雷达标签
+  ctx.font = "12px sans-serif";
+  ctx.fillStyle = subText;
+  for (let i = 0; i < N; i++) {
+    const a = i * angleStep - Math.PI / 2;
+    const lx = rx + (R + 22) * Math.cos(a);
+    const ly = ry + (R + 14) * Math.sin(a);
+    ctx.fillText(labels[i], lx, ly);
+  }
+
+  // 绘制数据区域
+  ctx.beginPath();
+  for (let i = 0; i < N; i++) {
+    const a = i * angleStep - Math.PI / 2;
+    const r = R * 0.88;
+    const x = rx + r * Math.cos(a);
+    const y = ry + r * Math.sin(a);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = state.theme === "dark" ? "rgba(229,185,116,0.35)" : "rgba(196,143,59,0.3)";
+  ctx.fill();
+  ctx.strokeStyle = gold;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // 8. 诸师评语摘录
+  ctx.font = "bold 14px 'PingFang SC', sans-serif";
+  ctx.fillStyle = gold;
+  ctx.fillText("— 诸 师 同 参 寄 语 —", W / 2, 630);
+  ctx.font = "13px 'PingFang SC', sans-serif";
+  ctx.fillStyle = subText;
+  ctx.fillText("「声韵起伏悠长，发音爽朗无阻；名中各字间架舒展，落笔重心稳健。」", W / 2, 660);
+  ctx.fillText("「字面有如清风拂翠、星汉微澜，是极耐细品的好意境。」", W / 2, 686);
+
+  // 9. 盖上印鉴
+  const seal = document.getElementById("sealCanvas");
+  if (seal) {
+    ctx.drawImage(seal, W / 2 - 45, 725, 90, 90);
+  }
+
+  // 底部落款
+  ctx.font = "11px sans-serif";
+  ctx.fillStyle = state.theme === "dark" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)";
+  ctx.fillText("星命观测局 · V3名韵工坊 专属推演典藏", W / 2, 850);
+}
+
+function downloadPoster() {
+  const c = document.getElementById("posterCanvas");
+  if (!c) return;
+  const link = document.createElement("a");
+  link.download = `${(state.currentName ? state.currentName.name : '小星主')}_典藏命书绘卷.png`;
+  link.href = c.toDataURL("image/png");
+  link.click();
+}
+
+/* ---------- 家庭亲属互动票箱 ---------- */
+function loadPollVotes() {
+  try {
+    state.pollVotes = JSON.parse(localStorage.getItem("v3_poll_votes")) || {};
+  } catch(e) { state.pollVotes = {}; }
+}
+
+function savePollVotes() {
+  try { localStorage.setItem("v3_poll_votes", JSON.stringify(state.pollVotes)); } catch(e){}
+}
+
+function openPollModal() {
+  renderPollList();
+  renderBlessings();
+  openModal("pollModal");
+}
+
+function renderPollList() {
+  const box = document.getElementById("pollList");
+  box.innerHTML = "";
+
+  // 评选名单：取当前名与前 3 个候选名
+  const pool = [];
+  if (state.currentName) pool.push(state.currentName);
+  state.candidates.forEach(c => {
+    if (!pool.some(p => p.name === c.name)) pool.push(c);
+  });
+  const topList = pool.slice(0, 4);
+
+  // 计算总票数
+  let totalVotes = 0;
+  topList.forEach(n => { totalVotes += (state.pollVotes[n.name] || 0); });
+
+  topList.forEach(n => {
+    const votes = state.pollVotes[n.name] || 0;
+    const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+
+    const card = document.createElement("div");
+    card.className = "pollCard";
+    card.innerHTML = `
+      <div class="pollTop">
+        <span class="pollName">${n.name} <span style="font-size:12px;color:var(--text-soft);">${(n.py||[]).join(" ")}</span></span>
+        <span class="pollVotes">${votes} 票 (${pct}%)</span>
+      </div>
+      <div class="pollProgress">
+        <div class="pollProgressBar" style="width:${pct}%"></div>
+      </div>
+      <div class="voteBtns">
+        <button class="voteBtn" onclick="castVote('${n.name}', '爸爸')">👨 爸爸赞成</button>
+        <button class="voteBtn" onclick="castVote('${n.name}', '妈妈')">👩 妈妈最爱</button>
+        <button class="voteBtn" onclick="castVote('${n.name}', '长辈')">👴 长辈看好</button>
+        <button class="voteBtn" onclick="castVote('${n.name}', '亲友')">🌟 亲友投一票</button>
+      </div>
+    `;
+    box.appendChild(card);
+  });
+}
+
+function castVote(name, voter) {
+  state.pollVotes[name] = (state.pollVotes[name] || 0) + 1;
+  savePollVotes();
+  renderPollList();
+  state.blessings.unshift({ sender: voter, text: `为「${name}」投出宝贵一票！` });
+  renderBlessings();
+}
+
+function renderBlessings() {
+  const box = document.getElementById("blessList");
+  box.innerHTML = "";
+  state.blessings.slice(0, 6).forEach(b => {
+    const it = document.createElement("div");
+    it.className = "blessItem";
+    it.innerHTML = `<b>${b.sender}：</b>${b.text}`;
+    box.appendChild(it);
+  });
+}
+
+function addBlessing() {
+  const inp = document.getElementById("blessInput");
+  const t = inp.value.trim();
+  if (t) {
+    state.blessings.unshift({ sender: "家人", text: t });
+    inp.value = "";
+    renderBlessings();
+  }
+}
+
+function copyPollLink() {
+  const names = (state.candidates.slice(0, 4).map(c => c.name)).join(",");
+  const url = `${window.location.origin}/v3/?poll=${encodeURIComponent(names)}&father=${encodeURIComponent(state.father)}`;
+  navigator.clipboard.writeText(url).then(() => {
+    alert("已复制家庭专属评选链接！发到微信群里，家人即可打开投票与留下寄语。");
+  }).catch(() => {
+    prompt("请复制以下专属评选链接：", url);
+  });
+}
+
+function checkUrlPollParam() {
+  const p = new URLSearchParams(window.location.search);
+  const poll = p.get("poll");
+  if (poll) {
+    setTimeout(() => {
+      openPollModal();
+    }, 800);
+  }
 }
 
 /* ---------- 收藏夹逻辑 ---------- */
@@ -1079,10 +1560,10 @@ function openFavModal() {
   } else {
     state.favs.forEach(f => {
       const it = document.createElement("div");
-      it.style.cssText = "display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.06);padding:10px 14px;border-radius:10px;cursor:pointer;";
+      it.style.cssText = "display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);padding:10px 14px;border-radius:10px;cursor:pointer;border:1px solid var(--panel-border);margin-bottom:8px;";
       it.innerHTML = `
         <div>
-          <div style="font-size:16px;font-weight:700;color:#fff;">${f.name} <span style="font-size:12px;color:var(--accent);">综合 ${f.total}</span></div>
+          <div style="font-size:16px;font-weight:700;color:var(--text);">${f.name} <span style="font-size:12px;color:var(--accent);">综合 ${f.total}</span></div>
           <div style="font-size:11.5px;color:var(--text-soft);">${(f.py||[]).join(" ")}</div>
         </div>
         <button class="pillBtn" style="color:#f7a8b8;" onclick="removeFav('${f.name}')">移除</button>
@@ -1090,16 +1571,12 @@ function openFavModal() {
       it.onclick = (e) => {
         if (e.target.tagName === "BUTTON") return;
         loadActiveName(f);
-        closeFavModal();
+        closeModal("favModal");
       };
       list.appendChild(it);
     });
   }
-  modal.classList.add("show");
-}
-
-function closeFavModal() {
-  document.getElementById("favModal").classList.remove("show");
+  openModal("favModal");
 }
 
 function removeFav(name) {
@@ -1107,6 +1584,16 @@ function removeFav(name) {
   saveFavs();
   openFavModal();
   if (state.candidates.length) renderStream(state.candidates);
+}
+
+function openModal(id) {
+  const m = document.getElementById(id);
+  if (m) m.classList.add("show");
+}
+
+function closeModal(id) {
+  const m = document.getElementById(id);
+  if (m) m.classList.remove("show");
 }
 </script>
 </body>
