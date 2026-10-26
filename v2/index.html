@@ -306,28 +306,34 @@
   }
 
 
-  /* 意境标签与期许场景自适应流式布局，彻底根除与上下层重叠 */
-  .scene--tags{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
-    padding:0 12px max(14px,env(safe-area-inset-bottom));overflow-y:auto}
-  .scene--tags .bLayer{position:relative;bottom:auto;left:auto;right:auto;margin-bottom:8px;flex-shrink:0}
-  .scene--tags .bLayer .bubble{padding:9px 13px 10px;font-size:13.5px;line-height:1.52}
-  .scene--tags .bLayer .bubble::before{display:none} /* 紧凑状态去掉上箭头避免重叠 */
-  .scene--tags .cLayer{position:relative;bottom:auto;left:auto;right:auto}
-  .tagCard{background:var(--panel);border:1px solid var(--panel-line);border-radius:var(--radius);
-    padding:9px 11px;backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(70,50,100,.14)}
-  .tagGrid{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin:0 0 5px}
+  /* 意境标签与期许选择卡（紧凑无缝内嵌于标准 fixed 舞台） */
+  .tagCard{background:var(--panel);border:1.5px solid var(--panel-line);border-radius:var(--radius);
+    padding:10px 12px;backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(70,50,100,.14);box-sizing:border-box}
+  .tagGrid{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:6px}
   .tagChip{border:1px solid var(--panel-line);background:rgba(255,255,255,.65);border-radius:14px;
-    padding:4px 9px;font-size:12px;color:var(--ink);cursor:pointer;transition:all .15s;user-select:none}
+    padding:4px 10px;font-size:12.5px;color:var(--ink);cursor:pointer;transition:all .15s;user-select:none}
   .tagChip.sel{background:linear-gradient(160deg,var(--accent),var(--accent2));color:#fff;
-    border-color:transparent;box-shadow:0 2px 7px var(--glow);transform:scale(1.03)}
-  .tagInput{width:100%;border:1px solid var(--panel-line);border-radius:9px;padding:7px 11px;
-    font-size:12.5px;background:rgba(255,255,255,.8);color:var(--ink);margin:2px 0 6px;text-align:center;outline:none}
+    border-color:transparent;box-shadow:0 2px 7px var(--glow);transform:scale(1.04)}
+  .tagInput{width:100%;box-sizing:border-box;border:1px solid var(--panel-line);border-radius:10px;padding:7px 12px;
+    font-size:12.5px;background:rgba(255,255,255,.85);color:var(--ink);margin:4px 0 8px;text-align:center;outline:none}
   .tagInput:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--glow)}
-  .tagBtnRow{display:flex;gap:7px}
-  .tagBtnRow .btn{margin-top:0;padding:8px 6px;font-size:13px;border-radius:10px}
-  .tagBtnRow .skip{flex:1;background:rgba(255,255,255,.55)}
+  .tagBtnRow{display:flex;gap:8px}
+  .tagBtnRow .btn{margin-top:0;padding:10px 8px;font-size:13.5px;border-radius:12px}
+  .tagBtnRow .skip{flex:1;background:rgba(255,255,255,.58)}
   .tagBtnRow .tagOkBtn{flex:1.4}
 
+  /* 小屏高度适配：避免气泡与较高中层控件（八字/轮播/期许）发生挤压 */
+  @media (max-height: 720px){
+    .scene--fixed .bLayer{bottom:35%}
+    .scene--fixed .bLayer .bubble{padding:9px 13px 11px;font-size:13.5px;line-height:1.48}
+    .actor{height:34vh;max-height:270px}
+    .btn{margin-top:10px;padding:11px;font-size:14.5px}
+    .carousel{margin:6px 0 4px}
+    .carousel .pickBtn{margin-top:6px;padding:8px 18px}
+    .balanceBtn{margin-top:6px;padding:9px 14px}
+    .birthWrap input[type="date"],
+    .birthWrap select{height:36px;font-size:13.5px;padding:0 8px}
+  }
   /* 结果木牌 */
   #result{position:absolute;top:0;bottom:0;left:0;right:0;z-index:5;overflow-y:auto;
     max-width:440px;margin:0 auto;padding:8px 12px 20px;
@@ -926,15 +932,12 @@ function fetchBazi(){
 
 function renderScene(sc){
   $("#step").textContent = sc.step || "";
-  const isTags = sc.ask && sc.ask.widget === "tags";
-  sceneEl.classList.toggle("scene--tags", isTags);
-  sceneEl.classList.toggle("scene--fixed", !isTags && (sc.kind==="talk"||sc.kind==="ask"||sc.kind==="branch"||sc.kind==="carousel"));
+  sceneEl.classList.toggle("scene--fixed", sc.kind==="talk"||sc.kind==="ask"||sc.kind==="branch"||sc.kind==="carousel");
   sceneEl.classList.toggle("scene--summary", sc.kind==="summary");
-  /* 立绘位置/尺寸：汇总表与意象场景抬高立绘并略缩小，其余场景用默认 */
+  /* 立绘位置/尺寸：汇总表时星师抬到上方并缩小，其余场景用默认（#1/#2） */
   const _rd = document.documentElement.style;
   if(sc.kind==="summary"){ _rd.setProperty("--actor-bottom","66%"); _rd.setProperty("--actor-h","26vh"); _rd.setProperty("--actor-max","220px"); }
-  else if(isTags){ _rd.setProperty("--actor-bottom","52%"); _rd.setProperty("--actor-h","30vh"); _rd.setProperty("--actor-max","240px"); }
-  else if(sc.kind==="ask"){ _rd.setProperty("--actor-bottom","44%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
+  else if(sc.kind==="ask" || sc.kind==="carousel"){ _rd.setProperty("--actor-bottom","44%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
   else if(sc.kind!=="ritual"){ _rd.setProperty("--actor-bottom","38%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
   /* 登场门控：内容(气泡/输入)待立绘登场完成后再出现；小助理按场景切换立绘 */
   state._actorReady=false; state._onActor=null;
@@ -1037,7 +1040,7 @@ function renderAsk(sc){
       inner = '<div class="bubble"><p>八字尚在推算…</p></div>';
     }
   } else if(a.widget==="tags"){
-    const TAGS_VOCAB = ['智慧','才华','健康','安宁','光明','品德','勇敢','温婉','灵秀','仁愛','喜悦','自由','俊逸','坚韧'];
+    const TAGS_VOCAB = ['聪慧','健康','光明','温婉','安宁','博雅','俊朗','坚韧','仁爱','喜乐'];
     state.tags = state.tags || [];
     const chips = TAGS_VOCAB.map(t=>{
       const sel = state.tags.includes(t) ? ' sel' : '';
