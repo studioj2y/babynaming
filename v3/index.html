@@ -136,6 +136,30 @@
   .heroIntro h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.12em; color: var(--text); }
   .heroIntro p { margin: 6px 0 0; font-size: 13px; color: var(--text-soft); }
 
+  /* 控制台与顶部分栏 */
+  .deckTabs {
+    display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 12px; flex-wrap: wrap;
+  }
+  .deckTab {
+    background: transparent; border: 1px solid transparent; font-size: 13.5px; font-weight: 600;
+    color: var(--text-soft); padding: 7px 16px; border-radius: 10px; cursor: pointer;
+    transition: all .2s;
+  }
+  .deckTab:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+  .deckTab.active {
+    background: var(--accent); color: #fff; font-weight: 700;
+    box-shadow: 0 4px 14px var(--accent-glow);
+  }
+  /* 直接测名面板 */
+  .directPanel { display: flex; flex-direction: column; gap: 14px; }
+  .directRow { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .directInputWrap { display: flex; gap: 10px; align-items: center; width: 100%; max-width: 520px; }
+  .quickDirectBar {
+    margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--panel-border);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+
   /* 控制台 */
   .controlDeck {
     background: var(--panel); border: 1px solid var(--panel-border);
@@ -417,7 +441,15 @@
 
   <!-- 工坊控制台 -->
   <section class="controlDeck">
-    <div class="deckRow">
+    <!-- 模式切换：智能推演 VS 自带名字直接测名 -->
+    <div class="deckTabs">
+      <button class="deckTab active" id="tabGen" type="button" onclick="switchDeckMode('gen')">✦ 智能灵感推演（从姓氏/定字配名）</button>
+      <button class="deckTab" id="tabDirect" type="button" onclick="switchDeckMode('direct')">🔍 自带心仪名字 · 直接深度测评</button>
+    </div>
+
+    <!-- 模式A：推演面板 -->
+    <div id="genPanel">
+      <div class="deckRow">
       <div class="fieldItem">
         <label class="fieldLabel">父亲姓氏</label>
         <input class="textInput" id="fatherInput" type="text" maxlength="2" placeholder="如 李" value="林" />
@@ -481,6 +513,46 @@
           <span class="quickChip" onclick="setQuickPin('景')">景</span>
           <span class="quickChip" onclick="setQuickPin('澈')">澈</span>
         </div>
+      </div>
+    </div>
+
+      <!-- 推演模式下的快捷测名条 -->
+      <div class="quickDirectBar">
+        <span style="font-size:12.5px;color:var(--text-soft);font-weight:600;">或者已有心仪名字？</span>
+        <input class="textInput" id="quickDirectInput" type="text" maxlength="4" placeholder="输入完整姓名，如 林知恩" style="width:180px;font-weight:700;" onkeydown="if(event.key==='Enter') triggerQuickDirectAnalyze()" />
+        <button class="pillBtn" type="button" onclick="triggerQuickDirectAnalyze()">✨ 立即测评</button>
+      </div>
+    </div>
+
+    <!-- 模式B：自带名字直接测评面板 -->
+    <div class="directPanel" id="directPanel" style="display:none;">
+      <div class="directRow">
+        <div class="fieldItem" style="flex:1;min-width:260px;">
+          <label class="fieldLabel">输入宝宝完整姓名（2~4字，如 林知恩、林清澈、苏沐辰）</label>
+          <div class="directInputWrap">
+            <input class="textInput" id="directNameInput" type="text" maxlength="4" placeholder="输入完整姓名，如 林知恩" style="flex:1;font-size:16px;font-weight:700;padding:10px 14px;" onkeydown="if(event.key==='Enter') triggerDirectAnalyze()" />
+            <button class="magicBtn" id="directAnalyzeBtn" type="button" onclick="triggerDirectAnalyze()">
+              <span>✨ 立即深度测名 ✨</span>
+            </button>
+          </div>
+        </div>
+        <div class="fieldItem">
+          <label class="fieldLabel">小星主性别</label>
+          <div class="segGroup" id="genderSegDirect">
+            <button type="button" class="active" data-v="U">不限 ✦</button>
+            <button type="button" data-v="M">男孩 ♂</button>
+            <button type="button" data-v="F">女孩 ♀</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;">
+        <span style="font-size:12px;color:var(--text-dim);">试一试名家好名：</span>
+        <span class="quickChip" onclick="setQuickDirectName('林知恩')">林知恩</span>
+        <span class="quickChip" onclick="setQuickDirectName('林清澈')">林清澈</span>
+        <span class="quickChip" onclick="setQuickDirectName('陈语晨')">陈语晨</span>
+        <span class="quickChip" onclick="setQuickDirectName('李若涵')">李若涵</span>
+        <span class="quickChip" onclick="setQuickDirectName('周朗行')">周朗行</span>
+        <span class="quickChip" onclick="setQuickDirectName('苏沐晴')">苏沐晴</span>
       </div>
     </div>
   </section>
@@ -694,6 +766,122 @@ const SWAP_POOLS = {
   water: ["涵","沐","沛","潇","漪","瀚","润","澈","淳","溯","澜","深","泽","洲","源","浩","洋","澄"]
 };
 
+/* ---------- 直接测名与模式切换 ---------- */
+let deckMode = "gen"; // 'gen' 或 'direct'
+
+function switchDeckMode(mode) {
+  deckMode = mode;
+  document.getElementById("tabGen").classList.toggle("active", mode === "gen");
+  document.getElementById("tabDirect").classList.toggle("active", mode === "direct");
+  document.getElementById("genPanel").style.display = mode === "gen" ? "block" : "none";
+  document.getElementById("directPanel").style.display = mode === "direct" ? "flex" : "none";
+  if (mode === "direct") {
+    setTimeout(() => { document.getElementById("directNameInput").focus(); }, 100);
+  }
+}
+
+function setQuickDirectName(name) {
+  document.getElementById("directNameInput").value = name;
+  triggerDirectAnalyze(name);
+}
+
+function triggerQuickDirectAnalyze() {
+  const inp = document.getElementById("quickDirectInput");
+  const name = inp.value.trim();
+  if (name) triggerDirectAnalyze(name);
+}
+
+function triggerDirectAnalyze(overrideName) {
+  let name = (overrideName || document.getElementById("directNameInput").value || "").trim();
+  if (!name) {
+    alert("请输入宝宝完整姓名（如：林知恩）");
+    return;
+  }
+  if (name.length < 2 || name.length > 4) {
+    alert("名字长度建议在 2 到 4 个字之间");
+    return;
+  }
+
+  // 提取姓氏
+  let surname = name.length >= 3 && ["欧阳","诸葛","司马","上官","东方","独孤","南宫"].includes(name.slice(0, 2)) ? name.slice(0, 2) : name[0];
+  state.father = surname;
+  document.getElementById("fatherInput").value = surname;
+
+  const btn = document.getElementById("directAnalyzeBtn");
+  if (btn) {
+    btn.style.opacity = ".6";
+    btn.querySelector("span").textContent = "✨ 深度分析中…";
+  }
+
+  fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: name,
+      gender: state.gender,
+      father: surname,
+      mother: state.mother,
+      mode: state.mode
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (btn) {
+      btn.style.opacity = "1";
+      btn.querySelector("span").textContent = "✨ 立即深度测名 ✨";
+    }
+    if (data.names && data.names.length) {
+      const active = data.names[0];
+      loadActiveName(active);
+
+      // 伴生推演：在下方候选流生成以该姓氏为根基的同宗好名，方便对比参考
+      fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          father: surname,
+          mother: state.mother,
+          mode: "F",
+          name_len: name.length,
+          gender: state.gender,
+          tags: ["清雅","好读"]
+        })
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.names && d.names.length) {
+          // 将当前测的名字放在首位
+          state.candidates = [active, ...d.names.filter(x => x.name !== active.name)];
+          renderStream(state.candidates);
+        }
+      }).catch(e => {});
+
+      // 平滑滚动至主舞台
+      document.getElementById("altarCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      alert("该名字未能完成深度测评，请检查输入汉字是否正确。");
+    }
+  })
+  .catch(err => {
+    if (btn) {
+      btn.style.opacity = "1";
+      btn.querySelector("span").textContent = "✨ 立即深度测名 ✨";
+    }
+    console.error("测名失败:", err);
+    alert("测名推演中断，请稍后重试。");
+  });
+}
+
+function checkUrlDirectName() {
+  const p = new URLSearchParams(window.location.search);
+  const direct = p.get("name") || p.get("analyze");
+  if (direct) {
+    switchDeckMode("direct");
+    document.getElementById("directNameInput").value = direct;
+    setTimeout(() => { triggerDirectAnalyze(direct); }, 400);
+  }
+}
+
 /* ---------- 初始化 ---------- */
 window.addEventListener("DOMContentLoaded", () => {
   initTheme();
@@ -702,7 +890,13 @@ window.addEventListener("DOMContentLoaded", () => {
   loadPollVotes();
   bindControls();
   checkUrlPollParam();
-  triggerGenerate();
+  bindSeg("genderSegDirect", v => { applyGenderTheme(v); });
+  const hasUrlName = new URLSearchParams(window.location.search).get("name") || new URLSearchParams(window.location.search).get("analyze");
+  if (hasUrlName) {
+    checkUrlDirectName();
+  } else {
+    triggerGenerate();
+  }
 });
 
 /* 主题与性别色彩切换 */
