@@ -4,7 +4,15 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>星命观测局 · V3 名韵工坊 (Name Studio)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;900&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <style>
+  @font-face {
+    font-family: 'AncientSeal';
+    src: url('https://cdn.jsdelivr.net/gh/SuperMate-Ai/JFZSKSealScript@1.0/fonts/JFZSKSealScript.ttf') format('truetype');
+    font-display: swap;
+  }
   :root {
     --theme-t: .35s;
     --radius: 16px;
@@ -374,11 +382,49 @@
   .modalHead h3 { margin: 0; font-size: 16px; color: var(--text); }
   .closeBtn { background: none; border: none; color: var(--text-soft); font-size: 20px; cursor: pointer; }
 
-  /* 专属印鉴弹窗样式 */
-  .sealStage { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0; gap: 14px; }
-  #sealCanvas { border-radius: 12px; box-shadow: 0 8px 30px rgba(180,38,38,0.35); }
+  /* 专属金石印鉴工坊样式 */
+  .sealStage { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 0; gap: 12px; }
+  .sealPreviewWrap {
+    position: relative; padding: 12px; background: rgba(0,0,0,0.22);
+    border-radius: 16px; border: 1px solid var(--panel-border);
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.25);
+  }
+  #sealCanvas {
+    width: 195px; height: 195px; border-radius: 10px;
+    box-shadow: 0 10px 32px rgba(180,38,38,0.35);
+    display: block; cursor: pointer; transition: transform .2s var(--ease);
+  }
+  #sealCanvas:hover { transform: scale(1.02); }
   .sealDesc { font-size: 12px; color: var(--text-soft); text-align: center; line-height: 1.5; }
-  .sealTools { display: flex; gap: 10px; justify-content: center; }
+  .sealConfigBox {
+    width: 100%; display: flex; flex-direction: column; gap: 9px;
+    background: var(--input-bg); border: 1px solid var(--panel-border);
+    border-radius: 14px; padding: 12px 14px;
+  }
+  .sealRow {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  }
+  .sealRowLabel {
+    font-size: 12px; font-weight: 700; color: var(--text-soft); min-width: 58px;
+  }
+  .sealBtnGroup {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .sealChoiceBtn {
+    font-size: 11px; padding: 4px 10px; border-radius: 12px;
+    border: 1px solid var(--panel-border); background: rgba(255,255,255,0.06);
+    color: var(--text-soft); cursor: pointer; transition: all .16s var(--ease);
+  }
+  .sealChoiceBtn:hover {
+    border-color: var(--accent); color: var(--text);
+  }
+  .sealChoiceBtn.active {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .sealActionRow {
+    display: flex; gap: 10px; justify-content: center; width: 100%; flex-wrap: wrap; margin-top: 4px;
+  }
 
   /* 典藏海报弹窗样式 */
   .posterStage { display: flex; flex-direction: column; align-items: center; padding: 10px 0; gap: 14px; }
@@ -668,17 +714,68 @@
 
 <!-- 专属金石印鉴弹窗 -->
 <div class="modal" id="sealModal">
-  <div class="modalCard">
+  <div class="modalCard" style="max-width:520px;">
     <div class="modalHead">
       <h3>🈴 小星主专属金石印鉴</h3>
       <button class="closeBtn" onclick="closeModal('sealModal')">✕</button>
     </div>
     <div class="sealStage">
-      <canvas id="sealCanvas" width="220" height="220"></canvas>
-      <div class="sealDesc">汲取秦汉古玺风韵 · 朱文印泥质感 · 可用作头像与手账图章</div>
-      <div class="sealTools">
-        <button class="pillBtn" type="button" onclick="toggleSealType()">切换阳文/阴文</button>
-        <button class="pillBtn" style="background:var(--accent);color:#fff;" type="button" onclick="downloadSeal()">💾 保存高清透明印章</button>
+      <div class="sealPreviewWrap">
+        <canvas id="sealCanvas" width="440" height="440"></canvas>
+      </div>
+      <div class="sealDesc" id="sealDescText">秦汉古玺风韵 · 八宝朱砂印泥 · 金石残刃风化质感</div>
+
+      <!-- 印章形制与金石参数配置区 -->
+      <div class="sealConfigBox">
+        <div class="sealRow">
+          <span class="sealRowLabel">古字体系</span>
+          <div class="sealBtnGroup" id="sealFontGroup">
+            <button class="sealChoiceBtn active" type="button" data-val="ancient" onclick="setSealOption('font', 'ancient')">🏛️ 秦汉古篆</button>
+            <button class="sealChoiceBtn" type="button" data-val="clerical" onclick="setSealOption('font', 'clerical')">📜 金石汉隶</button>
+            <button class="sealChoiceBtn" type="button" data-val="wei" onclick="setSealOption('font', 'wei')">🗡️ 北魏造像</button>
+            <button class="sealChoiceBtn" type="button" data-val="literary" onclick="setSealOption('font', 'literary')">🪶 文人行楷</button>
+          </div>
+        </div>
+
+        <div class="sealRow">
+          <span class="sealRowLabel">印文章法</span>
+          <div class="sealBtnGroup" id="sealInkGroup">
+            <button class="sealChoiceBtn active" type="button" data-val="bai" onclick="setSealOption('ink', 'bai')">🈴 汉印白文 (阴文)</button>
+            <button class="sealChoiceBtn" type="button" data-val="zhu" onclick="setSealOption('ink', 'zhu')">🧧 宋元朱文 (阳文)</button>
+            <button class="sealChoiceBtn" type="button" data-val="kuanzhu" onclick="setSealOption('ink', 'kuanzhu')">🏮 宽边朱文</button>
+          </div>
+        </div>
+
+        <div class="sealRow">
+          <span class="sealRowLabel">印式形制</span>
+          <div class="sealBtnGroup" id="sealShapeGroup">
+            <button class="sealChoiceBtn active" type="button" data-val="square" onclick="setSealOption('shape', 'square')">⬛ 方正官印</button>
+            <button class="sealChoiceBtn" type="button" data-val="round" onclick="setSealOption('shape', 'round')">⭕ 流光圆印</button>
+          </div>
+        </div>
+
+        <div class="sealRow">
+          <span class="sealRowLabel">金石风化</span>
+          <div class="sealBtnGroup" id="sealWeatherGroup">
+            <button class="sealChoiceBtn active" type="button" data-val="antique" onclick="setSealOption('weathering', 'antique')">🪨 秦汉斑驳 (残刃沙眼)</button>
+            <button class="sealChoiceBtn" type="button" data-val="smooth" onclick="setSealOption('weathering', 'smooth')">✨ 传世温润</button>
+          </div>
+        </div>
+
+        <div class="sealRow">
+          <span class="sealRowLabel">底衬质感</span>
+          <div class="sealBtnGroup" id="sealBgGroup">
+            <button class="sealChoiceBtn active" type="button" data-val="paper" onclick="setSealOption('bg', 'paper')">📜 宣纸底衬 (微压痕)</button>
+            <button class="sealChoiceBtn" type="button" data-val="transparent" onclick="setSealOption('bg', 'transparent')">💎 透明底 (免抠图/头像)</button>
+            <button class="sealChoiceBtn" type="button" onclick="reRollSeal()">🎲 换处刀花</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="sealActionRow">
+        <button class="pillBtn" style="background:var(--accent);color:#fff;padding:8px 18px;" type="button" onclick="downloadSeal()">💾 保存高清印鉴 (PNG)</button>
+        <button class="pillBtn" type="button" onclick="copySealImage()">📋 复制印鉴图</button>
       </div>
     </div>
   </div>
@@ -750,7 +847,16 @@ const state = {
   currentName: null,
   activeMentor: "yinlv",
   swapTargetIdx: 1,
-  sealType: "zhu", // 'zhu' 朱文(红线白底) 或 'bai' 白文(红底白字)
+  sealType: "bai",
+  seal: {
+    font: "ancient",
+    ink: "bai",
+    shape: "square",
+    weathering: "antique",
+    bg: "paper",
+    grid: "cross",
+    variant: 0
+  },
   favs: [],
   pollVotes: {},
   blessings: [
@@ -1368,15 +1474,89 @@ function renderStream(list) {
   });
 }
 
-/* ---------- 专属金石印鉴生成器 ---------- */
+/* ---------- 专属金石印鉴拟真渲染工坊 ---------- */
+function createSeededRandom(seedStr) {
+  let h = 1779033703 ^ seedStr.length;
+  for (let i = 0; i < seedStr.length; i++) {
+    h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return function() {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
+  };
+}
+
+function getSealFontStack(styleKey) {
+  if (styleKey === "ancient") {
+    return "'AncientSeal', 'FZXiaoZhuan-S00T', 'FZXZTFW', 'FangZhengXiaoZhuan', '方正小篆体', 'STLiti', 'LiSu', 'SimLi', '隶书', 'ZCOOL XiaoWei', 'STKaiti', serif";
+  } else if (styleKey === "clerical") {
+    return "'STLiti', 'LiSu', 'SimLi', '隶书', 'ZCOOL XiaoWei', 'STXinwei', 'STKaiti', serif";
+  } else if (styleKey === "wei") {
+    return "'STXinwei', '华文新魏', 'ZCOOL XiaoWei', 'Ma Shan Zheng', 'STKaiti', serif";
+  } else {
+    return "'FZShuTi', '方正舒体', 'Ma Shan Zheng', 'STKaiti', 'KaiTi', '楷体', serif";
+  }
+}
+
+function setSealOption(cat, val) {
+  if (!state.seal) state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "cross", variant: 0 };
+  state.seal[cat] = val;
+  if (cat === "ink") state.sealType = val;
+  updateSealControlsUI();
+  if (state.currentName) drawSeal(state.currentName.name);
+}
+
+function reRollSeal() {
+  if (!state.seal) state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "cross", variant: 0 };
+  state.seal.variant = (state.seal.variant || 0) + 1;
+  if (state.currentName) drawSeal(state.currentName.name);
+}
+
+function updateSealControlsUI() {
+  const s = state.seal;
+  if (!s) return;
+  const groups = [
+    { id: "sealFontGroup", val: s.font },
+    { id: "sealInkGroup", val: s.ink },
+    { id: "sealShapeGroup", val: s.shape },
+    { id: "sealWeatherGroup", val: s.weathering },
+    { id: "sealBgGroup", val: s.bg }
+  ];
+  groups.forEach(g => {
+    const el = document.getElementById(g.id);
+    if (!el) return;
+    el.querySelectorAll(".sealChoiceBtn").forEach(btn => {
+      const dataVal = btn.getAttribute("data-val");
+      if (dataVal) {
+        if (dataVal === g.val) btn.classList.add("active");
+        else btn.classList.remove("active");
+      }
+    });
+  });
+}
+
 function openSealModal() {
   if (!state.currentName) return;
+  if (!state.seal) {
+    state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "cross", variant: 0 };
+  }
+  updateSealControlsUI();
   drawSeal(state.currentName.name);
   openModal("sealModal");
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      if (state.currentName) drawSeal(state.currentName.name);
+    });
+  }
 }
 
 function toggleSealType() {
-  state.sealType = state.sealType === "zhu" ? "bai" : "zhu";
+  if (!state.seal) state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "cross", variant: 0 };
+  state.seal.ink = state.seal.ink === "bai" ? "zhu" : "bai";
+  state.sealType = state.seal.ink;
+  updateSealControlsUI();
   if (state.currentName) drawSeal(state.currentName.name);
 }
 
@@ -1384,73 +1564,356 @@ function drawSeal(name) {
   const c = document.getElementById("sealCanvas");
   if (!c) return;
   const ctx = c.getContext("2d");
-  const S = 220;
+  const S = 440; // 2x 超高清渲染
+  c.width = S;
+  c.height = S;
   ctx.clearRect(0, 0, S, S);
 
-  // 四字布局（传统汉印右起竖读：右上→右下→左上→左下）
+  if (!state.seal) {
+    state.seal = { font: "ancient", ink: "bai", shape: "square", weathering: "antique", bg: "paper", grid: "cross", variant: 0 };
+  }
+  const opt = state.seal;
+  const fontStyle = opt.font || "ancient";
+  const inkType = opt.ink || "bai"; // "bai" | "zhu" | "kuanzhu"
+  const shape = opt.shape || "square"; // "square" | "round"
+  const weathering = opt.weathering || "antique"; // "antique" | "smooth"
+  const bg = opt.bg || "paper"; // "paper" | "transparent"
+  const grid = opt.grid || "cross";
+  const variant = opt.variant || 0;
+  const isRound = (shape === "round");
+
+  const rng = createSeededRandom(`${name}_${fontStyle}_${inkType}_${shape}_${weathering}_${grid}_${variant}`);
+
+  // 1. 宣纸底衬与草木微纤维
+  const paperTone = "#faf6ed";
+  if (bg === "paper") {
+    const pGrad = ctx.createLinearGradient(0, 0, S, S);
+    pGrad.addColorStop(0, "#fbf7ee");
+    pGrad.addColorStop(0.5, "#f5efe1");
+    pGrad.addColorStop(1, "#eee5cf");
+    ctx.fillStyle = pGrad;
+    ctx.fillRect(0, 0, S, S);
+
+    // 宣纸手工草木微纤维
+    for (let i = 0; i < 45; i++) {
+      const fx = rng() * S;
+      const fy = rng() * S;
+      const fl = 3 + rng() * 9;
+      const fa = rng() * Math.PI;
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(fx + Math.cos(fa) * fl, fy + Math.sin(fa) * fl);
+      ctx.strokeStyle = `rgba(180, 160, 130, ${0.06 + rng() * 0.12})`;
+      ctx.lineWidth = 0.8 + rng() * 0.6;
+      ctx.stroke();
+    }
+  }
+
+  // 2. 八宝朱砂印泥色彩层次（模拟手工钤印受力与朱砂沉淀）
+  const inkGrad = ctx.createRadialGradient(
+    S * 0.44, S * 0.40, S * 0.1,
+    S * 0.50, S * 0.50, S * 0.68
+  );
+  inkGrad.addColorStop(0.00, "#cb2626"); // 鲜润朱砂核心
+  inkGrad.addColorStop(0.35, "#b71e1e"); // 正色浓朱
+  inkGrad.addColorStop(0.70, "#941515"); // 沉敛金石红
+  inkGrad.addColorStop(1.00, "#750e0e"); // 边缘自然氧化微暗
+
+  // 3. 四字布局（传统汉印右起竖读：右上→右下→左上→左下，2字读：名0名1之印）
   let c1, c2, c3, c4;
   if (name.length === 2) {
-    c1 = name[0]; c2 = "之"; c3 = name[1]; c4 = "印";
+    c1 = name[0]; c2 = name[1]; c3 = "之"; c4 = "印";
   } else if (name.length === 3) {
     c1 = name[0]; c2 = name[1]; c3 = name[2]; c4 = "印";
   } else {
     c1 = name[0]; c2 = name[1]; c3 = name[2]; c4 = name[3] || "印";
   }
 
-  const red = "#b82626";
-  const white = "#fcf9f2";
+  // 4. 金石残边生成器（模拟刀刻风化与崩角）
+  function drawChiseledRect(x, y, w, h, jitter, allowBreak) {
+    const pts = [];
+    const segs = 18;
+    // Top
+    for (let i = 0; i <= segs; i++) {
+      const px = x + (w * i) / segs;
+      let py = y + (rng() - 0.5) * jitter;
+      if (weathering === "antique" && rng() < 0.08) py += (rng() > 0.5 ? 1 : -1) * (2 + rng() * 4);
+      pts.push([px, py]);
+    }
+    // Right
+    for (let i = 1; i <= segs; i++) {
+      let px = x + w + (rng() - 0.5) * jitter;
+      const py = y + (h * i) / segs;
+      if (weathering === "antique" && rng() < 0.08) px += (rng() > 0.5 ? 1 : -1) * (2 + rng() * 4);
+      pts.push([px, py]);
+    }
+    // Bottom
+    for (let i = 1; i <= segs; i++) {
+      const px = x + w - (w * i) / segs;
+      let py = y + h + (rng() - 0.5) * jitter;
+      if (weathering === "antique" && rng() < 0.08) py += (rng() > 0.5 ? 1 : -1) * (2 + rng() * 4);
+      pts.push([px, py]);
+    }
+    // Left
+    for (let i = 1; i < segs; i++) {
+      let px = x + (rng() - 0.5) * jitter;
+      const py = y + h - (h * i) / segs;
+      if (weathering === "antique" && rng() < 0.08) px += (rng() > 0.5 ? 1 : -1) * (2 + rng() * 4);
+      pts.push([px, py]);
+    }
 
-  if (state.sealType === "zhu") { // 朱文（白底红字红框）
-    ctx.fillStyle = white;
-    ctx.fillRect(0, 0, S, S);
-
-    // 双重边框
-    ctx.strokeStyle = red;
-    ctx.lineWidth = 9;
-    ctx.strokeRect(8, 8, S - 16, S - 16);
-    ctx.lineWidth = 2.5;
-    ctx.strokeRect(17, 17, S - 34, S - 34);
-
-    // 中间十字分割细线
     ctx.beginPath();
-    ctx.moveTo(S / 2, 17); ctx.lineTo(S / 2, S - 17);
-    ctx.moveTo(17, S / 2); ctx.lineTo(S - 17, S / 2);
-    ctx.stroke();
-
-    ctx.fillStyle = red;
-  } else { // 白文（红底白字）
-    ctx.fillStyle = red;
-    ctx.fillRect(0, 0, S, S);
-
-    ctx.strokeStyle = white;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(10, 10, S - 20, S - 20);
-
-    ctx.fillStyle = white;
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) {
+      ctx.lineTo(pts[i][0], pts[i][1]);
+    }
+    ctx.closePath();
   }
 
-  // 绘制篆体/大字印文
-  ctx.font = "bold 64px 'Songti SC', 'Noto Serif SC', 'Hiragino Mincho ProN', serif";
+  const pad = 36;
+  const boxW = S - pad * 2;
+  const boxH = S - pad * 2;
+  const rx = S / 2, ry = S / 2;
+  const rad = 168;
+
+  // 渗透羽化与阴影（模拟宣纸毛细咬墨效果）
+  ctx.save();
+  ctx.shadowColor = "rgba(168, 28, 28, 0.42)";
+  ctx.shadowBlur = weathering === "antique" ? 4 : 2;
+
+  if (!isRound) {
+    if (inkType === "bai") { // 汉印白文（满红底白字）
+      drawChiseledRect(pad, pad, boxW, boxH, weathering === "antique" ? 2.5 : 1.2, true);
+      ctx.fillStyle = inkGrad;
+      ctx.fill();
+
+      ctx.strokeStyle = inkGrad;
+      ctx.lineWidth = 14;
+      ctx.stroke();
+    } else { // 朱文（白底红线）
+      drawChiseledRect(pad, pad, boxW, boxH, weathering === "antique" ? 2.2 : 1.0, false);
+      ctx.strokeStyle = inkGrad;
+      ctx.lineWidth = inkType === "kuanzhu" ? 22 : 10;
+      ctx.stroke();
+
+      if (inkType === "zhu") {
+        drawChiseledRect(pad + 14, pad + 14, boxW - 28, boxH - 28, 1.2, false);
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+    }
+  } else {
+    ctx.beginPath();
+    const segs = 64;
+    for (let i = 0; i <= segs; i++) {
+      const a = (i * Math.PI * 2) / segs;
+      let r = rad + (rng() - 0.5) * (weathering === "antique" ? 2.8 : 1.4);
+      if (weathering === "antique" && rng() < 0.08) r -= 3 + rng() * 4;
+      const x = rx + Math.cos(a) * r;
+      const y = ry + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+
+    if (inkType === "bai") {
+      ctx.fillStyle = inkGrad;
+      ctx.fill();
+      ctx.strokeStyle = inkGrad;
+      ctx.lineWidth = 12;
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = inkGrad;
+      ctx.lineWidth = inkType === "kuanzhu" ? 20 : 10;
+      ctx.stroke();
+
+      if (inkType === "zhu") {
+        ctx.beginPath();
+        ctx.arc(rx, ry, rad - 14, 0, Math.PI * 2);
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+
+  // 严格印面裁剪（保证圆印与方印的界格、字形、沙眼严丝合缝）
+  ctx.save();
+  ctx.beginPath();
+  if (isRound) {
+    ctx.arc(rx, ry, rad - 2, 0, Math.PI * 2);
+  } else {
+    ctx.rect(pad, pad, boxW, boxH);
+  }
+  ctx.clip();
+
+  // 5. 十字/田字残损界格
+  if (grid === "cross") {
+    ctx.save();
+    ctx.strokeStyle = inkType === "bai" ? paperTone : inkGrad;
+    ctx.lineWidth = inkType === "bai" ? 4.5 : 3.5;
+    if (bg === "transparent" && inkType === "bai") {
+      ctx.globalCompositeOperation = "destination-out";
+    }
+
+    const startY = isRound ? ry - rad + 8 : pad + 15;
+    const endY = isRound ? ry + rad - 8 : S - pad - 15;
+    const startX = isRound ? rx - rad + 8 : pad + 15;
+    const endX = isRound ? rx + rad - 8 : S - pad - 15;
+
+    // 垂直界格
+    ctx.beginPath();
+    const cx = S / 2;
+    for (let y = startY; y <= endY; y += 12) {
+      const jx = cx + (rng() - 0.5) * (weathering === "antique" ? 2.0 : 1.0);
+      if (y === startY) ctx.moveTo(jx, y);
+      else ctx.lineTo(jx, y);
+    }
+    ctx.stroke();
+
+    // 水平界格
+    ctx.beginPath();
+    const cy = S / 2;
+    for (let x = startX; x <= endX; x += 12) {
+      const jy = cy + (rng() - 0.5) * (weathering === "antique" ? 2.0 : 1.0);
+      if (x === startX) ctx.moveTo(x, jy);
+      else ctx.lineTo(x, jy);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 6. 印文绘制（运用古字字库与微刀刻抖动）
+  ctx.save();
+  const fontFace = getSealFontStack(fontStyle);
+  const fontSize = isRound ? 98 : 116;
+  ctx.font = `bold ${fontSize}px ${fontFace}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
-  // 右上
-  ctx.fillText(c1, S * 0.73, S * 0.30);
-  // 右下
-  ctx.fillText(c2, S * 0.73, S * 0.72);
-  // 左上
-  ctx.fillText(c3, S * 0.28, S * 0.30);
-  // 左下
-  ctx.fillText(c4, S * 0.28, S * 0.72);
+  const textColor = inkType === "bai" ? paperTone : inkGrad;
+  if (bg === "transparent" && inkType === "bai") {
+    ctx.globalCompositeOperation = "destination-out";
+  }
+  ctx.fillStyle = textColor;
+
+  // 四字传统汉印坐标（圆印自然聚拢）
+  const offX = isRound ? 0.20 : 0.23;
+  const offY = isRound ? 0.21 : 0.22;
+  const pos = [
+    { char: c1, x: rx + S * offX, y: ry - S * offY }, // 右上
+    { char: c2, x: rx + S * offX, y: ry + S * offY }, // 右下
+    { char: c3, x: rx - S * offX, y: ry - S * offY }, // 左上
+    { char: c4, x: rx - S * offX, y: ry + S * offY }, // 左下
+  ];
+
+  pos.forEach(p => {
+    ctx.fillText(p.char, p.x, p.y);
+    if (weathering === "antique") {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.fillText(p.char, p.x + (rng() - 0.5) * 1.5, p.y + (rng() - 0.5) * 1.5);
+      ctx.restore();
+    }
+  });
+  ctx.restore();
+
+  // 7. 印面沙眼、气孔、崩口与飞白 (Micro Pitting & Stone Flaking)
+  ctx.save();
+  const pitColor = inkType === "bai" ? paperTone : "rgba(160, 20, 20, 0.25)";
+  if (bg === "transparent" && inkType === "bai") {
+    ctx.globalCompositeOperation = "destination-out";
+  }
+  ctx.fillStyle = pitColor;
+
+  const pitCount = weathering === "antique" ? 160 : 70;
+  for (let i = 0; i < pitCount; i++) {
+    const px = pad + 10 + rng() * (boxW - 20);
+    const py = pad + 10 + rng() * (boxH - 20);
+    const pr = 0.5 + rng() * (weathering === "antique" ? 2.2 : 1.2);
+    ctx.beginPath();
+    ctx.ellipse(px, py, pr, pr * (0.6 + rng() * 0.8), rng() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 金石崩角与刀刻断痕 (3-6 处小崩口)
+  if (weathering === "antique") {
+    for (let i = 0; i < 5; i++) {
+      const bx = pad + rng() * boxW;
+      const by = pad + (rng() > 0.5 ? 0 : boxH);
+      const br = 2.5 + rng() * 4.5;
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // 结束裁剪
+  ctx.restore();
+
+  // 8. 宣纸钤印立体压痕光影 (Emboss/Deboss Edge Impression)
+  if (bg === "paper") {
+    ctx.save();
+    if (isRound) {
+      ctx.beginPath();
+      ctx.arc(rx, ry, rad + 1.5, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.45)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(rx, ry, rad + 1.5, 0.25 * Math.PI, 0.95 * Math.PI);
+      ctx.strokeStyle = "rgba(120, 100, 80, 0.25)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.rect(pad - 2, pad - 2, boxW + 4, boxH + 4);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.45)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(pad - 2, pad + boxH + 3);
+      ctx.lineTo(pad + boxW + 3, pad + boxH + 3);
+      ctx.lineTo(pad + boxW + 3, pad - 2);
+      ctx.strokeStyle = "rgba(120, 100, 80, 0.25)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 }
 
 function downloadSeal() {
   const c = document.getElementById("sealCanvas");
   if (!c) return;
   const link = document.createElement("a");
-  link.download = `${(state.currentName ? state.currentName.name : '小星主')}_金石印鉴.png`;
+  const sealStyleName = state.seal && state.seal.ink === "zhu" ? "元朱文" : "汉印白文";
+  link.download = `${(state.currentName ? state.currentName.name : '小星主')}_金石印鉴_${sealStyleName}.png`;
   link.href = c.toDataURL("image/png");
   link.click();
+}
+
+async function copySealImage() {
+  const c = document.getElementById("sealCanvas");
+  if (!c) return;
+  try {
+    c.toBlob(async (blob) => {
+      if (!blob) return;
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        alert("✦ 印鉴已复制到剪贴板，可直接粘贴分享！");
+      } else {
+        downloadSeal();
+      }
+    }, 'image/png');
+  } catch (e) {
+    downloadSeal();
+  }
 }
 
 /* ---------- 典藏命书绘卷海报生成器 ---------- */
