@@ -100,6 +100,26 @@ DIRTY_CHARS = set('傻滚操屁屎尿疯贱婊')
 # 高频用字（重名近似：含其一则重名概率偏高）
 HIGH_FREQ = set('伟芳娜秀英华建国婷浩鑫梓涵轩宇睿欣怡晨子凡一')
 
+# 经典优雅好名人名常用字（即使在次常用字表中，也是大众普遍认知并喜爱的雅字）
+CLASSIC_ELEGANT_CHARS = set(
+    '睿霖玥芷芸汐岚沅忻妍妤苒昊昕昀炜泱翊曦璟琛斐恺烨煊煜琪琦瑾璇瑶璞'
+    '蔚蓓薇蘅霁霆韬骞骐骏骥鸿鹏鹤鸢逸邈遐韶韵靖颂颐颍颖颢颉颜煦澈淳溯'
+    '澜涵沐沛潇漪瀚晟昱晁暄曜晗昭晔淼宸恪恂恒憬恬悠楚漫锦宛瑶翎芃曈'
+)
+
+# 负面偏向字/古旧冷僻字黑名单（单字在现代语境容易产生不雅联想或字形过于怪异）
+OBSCURE_BLACKLIST = set(
+    '岌恤豹茀蔹鹡溠漷灈崿湑瓀瀍峃崀涢溇濋茳芣茝蒄薿鹢霅暿璒瑂瑑琲峂岍苧苾玿荭昫昡洺浐宬珒'
+    '瓘巉雱珙芄茇苕茔荦莛莅菥菅葭葳蕻薤蟏骝骘悍崖菩鸯鸳鹉'
+)
+
+_CHAR_RANK = None
+def char_rank(c):
+    global _CHAR_RANK
+    if _CHAR_RANK is None:
+        _CHAR_RANK = {k: i for i, k in enumerate(chars().keys())}
+    return _CHAR_RANK.get(c, 9999)
+
 # ---------- 负面意象 / 不良组合兜底（运行时零 AI） ----------
 # 单字即不宜作名的负面字根（已审核剔除，此处运行时再兜底拦截）
 NEG_ROOT = set('死亡病残凶灾煞鬼棺坟丧哭悲愁苦孤寡奴囚哑瞎瘸癫瘟毒淫贱蠢笨愚邪妖魔厉殃劫祸夭衰痴厄凄怼怨嫉哀')
@@ -140,7 +160,8 @@ def good():
     global _GOOD
     if _GOOD is None:
         with open(os.path.join(DATA, 'good_chars.json'), encoding='utf-8') as f:
-            _GOOD = json.load(f)
+            raw = json.load(f)
+        _GOOD = [it for it in raw if it['c'] not in OBSCURE_BLACKLIST]
     return _GOOD
 
 _ALLUSIONS = None
@@ -399,7 +420,7 @@ def score_wuxing(wx_list, need, has_birth, s_wx=None, diao_hou=None):
     sup = set(need or []) | set(diao_hou or [])   # 旺衰喜用 ∪ 调候，合并为「宜补」集合
     matched = sum(1 for w in seq if w in sup)
     ratio = matched / total if total else 0
-    s = 44 + 52 * ratio                      # 全补→96，半补→70，无补→44（平滑）
+    s = 64 + 32 * ratio                      # 平滑五行极值，不过于纠结玄学：全补→96，半补→80，无补→64
     if sup and all(any(w == e for w in seq) for e in sup):
         s = min(96, s + 4)                    # 宜补元素逐一被覆盖，再嘉 4
     return max(44, min(96, round(s)))
@@ -615,10 +636,15 @@ GRID_SCORE = {
 }
 def _grid_num(n):
     if n <= 0:
-        return 60
+        return 72
     if n > 81:
         n = ((n - 1) % 81) + 1
-    return GRID_SCORE.get(n, 70)
+    raw = GRID_SCORE.get(n, 70)
+    # 平滑数理评分：大吉98，吉86，半吉78，平/需调和68（不过度纠结笔画玄学，以好看好读为准）
+    if raw >= 95: return 98
+    if raw >= 75: return 86
+    if raw >= 55: return 78
+    return 68
 
 # 五格传统角色：人格主运（一生核心）、总格后运（中晚年）、地格前运（青年/家庭）、天格祖运、外格副运（社交）
 GRID_ROLE = {'天格': '祖运', '人格': '主运', '地格': '前运', '总格': '后运', '外格': '副运'}
@@ -1104,6 +1130,26 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
     # —— 负面意象 / 组合兜底降权（不耗 AI）——
     bi_pen, bi_hits = bad_imagery_penalty(given_chars, given_it)
     total = total - bi_pen
+
+    # —— 好读度与生冷僻字降权算法（以好看好读为准，不过度纠结玄学）——
+    obs_pen = 0.0
+    for c in given_chars:
+        r = char_rank(c)
+        if r >= 6500 and c not in CLASSIC_ELEGANT_CHARS:
+            obs_pen += 8.0   # 三级生冷罕用字
+        elif r >= 5000 and c not in CLASSIC_ELEGANT_CHARS:
+            obs_pen += 4.0   # 次常用偏冷字
+        elif r >= 3500 and c not in CLASSIC_ELEGANT_CHARS:
+            obs_pen += 1.5   # 一般次常用字
+    if any(c not in CLASSIC_ELEGANT_CHARS and char_rank(c) >= 5000 for c in given_chars) and len(given_chars) >= 2:
+        if all(char_rank(c) >= 3500 for c in given_chars):
+            obs_pen += 5.0   # 全名两字皆非日常字加罚
+
+    common_bonus = 0.0
+    if all(char_rank(c) < 3500 or c in CLASSIC_ELEGANT_CHARS for c in given_chars):
+        common_bonus = 2.5   # 全常用好读字加分
+
+    total = total - obs_pen + common_bonus
     name = surname + ''.join(given_chars)
     o = {
         'name': name, 'surname': surname, 'given': ''.join(given_chars),
@@ -1119,6 +1165,7 @@ def _build_name(surname, given_chars, given_info, given_it, gender, birth, need,
         'homophone_score': hph,
         'nickname_penalty': np_pen, 'nickname_hits': np_hits,
         'bad_imagery_penalty': bi_pen, 'bad_imagery_hits': bi_hits,
+        'obscurity_penalty': obs_pen, 'common_bonus': common_bonus,
     }
     o['tone_note'] = _tone_phrase(o)
     # 字义典籍出处：收集名中每个有出处的字
@@ -1248,15 +1295,28 @@ def generate(father, mother, mode, name_len, gender, birth, tags, avoid, topn=12
     rng = random.Random(seed) if seed is not None else random.Random()
 
     def base(it, info):
+        c = it['c']
+        r = char_rank(c)
         s = 70.0
+        # 好看好读为准：常用字加权，冷僻字大幅度降权
+        if r < 3500:
+            s += 14.0   # 国家一级常用字：核心加权，优先进入备选池
+        elif c in CLASSIC_ELEGANT_CHARS:
+            s += 10.0   # 经典好听次常用雅字：同样优先
+        elif r < 5000:
+            s += 0.0
+        elif r < 6500:
+            s -= 14.0   # 偏冷字：降低入选前40机率
+        else:
+            s -= 35.0   # 三级生僻罕用字：强力降权
+
         if query_tags and (set(it['t']) & query_tags):
             s += 20.0
         if gender in ('M', 'F') and it['g'] == gender:
             s += 10.0
         if has_birth and info['wx'] in need:
             s += 12.0
-        # 引入基于 rng 的微扰（±3.5），打破同分字的稳定偏好，让字库中大量同分好字均有机会露出
-        s += rng.uniform(-3.5, 3.5)
+        s += rng.uniform(-3.0, 3.0)
         return s
     ranked = sorted(pool, key=lambda x: base(x[1], x[2]), reverse=True)
     top = _diverse_top(ranked, 40, rng=rng)          # 分层采样替代「取前 40」，候选不再同质
