@@ -306,15 +306,27 @@
   }
 
 
-  /* 意境标签选择与自由期许 */
-  .tagGrid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0 6px;max-height:160px;overflow-y:auto}
-  .tagChip{border:1px solid var(--panel-line);background:rgba(255,255,255,.65);border-radius:18px;
-    padding:6px 14px;font-size:13.5px;color:var(--ink);cursor:pointer;transition:all .18s;user-select:none}
+  /* 意境标签与期许场景自适应流式布局，彻底根除与上下层重叠 */
+  .scene--tags{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:0 12px max(14px,env(safe-area-inset-bottom));overflow-y:auto}
+  .scene--tags .bLayer{position:relative;bottom:auto;left:auto;right:auto;margin-bottom:8px;flex-shrink:0}
+  .scene--tags .bLayer .bubble{padding:9px 13px 10px;font-size:13.5px;line-height:1.52}
+  .scene--tags .bLayer .bubble::before{display:none} /* 紧凑状态去掉上箭头避免重叠 */
+  .scene--tags .cLayer{position:relative;bottom:auto;left:auto;right:auto}
+  .tagCard{background:var(--panel);border:1px solid var(--panel-line);border-radius:var(--radius);
+    padding:9px 11px;backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(70,50,100,.14)}
+  .tagGrid{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin:0 0 5px}
+  .tagChip{border:1px solid var(--panel-line);background:rgba(255,255,255,.65);border-radius:14px;
+    padding:4px 9px;font-size:12px;color:var(--ink);cursor:pointer;transition:all .15s;user-select:none}
   .tagChip.sel{background:linear-gradient(160deg,var(--accent),var(--accent2));color:#fff;
-    border-color:var(--accent);box-shadow:0 3px 10px var(--glow);transform:scale(1.04)}
-  .tagInput{width:100%;border:1px solid var(--panel-line);border-radius:12px;padding:10px 14px;
-    font-size:13.5px;background:rgba(255,255,255,.75);color:var(--ink);margin-top:10px;text-align:center;outline:none}
-  .tagInput:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
+    border-color:transparent;box-shadow:0 2px 7px var(--glow);transform:scale(1.03)}
+  .tagInput{width:100%;border:1px solid var(--panel-line);border-radius:9px;padding:7px 11px;
+    font-size:12.5px;background:rgba(255,255,255,.8);color:var(--ink);margin:2px 0 6px;text-align:center;outline:none}
+  .tagInput:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--glow)}
+  .tagBtnRow{display:flex;gap:7px}
+  .tagBtnRow .btn{margin-top:0;padding:8px 6px;font-size:13px;border-radius:10px}
+  .tagBtnRow .skip{flex:1;background:rgba(255,255,255,.55)}
+  .tagBtnRow .tagOkBtn{flex:1.4}
 
   /* 结果木牌 */
   #result{position:absolute;top:0;bottom:0;left:0;right:0;z-index:5;overflow-y:auto;
@@ -914,11 +926,14 @@ function fetchBazi(){
 
 function renderScene(sc){
   $("#step").textContent = sc.step || "";
-  sceneEl.classList.toggle("scene--fixed", sc.kind==="talk"||sc.kind==="ask"||sc.kind==="branch"||sc.kind==="carousel");
+  const isTags = sc.ask && sc.ask.widget === "tags";
+  sceneEl.classList.toggle("scene--tags", isTags);
+  sceneEl.classList.toggle("scene--fixed", !isTags && (sc.kind==="talk"||sc.kind==="ask"||sc.kind==="branch"||sc.kind==="carousel"));
   sceneEl.classList.toggle("scene--summary", sc.kind==="summary");
-  /* 立绘位置/尺寸：汇总表时星师抬到上方并缩小，其余场景用默认（#1/#2） */
+  /* 立绘位置/尺寸：汇总表与意象场景抬高立绘并略缩小，其余场景用默认 */
   const _rd = document.documentElement.style;
   if(sc.kind==="summary"){ _rd.setProperty("--actor-bottom","66%"); _rd.setProperty("--actor-h","26vh"); _rd.setProperty("--actor-max","220px"); }
+  else if(isTags){ _rd.setProperty("--actor-bottom","52%"); _rd.setProperty("--actor-h","30vh"); _rd.setProperty("--actor-max","240px"); }
   else if(sc.kind==="ask"){ _rd.setProperty("--actor-bottom","44%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
   else if(sc.kind!=="ritual"){ _rd.setProperty("--actor-bottom","38%"); _rd.setProperty("--actor-h","42vh"); _rd.setProperty("--actor-max","360px"); }
   /* 登场门控：内容(气泡/输入)待立绘登场完成后再出现；小助理按场景切换立绘 */
@@ -1028,16 +1043,22 @@ function renderAsk(sc){
       const sel = state.tags.includes(t) ? ' sel' : '';
       return '<span class="tagChip'+sel+'" data-t="'+t+'">'+t+'</span>';
     }).join("");
-    inner = '<div class="tagGrid">'+chips+'</div>'+
-      '<input class="tagInput" data-f="free_text" placeholder="自由期许（可选，如：希望孩子豁达开朗）" value="'+(state.free_text||"").replace(/"/g,'&quot;')+'" maxlength="40" />';
-    extraBtn = '<button class="btn ghost skip">诸师全面权衡（不限寓意）</button>';
+    inner = '<div class="tagCard">' +
+      '<div class="tagGrid">'+chips+'</div>'+
+      '<input class="tagInput" data-f="free_text" placeholder="自由期许（可选，如：希望孩子豁达开朗）" value="'+(state.free_text||"").replace(/"/g,'&quot;')+'" maxlength="40" />'+
+      '<div class="tagBtnRow">'+
+        '<button class="btn ghost skip" type="button">诸师兼顾（跳过）</button>'+
+        '<button class="btn prim tagOkBtn" type="button">确认意象 · 继续</button>'+
+      '</div></div>';
   } else if(a.widget==="teacher"){
     inner = '<div class="teacherGrid">'+TEACHER_PICK.map(t=>'<button class="tcard" data-v="'+t.v+'"><span class="tn">'+t.name+'</span><span class="td">'+t.dim+'</span></button>').join("")+'</div>';
   } else {
     inner = '<div class="fields-row">'+fields.map(f=>'<div class="field"><label>'+f.label+'</label><input data-f="'+f.field+'" placeholder="'+f.ph+'" value="'+((state[f.field]||"").toString().replace(/"/g,'&quot;'))+'" maxlength="4" style="text-align:center" /></div>').join('')+'</div>';
   }
-  transitionTo('<div class="bLayer"><div class="bubble"><span class="who">'+CHAR[sc.actor].name+'</span><p class="tw-line"></p></div></div>'+
-    '<div class="cLayer">'+inner+(extraBtn?extraBtn:'')+'<button class="btn" disabled>继 续</button></div>', ()=>{
+  const cLayerContent = (a.widget==="tags")
+    ? '<div class="cLayer">'+inner+'</div>'
+    : '<div class="cLayer">'+inner+(extraBtn?extraBtn:'')+'<button class="btn" disabled>继 续</button></div>';
+  transitionTo('<div class="bLayer"><div class="bubble"><span class="who">'+CHAR[sc.actor].name+'</span><p class="tw-line"></p></div></div>'+cLayerContent, ()=>{
     const p = sceneEl.querySelector(".tw-line");
     const btn = sceneEl.querySelector(".cLayer .btn:not(.skip)");
     const revealContent = ()=>{
@@ -1080,7 +1101,6 @@ function renderAsk(sc){
         btn.onclick = ()=>{ go(_returnTarget()); };
         typeText(p, line, 35);
       } else if(a.widget==="tags"){
-        btn.disabled = false;
         sceneEl.querySelectorAll(".tagChip").forEach(c=>{
           c.onclick = ()=>{
             const t = c.dataset.t;
@@ -1093,11 +1113,12 @@ function renderAsk(sc){
           };
         });
         const inp = sceneEl.querySelector(".tagInput");
-        btn.onclick = ()=>{
+        const okBtn = sceneEl.querySelector(".tagOkBtn");
+        if(okBtn) okBtn.onclick = ()=>{
           if(inp) state.free_text = inp.value.trim();
           proceed(sc);
         };
-        const skip = sceneEl.querySelector(".cLayer .skip");
+        const skip = sceneEl.querySelector(".skip");
         if(skip) skip.onclick = ()=>{
           state.tags = [];
           state.free_text = "";
